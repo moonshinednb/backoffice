@@ -457,7 +457,7 @@ const D: Record<string, string> = {
   'Deze campagne wordt nu verstuurd.': 'This campaign is being sent now.',
   'Dit Excel-bestand kon niet worden gelezen.': 'This Excel file could not be read.',
   'Gebruik een Excel-bestand (.xlsx).': 'Use an Excel file (.xlsx).',
-  'Zoek naam, e-mail of handle': 'Search name, email or handle', 'Versturen (': 'Send (', 'Promotekst (': 'Promo text (', 'Korte pitch over de release': 'Short pitch about the release', 'https://… (privé SoundCloud, Spotify, Dropbox)': 'https://… (private SoundCloud, Spotify, Dropbox)', 'Jouw naam onder de mail': 'Your name under the email',
+  'Zoek naam, e-mail of handle': 'Search name, email or handle', 'Versturen (': 'Send (', 'Promotekst (': 'Promo text (', 'Korte pitch over de release': 'Short pitch about the release', 'https://… (privé SoundCloud, Spotify, Dropbox)': 'https://… (private SoundCloud, Spotify, Dropbox)',
   // Server messages
   'Geen verbinding met de server. Controleer of Tailscale aan staat.': 'No connection to the server. Check that Tailscale is on.',
   'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.': 'Your session expired or the page is outdated. Refresh the page and try again.',
