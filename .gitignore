@@ -6,3 +6,4 @@ __pycache__/
 *.tgz
 vendor-source/
 *.log
+graphify-out/cache/
