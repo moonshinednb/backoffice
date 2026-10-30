@@ -1,0 +1,13 @@
+services:
+  backoffice:
+    build: .
+    container_name: moonshine-backoffice
+    restart: unless-stopped
+    user: "${APP_UID:-1000}:${APP_GID:-1000}"
+    environment:
+      MOONSHINE_SECURE_COOKIE: "${MOONSHINE_SECURE_COOKIE:-0}"
+      MOONSHINE_WORKER: "1"
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:8096:8765"
+    volumes:
+      - "${DATA_DIR:-./data}:/data"
