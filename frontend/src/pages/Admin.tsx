@@ -247,3 +247,44 @@ export function SettingsPage() {
     {auto ? <ConfigDialog provider="automation" onClose={() => setAuto(false)} /> : null}
   </>;
 }
+
+/* --- Sleutels ------------------------------------------------------------------------ */
+
+const KEYS: [string, string, string][] = [
+  ['odoo_api_key', 'Odoo API-sleutel', 'Boekhouding'], ['anthropic_api_key', 'Anthropic API-sleutel', 'Facturen uitlezen met Claude'],
+  ['microsoft_client_secret', 'Microsoft client secret', 'Outlook, OneDrive en To Do'], ['microsoft_refresh_token', 'Microsoft refresh-token', 'Gedelegeerde toegang'],
+  ['microsoft_access_token', 'Microsoft access-token', 'Tijdelijk, optioneel'], ['bank_webhook_secret', 'Bank-webhooksleutel', 'ING / SumUp-aanvoer'],
+  ['mail_webhook_secret', 'Mail-webhooksleutel', 'Outlook-notificaties'], ['labelgrid_api_key', 'LabelGrid API-sleutel', 'Royalties'],
+  ['opensign_api_key', 'OpenSign API-sleutel', 'Contracten'], ['opensign_webhook_secret', 'OpenSign webhooksleutel', 'Ondertekenstatus'],
+];
+
+/** All API keys in one place. Values are stored only on the server
+    (secrets.json in the data folder) and are never sent back to the browser. */
+export function KeysPage() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [edit, setEdit] = useState<[string, string, string] | null>(null);
+  const q = useQuery({ queryKey: ['settings'], queryFn: () => api<Settings>('/settings') });
+  if (q.isPending) return <Loading />;
+  if (q.error) return <ErrorBox error={q.error} />;
+  const set = new Set(q.data.configured_secrets);
+  async function save(key: string, value: string | null) {
+    await api('/settings', { method: 'POST', body: { settings: {}, secrets: { [key]: value } } });
+    ['settings', 'connections', 'dashboard'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+  }
+  return <>
+    <PageTitle title="Sleutels" sub="API-sleutels en tokens van alle koppelingen" />
+    <div className="notice"><Icon name="lock" /> Sleutels worden alleen op de server bewaard. Na het opslaan zijn ze hier niet meer te zien; je kunt ze alleen vervangen of verwijderen.</div>
+    <section className="card"><div className="table-wrap"><table><thead><tr><th>Sleutel</th><th>Gebruikt voor</th><th>Status</th><th /></tr></thead><tbody>
+      {KEYS.map((k) => <tr key={k[0]}><td><strong>{k[1]}</strong></td><td>{k[2]}</td><td>{set.has(k[0]) ? <Badge color="lime">Ingesteld</Badge> : <Badge>Niet ingesteld</Badge>}</td>
+        <td className="row-tools"><button className="small" onClick={() => setEdit(k)}>{set.has(k[0]) ? 'Vervangen' : 'Instellen'}</button>
+          {set.has(k[0]) ? <button className="small ghost" onClick={async () => { if (!confirm(`${k[1]} verwijderen? De koppeling stopt dan.`)) return; try { await save(k[0], null); toast('Sleutel verwijderd.'); } catch (e) { toast((e as Error).message, true); } }}>Verwijderen</button> : null}</td></tr>)}
+    </tbody></table></div></section>
+    <FormDialog id="key-form" title={edit ? edit[1] : ''} open={!!edit} onClose={() => setEdit(null)} submit={async (form) => {
+      const v = (formValues(form).value || '').trim();
+      if (!v) throw new Error('Vul een waarde in.');
+      await save(edit![0], v); toast('Sleutel opgeslagen.'); setEdit(null);
+    }}><div className="field"><label htmlFor="key-value">Nieuwe waarde</label><input id="key-value" name="value" type="password" autoComplete="new-password" required /></div>
+      <p className="helper">Na opslaan test je de koppeling opnieuw onder Koppelingen.</p></FormDialog>
+  </>;
+}

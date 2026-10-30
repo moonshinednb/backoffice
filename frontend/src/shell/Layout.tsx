@@ -15,7 +15,7 @@ export function sections(role: string): [string, Item[]][] {
     ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/taken', 'Taken', 'tasks']]],
     ['Productie', [['/evenementen', 'Evenementen', 'calendar'], ['/artiesten', 'Artiesten', 'user'], ['/label', 'Label', 'music']]],
     ['Financiën', [['/facturen', 'Facturen', 'invoice'], ['/odoo', 'Odoo-administratie', 'bank'], ['/bank', 'Bank & pin', 'wallet'], ['/btw', 'Btw-overzicht', 'tax'], ['/documenten', 'Documenten', 'folder']]],
-    ['Beheer', [['/koppelingen', 'Koppelingen', 'plug'], ['/gebruikers', 'Gebruikers', 'users'], ['/instellingen', 'Instellingen', 'settings']]],
+    ['Beheer', [['/koppelingen', 'Koppelingen', 'plug'], ['/gebruikers', 'Gebruikers', 'users'], ['/sleutels', 'Sleutels', 'lock'], ['/instellingen', 'Instellingen', 'settings']]],
   ];
   return all.filter(([name]) => !(name === 'Financiën' && role === 'production') && !(name === 'Beheer' && role !== 'admin'));
 }
