@@ -38,7 +38,7 @@ def forgot(request):
     token = secrets.token_urlsafe(32)
     PasswordReset.objects.create(token_hash=digest(token), user=user, expires=timezone.now() + VALID)
     base = (settings().get('public_url') or request.build_absolute_uri('/')).rstrip('/')
-    link = f'{base}/wachtwoord-herstellen?token={token}'
+    link = f'{base}/reset-password?token={token}'
     name = html.escape(user.display_name)
     try:
         from integrations.resend import send_email

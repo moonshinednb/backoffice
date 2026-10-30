@@ -147,7 +147,7 @@ export function OdooPage() {
   const q = useOdoo();
   const money = (v: number, cur: string) => { try { return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: cur }).format(v || 0); } catch { return (v || 0) + ' ' + cur; } };
   const admin = user?.role === 'admin';
-  const title = <PageTitle title="Odoo-administratie" sub="Live gegevens uit jouw Odoo-account" actions={<><button onClick={() => q.refetch()} disabled={q.isFetching}><Icon name="refresh" /> Vernieuwen</button>{admin ? <Link className="button" to="/beheer/koppelingen?config=odoo">Koppeling instellen</Link> : null}</>} />;
+  const title = <PageTitle title="Odoo-administratie" sub="Live gegevens uit jouw Odoo-account" actions={<><button onClick={() => q.refetch()} disabled={q.isFetching}><Icon name="refresh" /> Vernieuwen</button>{admin ? <Link className="button" to="/admin/koppelingen?config=odoo">Koppeling instellen</Link> : null}</>} />;
   if (q.isPending || (q.isFetching && !q.data)) return <>{title}<Loading text="Odoo-administratie ophalen…" state="searching" /></>;
   if (q.error) return <>{title}<ErrorBox error={q.error} /><p className="helper">Controleer de koppeling onder Koppelingen en probeer opnieuw.</p></>;
   const r = q.data, c = r.catalog, m = r.mapping;
@@ -168,7 +168,7 @@ export function OdooPage() {
     <section className="card card-pad section-gap"><h2>Boeken vanuit Moonshine</h2>
       <div className="odoo-mapping"><div><span>Inkoopdagboek</span><strong>{journal?.name || 'Nog kiezen'}</strong></div><div><span>Kostenrekening</span><strong>{account ? account.code + ' · ' + account.name : 'Nog kiezen'}</strong></div><div><span>Btw-mapping</span><strong>{taxes} codes ingesteld</strong></div></div>
       <p className="helper">{journal && account && taxes ? 'De boekingsinstellingen zijn ingevuld. Controleer ze vóór je een factuur boekt.' : 'De verbinding werkt; kies nog het inkoopdagboek, de kostenrekening en btw-codes om vanuit Moonshine te boeken.'}</p>
-      {admin ? <Link className="button" to="/beheer/koppelingen?config=odoo">Boekingsinstellingen</Link> : null}</section>
+      {admin ? <Link className="button" to="/admin/koppelingen?config=odoo">Boekingsinstellingen</Link> : null}</section>
     <details className="card card-pad section-gap"><summary>Beschikbare dagboeken en btw-codes</summary><div className="odoo-catalog">
       <div><h3>Dagboeken</h3>{c.journals.map((j) => <p key={j.id}>{j.name} <span className="helper">· ID {j.id} · {j.type === 'purchase' ? 'Inkoop' : 'Bank'}</span></p>)}</div>
       <div><h3>Inkoop-btw</h3>{c.taxes.map((t) => <p key={t.id}>{t.name} <span className="helper">· ID {t.id}</span></p>)}</div></div></details>
@@ -257,10 +257,10 @@ const BOXES = [['1a', 'Omzet · hoog tarief'], ['1b', 'Omzet · laag tarief'], [
 export function VatPage() {
   const [params, setParams] = useSearchParams();
   const now = new Date();
-  const y = +(params.get('jaar') || now.getFullYear());
-  const qn = +(params.get('kwartaal') || Math.floor(now.getMonth() / 3) + 1);
+  const y = +(params.get('year') || now.getFullYear());
+  const qn = +(params.get('quarter') || Math.floor(now.getMonth() / 3) + 1);
   const q = useQuery({ queryKey: ['vat', y, qn], queryFn: () => api<Vat>(`/vat?year=${y}&quarter=${qn}`) });
-  const set = (yy: number, qq: number) => setParams({ jaar: String(yy), kwartaal: String(qq) }, { replace: true });
+  const set = (yy: number, qq: number) => setParams({ year: String(yy), quarter: String(qq) }, { replace: true });
   function exportCsv() {
     const r = q.data;
     if (!r) return;

@@ -9,6 +9,13 @@ def test_connection(provider):
     if provider == 'resend':
         from .resend import check
         return check()
+    if provider == 'sumup':
+        from .http import http
+        key = secret_values().get('sumup_api_key')
+        if not key:
+            raise ValueError('SumUp API-sleutel ontbreekt.')
+        me = http('https://api.sumup.com/v0.1/me', headers={'Authorization': 'Bearer ' + key})
+        return {'message': 'SumUp-account geverifieerd', 'data': {'account': (me.get('merchant_profile') or {}).get('company_name') or me.get('account', {}).get('username', '')}}
     if provider == 'odoo':
         from .odoo import Odoo, odoo_catalog
         return {'message': 'Odoo-account geverifieerd', 'data': odoo_catalog(Odoo())}

@@ -27,7 +27,7 @@ export function Artists() {
       <div className="card-head"><div className="search-field"><label className="visually-hidden" htmlFor="artist-search">Zoek artiest</label><input id="artist-search" type="search" placeholder="Zoek op naam, agent of agency" value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
       <div className="table-wrap"><table className="artists-table"><thead><tr><th>Artiest</th><th>Agent</th><th>Rider</th><th>EPK</th><th>Optredens</th><th aria-label="Openen" /></tr></thead><tbody>
         {rows.map((a) => {
-          const go = () => navigate(`/artiesten/${a.id}`);
+          const go = () => navigate(`/artists/${a.id}`);
           return <tr key={a.id} className="clickable" tabIndex={0} onClick={go} onKeyDown={(k) => k.key === 'Enter' && go()}>
             <td><div className="event-name"><strong>{a.name}</strong><small>{a.full_name || 'Volledige naam ontbreekt'}</small></div></td>
             <td>{[a.agent, a.agency].filter(Boolean).join(' · ') || '—'}</td>
@@ -42,7 +42,7 @@ export function Artists() {
     <FormDialog id="artist-new-form" title="Nieuwe artiest" open={open} onClose={() => setOpen(false)} label="Aanmaken" submit={async (form) => {
       const artist = await api<{ id: string }>('/artists', { method: 'POST', body: formValues(form) });
       setOpen(false);
-      navigate(`/artiesten/${artist.id}`);
+      navigate(`/artists/${artist.id}`);
     }}><div className="field"><label htmlFor="na-name">Artiestennaam *</label><input id="na-name" name="name" required /></div></FormDialog>
   </>;
 }
@@ -82,9 +82,9 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
   const { setDirty, track, isDirty } = useDirty();
   const q = useQuery({ queryKey: ['artist', id], queryFn: () => api<Artist>(`/artists/${id}`) });
   if (q.isPending) return <Loading />;
-  if (q.error) return <><BackLink to="/evenementen/artiesten">Alle artiesten</BackLink><ErrorBox error={q.error} /></>;
+  if (q.error) return <><BackLink to="/events/artiesten">Alle artiesten</BackLink><ErrorBox error={q.error} /></>;
   const a = q.data;
-  const base = `/artiesten/${a.id}`;
+  const base = `/artists/${a.id}`;
   const reload = () => qc.invalidateQueries({ queryKey: ['artist', id] });
   const form = tab === 'info' ? 'artist-form' : tab === 'tech' || tab === 'hospitality' ? 'rider-form' : '';
   async function save(f: HTMLFormElement, quiet = false) {
@@ -100,17 +100,17 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
   const autosave = async () => { const f = form && document.getElementById(form) as HTMLFormElement | null; if (f && isDirty()) await save(f, true); };
   const submit = (ev: React.FormEvent<HTMLFormElement>) => { ev.preventDefault(); const f = ev.currentTarget; run(() => save(f)); };
   return <>
-    <BackLink to="/evenementen/artiesten">Alle artiesten</BackLink>
+    <BackLink to="/events/artiesten">Alle artiesten</BackLink>
     <PageTitle eyebrow="Artiest" title={a.name} sub={[a.full_name, a.agency].filter(Boolean).join(' · ') || 'Profiel'}
       actions={<>{tab === 'tech' || tab === 'hospitality' ? <button className="ghost" onClick={() => run(async () => { await autosave(); await download(`/artists/${a.id}/rider.pdf?kind=${tab}`); })}><Icon name="pdf" /> PDF</button> : null}
         {edit && form ? <button className="primary" type="submit" form={form}>Opslaan</button> : null}</>} />
     <Tabs items={[{ to: base, label: 'Gegevens' }, { to: base + '/tech', label: 'Technical rider' }, { to: base + '/hospitality', label: 'Hospitality rider' },
-      { to: base + '/bestanden', label: <>Bestanden <span className="count">{a.assets.length}</span></> }, { to: base + '/optredens', label: <>Optredens <span className="count">{a.bookings.length}</span></> }]} />
+      { to: base + '/files', label: <>Bestanden <span className="count">{a.assets.length}</span></> }, { to: base + '/shows', label: <>Optredens <span className="count">{a.bookings.length}</span></> }]} />
     {tab === 'tech' || tab === 'hospitality' ? <Rider key={tab} a={a} tab={tab} track={track} submit={submit} reload={reload} before={autosave} setDirty={setDirty} />
       : tab === 'files' ? <section className="card card-pad"><h2>Bestanden van {a.name}</h2><p className="helper">Riders, EPK, logo’s, persfoto’s en video’s. Lokaal bewaard en, als de koppeling aan staat, in OneDrive onder Artiesten/{a.name}.</p>
         <div className="asset-columns"><AssetGroups ownerType="artist" ownerId={a.id} assets={a.assets} kinds={['tech_rider', 'hospitality_rider', 'rider', 'epk', 'logo', 'press_photo', 'press_video', 'bio', 'visual', 'contract', 'other']} onChange={reload} /></div></section>
         : tab === 'shows' ? <section className="card">{a.bookings.length ? <div className="table-wrap"><table className="shows-table"><thead><tr><th>Datum</th><th>Evenement</th><th>Locatie</th><th>Status</th><th /></tr></thead><tbody>
-          {a.bookings.map((b) => <tr key={b.id} className="clickable" tabIndex={0} onClick={() => navigate(`/evenementen/${b.event_id}/artiest/${b.id}`)} onKeyDown={(k) => k.key === 'Enter' && navigate(`/evenementen/${b.event_id}/artiest/${b.id}`)}>
+          {a.bookings.map((b) => <tr key={b.id} className="clickable" tabIndex={0} onClick={() => navigate(`/events/${b.event_id}/artist/${b.id}`)} onKeyDown={(k) => k.key === 'Enter' && navigate(`/events/${b.event_id}/artist/${b.id}`)}>
             <td>{shortDate(b.event_date)}</td><td><strong>{b.event_name}</strong></td><td>{b.venue}</td>
             <td>{b.status === 'cancelled' ? <Badge>Geannuleerd</Badge> : b.status === 'option' ? <Badge color="amber">Optie</Badge> : <Badge color="lime">Bevestigd</Badge>}</td><td><Icon name="chevron" /></td></tr>)}
         </tbody></table></div> : <Empty title="Nog geen optredens" sub="Zet de artiest op een evenement via Advancing." icon="calendar" />}</section>
@@ -134,7 +134,7 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
               </section>
             </form>
             {edit ? <section className="card card-pad danger-zone"><h2>Artiest verwijderen</h2><p className="helper">Kan alleen als de artiest niet meer op een evenement staat. Bestanden in OneDrive blijven bewaard.</p>
-              <button className="danger" onClick={() => confirm(`${a.name} verwijderen? Alle lokale bestanden van deze artiest worden verwijderd.`) && run(async () => { await api(`/artists/${a.id}`, { method: 'DELETE' }); setDirty(false); qc.invalidateQueries({ queryKey: ['artists'] }); toast('Artiest verwijderd.'); navigate('/evenementen/artiesten'); })}><Icon name="trash" /> Artiest verwijderen</button></section> : null}
+              <button className="danger" onClick={() => confirm(`${a.name} verwijderen? Alle lokale bestanden van deze artiest worden verwijderd.`) && run(async () => { await api(`/artists/${a.id}`, { method: 'DELETE' }); setDirty(false); qc.invalidateQueries({ queryKey: ['artists'] }); toast('Artiest verwijderd.'); navigate('/events/artiesten'); })}><Icon name="trash" /> Artiest verwijderen</button></section> : null}
           </>}
     {form ? <SaveBar form={form} /> : null}
   </>;

@@ -476,6 +476,9 @@ const D: Record<string, string> = {
   'Deze aanbieder leest hier alleen afbeeldingen (JPG/PNG). Kies Gemini of Claude voor PDF’s, of upload een afbeelding.': 'This provider only reads images here (JPG/PNG). Choose Gemini or Claude for PDFs, or upload an image.',
   'De AI gaf geen geldig JSON-antwoord. Probeer opnieuw of kies een ander model.': 'The AI gave no valid JSON answer. Try again or choose another model.',
   'Vul het API-adres van de aanbieder in.': 'Enter the provider’s API address.',
+  'SumUp API-sleutel': 'SumUp API key',
+  'Pinomzet en uitbetalingen': 'Card revenue and payouts',
+  'SumUp API-sleutel ontbreekt.': 'SumUp API key is missing.', 'SumUp-account geverifieerd': 'SumUp account verified',
   // Server messages
   'Geen verbinding met de server. Controleer of Tailscale aan staat.': 'No connection to the server. Check that Tailscale is on.',
   'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.': 'Your session expired or the page is outdated. Refresh the page and try again.',

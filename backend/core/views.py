@@ -23,7 +23,7 @@ SETTING_KEYS = {
     'bank_mode', 'odoo_bank_feed', 'labelgrid_label_id', 'opensign_base', 'opensign_template_id', 'advancing_sender',
     'production_folder', 'production_sync', 'resend_from', 'public_url', 'promo_senders',
 }
-SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'ai_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token',
+SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'ai_api_key', 'sumup_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token',
                'bank_webhook_secret', 'mail_webhook_secret', 'labelgrid_api_key', 'opensign_api_key', 'opensign_webhook_secret', 'resend_api_key'}
 BOOLEANS = ('auto_post', 'auto_match', 'auto_sumup', 'mail_enabled', 'onedrive_enabled', 'todo_enabled', 'odoo_bank_feed', 'production_sync')
 
@@ -310,7 +310,7 @@ def connections():
         ('opensign', 'OpenSign', bool(sv.get('opensign_api_key'))),
         ('resend', 'Resend', bool(sv.get('resend_api_key') and cfg.get('resend_from'))),
         ('ing', 'ING', True),
-        ('sumup', 'SumUp', True),
+        ('sumup', 'SumUp', bool(sv.get('sumup_api_key'))),
     ]
     checks = cfg.get('connection_checks') or {}
     return [{'id': k, 'name': name, 'status': 'verified' if checks.get(k, {}).get('ok') and configured else 'configured' if configured else 'not_connected',

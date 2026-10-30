@@ -37,10 +37,21 @@ function Area({ area }: { area: 'finance' | 'admin' }) {
   return (area === 'admin' ? can.admin(user) : can.finance(user)) ? <Outlet /> : <NoAccess />;
 }
 
+const LEGACY: Record<string, string> = { 'wachtwoord-herstellen': 'reset-password', evenementen: 'events', afgelopen: 'past', artiesten: 'artists', artiest: 'artist', notities: 'notes',
+  gegevens: 'details', vlucht: 'flight', vervoer: 'transport', bestanden: 'files', optredens: 'shows', taken: 'tasks', afrekeningen: 'statements', contacten: 'contacts',
+  facturen: 'invoices', btw: 'vat', documenten: 'documents', koppelingen: 'integrations', sleutels: 'keys', gebruikers: 'users', activiteit: 'activity', instellingen: 'settings', beheer: 'admin' };
+
+/** Old Dutch addresses keep working: translate each part and redirect. */
+function LegacyRedirect() {
+  const parts = location.pathname.split('/').filter(Boolean);
+  const next = '/' + parts.map((p) => LEGACY[p] || p).join('/');
+  return <Navigate to={parts.some((p) => LEGACY[p]) ? next + location.search : '/'} replace />;
+}
+
 /** Login gate: no session → login; temporary password → choose your own first. */
 function Gate() {
   const { user, ready } = useAuth();
-  if (location.pathname === '/wachtwoord-herstellen') return <ResetPassword />;
+  if (location.pathname === '/reset-password') return <ResetPassword />;
   if (!ready) return <div className="loading"><div><Orb state="working" size={64} label="Moonshine openen" />Moonshine openen…</div></div>;
   if (!user) return <Login />;
   if (user.must_change_password) return <div className="forced-password"><PasswordDialog open forced onClose={() => {}} /></div>;
@@ -51,49 +62,49 @@ const router = createBrowserRouter([{
   element: <Gate />,
   children: [
     { index: true, element: <DashboardPage /> },
-    { path: 'taken', element: <TasksPage /> },
-    { path: 'evenementen', element: <Events /> },
-    { path: 'evenementen/afgelopen', element: <Events past /> },
-    { path: 'evenementen/:id', element: <EventPage /> },
-    { path: 'evenementen/:id/timetable', element: <EventPage tab="timetable" /> },
-    { path: 'evenementen/:id/venue', element: <EventPage tab="venue" /> },
-    { path: 'evenementen/:id/notities', element: <EventPage tab="notes" /> },
-    { path: 'evenementen/:id/gegevens', element: <EventPage tab="info" /> },
-    { path: 'evenementen/:id/artiest/:booking', element: <BookingPage /> },
-    { path: 'evenementen/:id/artiest/:booking/vlucht', element: <BookingPage sub="flight" /> },
-    { path: 'evenementen/:id/artiest/:booking/hotel', element: <BookingPage sub="hotel" /> },
-    { path: 'evenementen/:id/artiest/:booking/vervoer', element: <BookingPage sub="ground" /> },
-    { path: 'evenementen/artiesten', element: <Artists /> },
-    { path: 'artiesten', element: <Navigate to="/evenementen/artiesten" replace /> },
-    { path: 'artiesten/:id', element: <ArtistPage /> },
-    { path: 'artiesten/:id/tech', element: <ArtistPage tab="tech" /> },
-    { path: 'artiesten/:id/hospitality', element: <ArtistPage tab="hospitality" /> },
-    { path: 'artiesten/:id/bestanden', element: <ArtistPage tab="files" /> },
-    { path: 'artiesten/:id/optredens', element: <ArtistPage tab="shows" /> },
+    { path: 'tasks', element: <TasksPage /> },
+    { path: 'events', element: <Events /> },
+    { path: 'events/past', element: <Events past /> },
+    { path: 'events/:id', element: <EventPage /> },
+    { path: 'events/:id/timetable', element: <EventPage tab="timetable" /> },
+    { path: 'events/:id/venue', element: <EventPage tab="venue" /> },
+    { path: 'events/:id/notes', element: <EventPage tab="notes" /> },
+    { path: 'events/:id/details', element: <EventPage tab="info" /> },
+    { path: 'events/:id/artist/:booking', element: <BookingPage /> },
+    { path: 'events/:id/artist/:booking/flight', element: <BookingPage sub="flight" /> },
+    { path: 'events/:id/artist/:booking/hotel', element: <BookingPage sub="hotel" /> },
+    { path: 'events/:id/artist/:booking/transport', element: <BookingPage sub="ground" /> },
+    { path: 'events/artists', element: <Artists /> },
+    { path: 'artists', element: <Navigate to="/events/artists" replace /> },
+    { path: 'artists/:id', element: <ArtistPage /> },
+    { path: 'artists/:id/tech', element: <ArtistPage tab="tech" /> },
+    { path: 'artists/:id/hospitality', element: <ArtistPage tab="hospitality" /> },
+    { path: 'artists/:id/files', element: <ArtistPage tab="files" /> },
+    { path: 'artists/:id/shows', element: <ArtistPage tab="shows" /> },
     { path: 'label', element: <Label tab="releases" /> },
     { path: 'label/planning', element: <Label tab="planning" /> },
-    { path: 'label/taken', element: <Label tab="tasks" /> },
-    { path: 'label/artiesten', element: <Label tab="artists" /> },
+    { path: 'label/tasks', element: <Label tab="tasks" /> },
+    { path: 'label/artists', element: <Label tab="artists" /> },
     { path: 'label/promo', element: <Label tab="promo" /> },
-    { path: 'label/promo/contacten', element: <Label tab="promo-contacts" /> },
+    { path: 'label/promo/contacts', element: <Label tab="promo-contacts" /> },
     { path: 'label/promo/:id', element: <Label tab="promo-campaign" /> },
-    { path: 'label/afrekeningen', element: <Label tab="statements" /> },
+    { path: 'label/statements', element: <Label tab="statements" /> },
     { element: <Area area="finance" />, children: [
-      { path: 'facturen', element: <InvoicesPage /> },
+      { path: 'invoices', element: <InvoicesPage /> },
       { path: 'odoo', element: <OdooPage /> },
       { path: 'bank', element: <BankPage /> },
-      { path: 'btw', element: <VatPage /> },
-      { path: 'documenten', element: <DocumentsPage /> },
+      { path: 'vat', element: <VatPage /> },
+      { path: 'documents', element: <DocumentsPage /> },
     ] },
-    { element: <Area area="admin" />, children: [{ path: 'beheer', element: <AdminLayout />, children: [
+    { element: <Area area="admin" />, children: [{ path: 'admin', element: <AdminLayout />, children: [
       { index: true, element: <AdminHome /> },
-      { path: 'koppelingen', element: <IntegrationsPage /> },
-      { path: 'sleutels', element: <KeysPage /> },
-      { path: 'gebruikers', element: <UsersPage /> },
-      { path: 'activiteit', element: <ActivityPage /> },
-      { path: 'instellingen', element: <SettingsPage /> },
+      { path: 'integrations', element: <IntegrationsPage /> },
+      { path: 'keys', element: <KeysPage /> },
+      { path: 'users', element: <UsersPage /> },
+      { path: 'activity', element: <ActivityPage /> },
+      { path: 'settings', element: <SettingsPage /> },
     ] }] },
-    { path: '*', element: <Navigate to="/" replace /> },
+    { path: '*', element: <LegacyRedirect /> },
   ],
 }]);
 

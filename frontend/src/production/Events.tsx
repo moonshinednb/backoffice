@@ -30,7 +30,7 @@ export function Events({ past = false }: { past?: boolean }) {
           <thead><tr><th>Datum</th><th>Evenement</th><th>Status</th><th>Advancing</th><th>Venue</th><th aria-label="Openen" /></tr></thead>
           <tbody>{list.map((e) => {
             const p = e.progress || { artists: 0, complete: 0 };
-            const go = () => navigate(`/evenementen/${e.id}`);
+            const go = () => navigate(`/events/${e.id}`);
             return (
               <tr key={e.id} className="clickable" tabIndex={0} onClick={go} onKeyDown={(k) => k.key === 'Enter' && go()}>
                 <td className="date-cell">{e.date ? <div className="date-block"><strong>{dayNumber(e.date)}</strong><span>{monthShort(e.date)}</span></div> : <div className="date-block muted"><strong>?</strong><span>datum</span></div>}</td>
@@ -50,7 +50,7 @@ export function Events({ past = false }: { past?: boolean }) {
       const created = await api<{ id: string }>('/events', { method: 'POST', body: formValues(form) });
       setOpen(false);
       toast('Evenement aangemaakt. De venue-checklist staat klaar.');
-      navigate(`/evenementen/${created.id}`);
+      navigate(`/events/${created.id}`);
     }}>
       <div className="field"><label htmlFor="ne-name">Naam *</label><input id="ne-name" name="name" required placeholder="Moonshine 10YRS" /></div>
       <div className="form-grid"><div className="field"><label htmlFor="ne-date">Datum</label><input id="ne-date" name="date" type="date" /></div>
@@ -61,7 +61,7 @@ export function Events({ past = false }: { past?: boolean }) {
 }
 
 export function EventTabs({ upcoming, past }: { upcoming?: number; past?: number }) {
-  return <Tabs items={[{ to: '/evenementen', label: <>Komend {upcoming !== undefined ? <span className="count">{upcoming}</span> : null}</> },
-    { to: '/evenementen/afgelopen', label: <>Afgelopen {past !== undefined ? <span className="count">{past}</span> : null}</> },
-    { to: '/evenementen/artiesten', label: 'Artiesten' }]} />;
+  return <Tabs items={[{ to: '/events', label: <>Komend {upcoming !== undefined ? <span className="count">{upcoming}</span> : null}</> },
+    { to: '/events/afgelopen', label: <>Afgelopen {past !== undefined ? <span className="count">{past}</span> : null}</> },
+    { to: '/events/artiesten', label: 'Artiesten' }]} />;
 }

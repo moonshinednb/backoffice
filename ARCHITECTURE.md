@@ -40,7 +40,7 @@ webhooks: `/webhooks/{bank,outlook,opensign}`
 - `lib/`: api.ts (fetch + CSRF + nette fouten), auth.tsx, ui.tsx (Modal, Tabs, Orb, Avatar, toasts), format.ts, icons.tsx, **i18n.ts** (UI is in het Nederlands geschreven; Engels = standaard, vertaald via woordenboek + MutationObserver. Nieuwe teksten: voeg NL→EN toe aan `D` of een patroon aan `P`).
 - `pages/`: Work (dashboard, taken, TaskDialog), Finance, Admin (koppelingen, sleutels, gebruikers, activiteit, instellingen), shared.
 - `production/`: Events (+tabs incl. Artiesten), Event, Booking (+reis), Artists, Label (releases, planning, taken, promo, artiesten, afrekeningen), Promo, common (Field, ContactBlock, TravelId, AssetGroups, FormDialog, useDirty).
-- Routes: `/evenementen[/afgelopen|/artiesten|/:id[/timetable|venue|notities|gegevens]|/:id/artiest/:booking[/vlucht|hotel|vervoer]]`, `/artiesten/:id[/tech|hospitality|bestanden|optredens]`, `/label[/planning|taken|promo[/contacten|/:id]|artiesten|afrekeningen]`, `/facturen`, `/odoo`, `/bank`, `/btw`, `/documenten`, `/taken`, `/beheer[/koppelingen|sleutels|gebruikers|activiteit|instellingen]`.
+- Routes (Engels; oude Nederlandse adressen worden doorgestuurd via `LegacyRedirect` in main.tsx): `/events[/past|/artists|/:id[/timetable|venue|notes|details]|/:id/artist/:booking[/flight|hotel|transport]]`, `/artists/:id[/tech|hospitality|files|shows]`, `/label[/planning|tasks|promo[/contacts|/:id]|artists|statements]`, `/invoices`, `/odoo`, `/bank`, `/vat`, `/documents`, `/tasks`, `/admin[/integrations|keys|users|activity|settings]`, `/reset-password`. Django-admin staat op `/django-admin/`.
 - Styling: bestaande css in `styles/` + `styles/app.css` voor nieuwe stukken.
 
 ## Afspraken

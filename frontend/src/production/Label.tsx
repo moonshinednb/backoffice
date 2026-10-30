@@ -28,8 +28,8 @@ export function Label({ tab }: { tab: Tab }) {
   const button = edit ? <button className="primary" onClick={() => setDialog({ r: null })}><Icon name="plus" /> Nieuwe release</button> : null;
   return <>
     <PageTitle eyebrow="Productie" title="Label" sub="Releases van het Moonshine-label: planning, taken, artiesten en royalty’s." actions={button} />
-    <Tabs items={[{ to: '/label', label: 'Releases' }, { to: '/label/planning', label: 'Planning' }, { to: '/label/taken', label: 'Taken' },
-      { to: '/label/promo', label: 'Promo', end: false }, { to: '/label/artiesten', label: 'Artiesten' }, { to: '/label/afrekeningen', label: 'Afrekeningen' }]} />
+    <Tabs items={[{ to: '/label', label: 'Releases' }, { to: '/label/planning', label: 'Planning' }, { to: '/label/tasks', label: 'Taken' },
+      { to: '/label/promo', label: 'Promo', end: false }, { to: '/label/artists', label: 'Artiesten' }, { to: '/label/statements', label: 'Afrekeningen' }]} />
     {tab === 'promo' ? <PromoCampaigns /> : tab === 'promo-campaign' ? <PromoCampaign /> : tab === 'promo-contacts' ? <PromoContacts />
       : q.isPending ? <Loading /> : q.error ? <ErrorBox error={q.error} />
       : tab === 'planning' ? <Planning releases={q.data.releases} />
@@ -131,9 +131,9 @@ function LabelArtists() {
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   return <section className="card">{q.data.artists.length ? <div className="table-wrap"><table><thead><tr><th>Artiest</th><th>Agency</th><th>Releases</th><th /></tr></thead><tbody>
-    {q.data.artists.map((a) => <tr key={a.id} className="clickable" tabIndex={0} onClick={() => navigate(`/artiesten/${a.id}`)} onKeyDown={(k) => k.key === 'Enter' && navigate(`/artiesten/${a.id}`)}>
+    {q.data.artists.map((a) => <tr key={a.id} className="clickable" tabIndex={0} onClick={() => navigate(`/artists/${a.id}`)} onKeyDown={(k) => k.key === 'Enter' && navigate(`/artists/${a.id}`)}>
       <td><strong>{a.name}</strong>{a.on_label ? null : <small className="block">Staat op een release, nog niet gemarkeerd als label-artiest</small>}</td><td>{a.agency || '—'}</td><td>{a.releases}</td><td><Icon name="chevron" /></td></tr>)}
-  </tbody></table></div> : <Empty title="Nog geen label-artiesten" sub={<>Zet bij een artiest het vinkje ‘Artiest van het Moonshine-label’, of koppel de artiestennaam aan een release. <Link className="text-link" to="/evenementen/artiesten">Naar artiesten</Link></>} icon="user" />}</section>;
+  </tbody></table></div> : <Empty title="Nog geen label-artiesten" sub={<>Zet bij een artiest het vinkje ‘Artiest van het Moonshine-label’, of koppel de artiestennaam aan een release. <Link className="text-link" to="/events/artiesten">Naar artiesten</Link></>} icon="user" />}</section>;
 }
 
 function Statements({ rows }: { rows: Statement[] }) {

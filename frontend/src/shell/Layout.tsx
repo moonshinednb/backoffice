@@ -16,10 +16,10 @@ type Item = [path: string, label: string, icon: string];
 
 export function sections(role: string): [string, Item[]][] {
   const all: [string, Item[]][] = [
-    ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/taken', 'Taken', 'tasks']]],
-    ['Productie', [['/evenementen', 'Evenementen', 'calendar'], ['/label', 'Label', 'music']]],
-    ['Financiën', [['/facturen', 'Facturen', 'invoice'], ['/odoo', 'Odoo-administratie', 'bank'], ['/bank', 'Bank & pin', 'wallet'], ['/btw', 'Btw-overzicht', 'tax'], ['/documenten', 'Documenten', 'folder']]],
-    ['Beheer', [['/beheer', 'Admin', 'settings']]],
+    ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/tasks', 'Taken', 'tasks']]],
+    ['Productie', [['/events', 'Evenementen', 'calendar'], ['/label', 'Label', 'music']]],
+    ['Financiën', [['/invoices', 'Facturen', 'invoice'], ['/odoo', 'Odoo-administratie', 'bank'], ['/bank', 'Bank & pin', 'wallet'], ['/vat', 'Btw-overzicht', 'tax'], ['/documents', 'Documenten', 'folder']]],
+    ['Beheer', [['/admin', 'Admin', 'settings']]],
   ];
   return all.filter(([name]) => !(name === 'Beheer' && role !== 'admin'));
 }
@@ -38,7 +38,7 @@ export function Layout() {
   useEffect(() => { setMenu(false); setProfile(false); }, [location.pathname]);
   if (!user) return null;
   const nav = sections(user.role);
-  const path = location.pathname.startsWith('/artiesten') ? '/evenementen' + location.pathname : location.pathname;
+  const path = location.pathname.startsWith('/artists') ? '/events' + location.pathname : location.pathname;
   const current = nav.flatMap(([section, items]) => items.map((i) => [section, ...i] as const))
     .filter(([, p]) => p === '/' ? path === '/' : path.startsWith(p)).sort((a, b) => b[1].length - a[1].length)[0];
 
@@ -51,8 +51,8 @@ export function Layout() {
             <div className="nav-label">{section}</div>
             <nav className="nav" aria-label={section}>
               {items.map(([path, label, icon]) => (
-                <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive || (path === '/evenementen' && location.pathname.startsWith('/artiesten')) ? 'active' : '')}>
-                  <Icon name={icon} />{label}{path === '/facturen' && review ? <span className="nav-count">{review}</span> : null}
+                <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive || (path === '/events' && location.pathname.startsWith('/artists')) ? 'active' : '')}>
+                  <Icon name={icon} />{label}{path === '/invoices' && review ? <span className="nav-count">{review}</span> : null}
                 </NavLink>
               ))}
             </nav>
@@ -78,7 +78,7 @@ export function Layout() {
                     <button onClick={() => { setProfile(false); setMe(true); }}><Icon name="user" /> Mijn profiel</button>
                     <button onClick={() => { setProfile(false); setPassword(true); }}><Icon name="lock" /> Wachtwoord wijzigen</button>
                     <button onClick={() => { setProfile(false); setInstall(true); }}><Icon name="download" /> Installeer als app</button>
-                    {user.role === 'admin' ? <button onClick={() => navigate('/beheer/instellingen')}><Icon name="settings" /> Werkplekinstellingen</button> : null}
+                    {user.role === 'admin' ? <button onClick={() => navigate('/admin/instellingen')}><Icon name="settings" /> Werkplekinstellingen</button> : null}
                   </div>
                   <div className="profile-signout"><button onClick={logout}><Icon name="logout" /> Uitloggen</button></div>
                 </div>

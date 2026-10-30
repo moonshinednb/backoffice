@@ -17,14 +17,14 @@ type Detail = {
   acts: Act[]; assets: Asset[]; artist_assets: Asset[]; lineup: { artist_id: string; name: string }[];
 };
 
-const SUB: Record<string, string> = { flight: 'vlucht', hotel: 'hotel', grounds: 'vervoer' };
+const SUB: Record<string, string> = { flight: 'flight', hotel: 'hotel', grounds: 'transport' };
 
 export function BookingPage({ sub = '' }: { sub?: '' | 'flight' | 'hotel' | 'ground' }) {
   const { id = '', booking = '' } = useParams();
   const qc = useQueryClient();
   const q = useQuery({ queryKey: ['booking', booking], queryFn: () => api<Detail>(`/bookings/${booking}`) });
   if (q.isPending) return <Loading />;
-  if (q.error) return <><BackLink to={`/evenementen/${id}`}>Evenement</BackLink><ErrorBox error={q.error} /></>;
+  if (q.error) return <><BackLink to={`/events/${id}`}>Evenement</BackLink><ErrorBox error={q.error} /></>;
   const set = (d: Detail) => { qc.setQueryData(['booking', booking], d); qc.invalidateQueries({ queryKey: ['event', d.event.id] }); qc.invalidateQueries({ queryKey: ['events'] }); };
   const reload = () => { qc.invalidateQueries({ queryKey: ['booking', booking] }); qc.invalidateQueries({ queryKey: ['event', id] }); };
   return sub ? <Travel key={sub} b={q.data} kind={sub} set={set} /> : <Main key={q.data.id} b={q.data} set={set} reload={reload} />;
@@ -67,17 +67,17 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
   const subField = (key: 'flight' | 'grounds' | 'hotel', label: string, icon: string) => (
     <div className="kv-field"><label htmlFor={`f-b_${key}`}>{label}</label><div className="yn-row">
       <select id={`f-b_${key}`} name={`b_${key}`} defaultValue={b[key] || ''} disabled={!edit} onChange={(ev) => setYes({ ...yes, [key]: ev.target.value })}>{YES_NO.map(([v, l]) => <option key={v} value={v}>{l}</option>)}</select>
-      {yes[key] === 'yes' ? <button type="button" className="small ghost" onClick={() => run(async () => { await autosave(); navigate(`/evenementen/${e.id}/artiest/${b.id}/${SUB[key]}`); })}><Icon name={icon} /> Gegevens</button> : null}
+      {yes[key] === 'yes' ? <button type="button" className="small ghost" onClick={() => run(async () => { await autosave(); navigate(`/events/${e.id}/artist/${b.id}/${SUB[key]}`); })}><Icon name={icon} /> Gegevens</button> : null}
     </div></div>
   );
 
   return <>
-    <BackLink to={`/evenementen/${e.id}`}>{e.name}</BackLink>
+    <BackLink to={`/events/${e.id}`}>{e.name}</BackLink>
     <PageTitle eyebrow={`Artiest · ${e.name}`} title={a.name}
-      sub={<>{b.status === 'cancelled' ? <Badge>Geannuleerd</Badge> : b.complete ? <Badge color="lime">Compleet</Badge> : <Badge color="amber">{`${b.missing.length} punten open`}</Badge>} <Link className="text-link" to={`/artiesten/${a.id}`}>Profiel en riders <Icon name="chevron" /></Link></>}
+      sub={<>{b.status === 'cancelled' ? <Badge>Geannuleerd</Badge> : b.complete ? <Badge color="lime">Compleet</Badge> : <Badge color="amber">{`${b.missing.length} punten open`}</Badge>} <Link className="text-link" to={`/artists/${a.id}`}>Profiel en riders <Icon name="chevron" /></Link></>}
       actions={edit ? <><button className="ghost" onClick={() => {
         if (!confirm(`${a.name} van ${e.name} halen? Acts blijven staan; facturen bij deze boeking worden verwijderd. Het artiestenprofiel blijft bestaan.`)) return;
-        run(async () => { await api(`/bookings/${b.id}`, { method: 'DELETE' }); setDirty(false); toast('Boeking verwijderd.'); navigate(`/evenementen/${e.id}`); });
+        run(async () => { await api(`/bookings/${b.id}`, { method: 'DELETE' }); setDirty(false); toast('Boeking verwijderd.'); navigate(`/events/${e.id}`); });
       }}><Icon name="trash" /> Van evenement halen</button><button className="primary" type="submit" form="booking-main">Opslaan</button></> : null} />
     <Missing b={b} />
     <div className="booking-grid">
@@ -111,7 +111,7 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
         <h2>Content</h2>
         <AssetGroups ownerType="booking" ownerId={b.id} assets={b.assets} kinds={['invoice']} onChange={reload} before={autosave} />
         <AssetGroups ownerType="artist" ownerId={a.id} assets={b.artist_assets} kinds={['logo', 'press_photo', 'press_video', 'bio', 'visual', 'tech_rider', 'hospitality_rider']} onChange={reload} before={autosave} />
-        <p className="field-hint">Logo’s, persfoto’s en riders horen bij de artiest en gaan mee naar elk volgend evenement. De technical rider bewerk je in het <Link className="text-link" to={`/artiesten/${a.id}/tech`}>profiel</Link>.</p>
+        <p className="field-hint">Logo’s, persfoto’s en riders horen bij de artiest en gaan mee naar elk volgend evenement. De technical rider bewerk je in het <Link className="text-link" to={`/artists/${a.id}/tech`}>profiel</Link>.</p>
       </section>
     </div>
     <ActDialog open={!!act} eventId={e.id} act={act?.act || null} preset={a.id} lineup={b.lineup} onClose={() => setAct(null)} done={reload} />
@@ -127,7 +127,7 @@ function Travel({ b, kind, set }: { b: Detail; kind: 'flight' | 'hotel' | 'groun
   const { setDirty, track } = useDirty();
   const a = b.artist;
   const e = b.event;
-  const back = `/evenementen/${e.id}/artiest/${b.id}`;
+  const back = `/events/${e.id}/artist/${b.id}`;
   async function save(form: HTMLFormElement) {
     const v = formValues(form);
     let body: Record<string, unknown>;

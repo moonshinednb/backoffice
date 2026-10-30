@@ -26,16 +26,16 @@ export function EventPage({ tab = 'advancing' }: { tab?: string }) {
   const [send, setSend] = useState(false);
   const q = useOverview(id);
   if (q.isPending) return <Loading />;
-  if (q.error) return <><BackLink to="/evenementen">Evenementen</BackLink><ErrorBox error={q.error} /></>;
+  if (q.error) return <><BackLink to="/events">Evenementen</BackLink><ErrorBox error={q.error} /></>;
   const o = q.data;
   const e = o.event;
   const s = o.summary;
   const first = o.acts.find((a) => a.start);
-  const base = `/evenementen/${e.id}`;
+  const base = `/events/${e.id}`;
   const set = (next: Overview) => { qc.setQueryData(['event', id], next); qc.invalidateQueries({ queryKey: ['events'] }); };
   const reload = () => { qc.invalidateQueries({ queryKey: ['event', id] }); qc.invalidateQueries({ queryKey: ['events'] }); };
   return <>
-    <BackLink to={e.date && e.date < today() ? '/evenementen/afgelopen' : '/evenementen'}>Alle evenementen</BackLink>
+    <BackLink to={e.date && e.date < today() ? '/events/afgelopen' : '/events'}>Alle evenementen</BackLink>
     <PageTitle eyebrow="Evenement" title={e.name} sub={<>{longDate(e.date)}{e.venue ? ' · ' + e.venue : ''} <StatusBadge status={e.status} /></>}
       actions={<><button className="ghost" onClick={() => run(() => download(`/events/${e.id}/advancing.pdf`))}><Icon name="pdf" /> Advancingblad</button>
         {edit ? <button className="primary" onClick={() => setSend(true)}><Icon name="send" /> Advancing versturen</button> : null}</>} />
@@ -46,7 +46,7 @@ export function EventPage({ tab = 'advancing' }: { tab?: string }) {
       <Stat label="Acts" value={String(o.acts.length)} sub={o.acts.length ? 'In de timetable' : 'Nog geen timetable'} icon="calendar" />
     </div>
     <Tabs items={[{ to: base, label: 'Advancing' }, { to: base + '/timetable', label: <>Timetable <span className="count">{o.acts.length}</span></> },
-      { to: base + '/venue', label: 'Venue' }, { to: base + '/notities', label: 'Notities' }, { to: base + '/gegevens', label: 'Gegevens' }]} />
+      { to: base + '/venue', label: 'Venue' }, { to: base + '/notes', label: 'Notities' }, { to: base + '/details', label: 'Gegevens' }]} />
     {tab === 'timetable' ? <Timetable o={o} set={set} reload={reload} /> : tab === 'venue' ? <Venue o={o} set={set} reload={reload} />
       : tab === 'notes' ? <Notes id={e.id} /> : tab === 'info' ? <Info o={o} reload={reload} /> : <Advancing o={o} />}
     <SendDialog open={send} eventId={e.id} checklist={o.checklist} onClose={() => setSend(false)} done={set} />
@@ -77,7 +77,7 @@ function Advancing({ o }: { o: Overview }) {
         const acts = o.acts.filter((a) => b.acts.includes(a.id));
         const times = acts.filter((a) => a.start).map((a) => `${a.start}–${a.end || '?'}`).join(', ');
         const cancelled = b.status === 'cancelled';
-        return <Link key={b.id} className="adv-row" to={`/evenementen/${o.event.id}/artiest/${b.id}`}>
+        return <Link key={b.id} className="adv-row" to={`/events/${o.event.id}/artist/${b.id}`}>
           <StatusIcon complete={b.complete} cancelled={cancelled} />
           <span className="adv-name"><strong>{b.artist.name}</strong><small>{acts.map((a) => a.name).join(' · ') || 'Nog geen act'}</small></span>
           <span className="adv-when">{times || '—'}</span>
@@ -90,13 +90,13 @@ function Advancing({ o }: { o: Overview }) {
       <section className="card card-pad"><h2>Nog te regelen</h2>{top.length ? <ul className="todo-list">{top.map(([m, n]) => <li key={m}><span>{m}</span><b>{n}×</b></li>)}</ul>
         : <p className="helper">{o.bookings.length ? 'Alle artiesten zijn compleet.' : 'Nog niets te regelen.'}</p>}</section>
       <section className="card card-pad"><h2>{o.event.venue || 'Venue'}</h2><p className="helper">{todo.length ? `${todo.length} ${todo.length === 1 ? 'onderdeel is' : 'onderdelen zijn'} nog niet naar de venue gestuurd.` : 'Alles is verstuurd of niet van toepassing.'}</p>
-        <Link className="text-link" to={`/evenementen/${o.event.id}/venue`}>Naar de checklist <Icon name="chevron" /></Link></section>
+        <Link className="text-link" to={`/events/${o.event.id}/venue`}>Naar de checklist <Icon name="chevron" /></Link></section>
     </aside>
     <FormDialog id="booking-form" title="Artiest toevoegen" open={add} onClose={() => setAdd(false)} label="Toevoegen" submit={async (form) => {
       const r = await api<{ booking_id: string }>(`/events/${o.event.id}/bookings`, { method: 'POST', body: formValues(form) });
       setAdd(false);
       toast('Artiest toegevoegd. Vul nu de gegevens aan.');
-      navigate(`/evenementen/${o.event.id}/artiest/${r.booking_id}`);
+      navigate(`/events/${o.event.id}/artist/${r.booking_id}`);
     }}>
       <div className="field"><label htmlFor="booking-artist">Artiest</label><input id="booking-artist" name="name" list="artist-options" placeholder="Zoek in de artiesten of typ een nieuwe naam" autoComplete="off" required /></div>
       <datalist id="artist-options">{(roster.data?.artists || []).filter((a) => !booked.has(a.id)).map((a) => <option key={a.id} value={a.name} />)}</datalist>
@@ -152,7 +152,7 @@ function Venue({ o, set, reload }: { o: Overview; set: (o: Overview) => void; re
       <section className="card card-pad"><h2>Contact venue</h2>{e.venue_email || e.venue_contact || e.venue_phone
         ? <p className="contact-lines">{[e.venue_contact, e.venue_email, e.venue_phone].filter(Boolean).map((v) => <span key={v}>{v}<br /></span>)}</p>
         : <p className="helper">Nog geen contactpersoon. Vul die in bij Gegevens; het e-mailadres wordt de standaardontvanger.</p>}
-        <Link className="text-link" to={`/evenementen/${e.id}/gegevens`}>Gegevens bewerken <Icon name="chevron" /></Link></section>
+        <Link className="text-link" to={`/events/${e.id}/details`}>Gegevens bewerken <Icon name="chevron" /></Link></section>
       <section className="card card-pad"><h2>Bestanden voor de venue</h2><AssetGroups ownerType="event" ownerId={e.id} assets={o.assets} kinds={['guestlist', 'production', 'stage_plot', 'other']} onChange={reload} /></section>
       <section className="card card-pad"><h2>Verzonden</h2>{o.sends.length ? <ul className="send-list">{o.sends.map((s) => <li key={s.id}>
         <span>{s.status === 'accepted' ? <Badge color="lime">Aangenomen door Outlook</Badge> : s.status === 'uncertain' ? <Badge color="amber">Onzeker</Badge> : <Badge color="red">Mislukt</Badge>} {stamp(s.created)}</span>
@@ -213,7 +213,7 @@ function Info({ o, reload }: { o: Overview; reload: () => void }) {
       {edit ? <div className="form-actions"><button className="primary" type="submit">Opslaan</button></div> : null}
     </form>
     {edit ? <section className="card card-pad danger-zone"><h2>Evenement verwijderen</h2><p className="helper">Verwijdert dit evenement met timetable, boekingen, checklist en verzendlog. Artiesten, hun riders en content blijven bewaard, net als de mappen in OneDrive.</p>
-      <button className="danger" onClick={() => confirm(`${e.name} verwijderen? Dit kan niet ongedaan worden gemaakt.`) && run(async () => { await api(`/events/${e.id}`, { method: 'DELETE' }); setDirty(false); toast('Evenement verwijderd.'); navigate('/evenementen'); })}><Icon name="trash" /> Evenement verwijderen</button></section> : null}
+      <button className="danger" onClick={() => confirm(`${e.name} verwijderen? Dit kan niet ongedaan worden gemaakt.`) && run(async () => { await api(`/events/${e.id}`, { method: 'DELETE' }); setDirty(false); toast('Evenement verwijderd.'); navigate('/events'); })}><Icon name="trash" /> Evenement verwijderen</button></section> : null}
     <SaveBar form="event-info-form" />
   </>;
 }

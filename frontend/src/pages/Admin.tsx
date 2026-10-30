@@ -53,7 +53,7 @@ export function IntegrationsPage() {
         <p>{desc}</p>
         {c.checked ? <p className="helper">Laatst gecontroleerd {stamp(c.checked)}</p> : null}
         <footer><button onClick={() => setParams({ config: c.id })}><Icon name="settings" /> Instellen</button>
-          {!['ing', 'sumup'].includes(c.id) ? <button className="ghost" onClick={() => test(c.id)} disabled={!!testing}>{testing === c.id ? <><Orb state="connecting" /> Testen…</> : <><Icon name="refresh" /> Verbinding testen</>}</button> : null}</footer>
+          {c.id !== 'ing' ? <button className="ghost" onClick={() => test(c.id)} disabled={!!testing}>{testing === c.id ? <><Orb state="connecting" /> Testen…</> : <><Icon name="refresh" /> Verbinding testen</>}</button> : null}</footer>
       </section>;
     })}</div>
     <p className="helper">Een koppeling krijgt pas de status Geverifieerd na een geslaagde accountcontrole.</p>
@@ -118,7 +118,7 @@ const PROVIDERS: Record<string, Provider> = {
     { key: 'public_url', label: 'Adres van de backoffice (voor de link)', kind: 'url', placeholder: 'http://100.111.153.38:8096' }],
     help: <p className="helper">Het afzenderdomein moet in Resend geverifieerd zijn (DNS-records bij je domein). Test daarna de verbinding; je ziet dan welke domeinen klaarstaan. De link in de mail werkt alleen op een apparaat met Tailscale aan.</p> },
   ing: { title: 'ING aanvoer instellen', fields: [{ key: 'bank_webhook_secret', label: 'Webhook bearer-sleutel (optioneel vervangen)', kind: 'secret' }], help: BANK_HELP },
-  sumup: { title: 'SumUp aanvoer instellen', fields: [{ key: 'bank_webhook_secret', label: 'Webhook bearer-sleutel (optioneel vervangen)', kind: 'secret' },
+  sumup: { title: 'SumUp aanvoer instellen', fields: [{ key: 'sumup_api_key', label: 'SumUp API-sleutel', kind: 'secret' }, { key: 'bank_webhook_secret', label: 'Webhook bearer-sleutel (optioneel vervangen)', kind: 'secret' },
     { key: 'odoo_sales_journal', label: 'Verkoopdagboek-ID', kind: 'number' }, { key: 'odoo_sales_account', label: 'Omzetrekening-ID', kind: 'number' },
     { key: 'odoo_sumup_clearing_account', label: 'SumUp-tussenrekening-ID', kind: 'number' }, { key: 'odoo_fee_account', label: 'Kostenrekening-ID', kind: 'number' },
     { key: 'odoo_output_tax_map', label: 'Verkoop-btw-mapping (JSON)', kind: 'json', placeholder: '{"9": 30, "21": 31}' }],
@@ -258,7 +258,7 @@ export function SettingsPage() {
 const KEYS: [string, string, string][] = [
   ['odoo_api_key', 'Odoo API-sleutel', 'Boekhouding'], ['ai_api_key', 'AI API-sleutel', 'Facturen uitlezen (gekozen aanbieder)'], ['anthropic_api_key', 'Anthropic API-sleutel (oud)', 'Alleen als Claude is gekozen en nog geen AI-sleutel is ingesteld'],
   ['microsoft_client_secret', 'Microsoft client secret', 'Outlook, OneDrive en To Do'], ['microsoft_refresh_token', 'Microsoft refresh-token', 'Gedelegeerde toegang'],
-  ['microsoft_access_token', 'Microsoft access-token', 'Tijdelijk, optioneel'], ['bank_webhook_secret', 'Bank-webhooksleutel', 'ING / SumUp-aanvoer'],
+  ['microsoft_access_token', 'Microsoft access-token', 'Tijdelijk, optioneel'], ['sumup_api_key', 'SumUp API-sleutel', 'Pinomzet en uitbetalingen'], ['bank_webhook_secret', 'Bank-webhooksleutel', 'ING / SumUp-aanvoer'],
   ['mail_webhook_secret', 'Mail-webhooksleutel', 'Outlook-notificaties'], ['labelgrid_api_key', 'LabelGrid API-sleutel', 'Royalties'],
   ['opensign_api_key', 'OpenSign API-sleutel', 'Contracten'], ['resend_api_key', 'Resend API-sleutel', 'Wachtwoordmails'], ['opensign_webhook_secret', 'OpenSign webhooksleutel', 'Ondertekenstatus'],
 ];
@@ -298,8 +298,8 @@ export function KeysPage() {
 
 export function AdminLayout() {
   return <>
-    <Tabs items={[{ to: '/beheer', label: 'Overzicht' }, { to: '/beheer/koppelingen', label: 'Koppelingen' }, { to: '/beheer/sleutels', label: 'Sleutels' },
-      { to: '/beheer/gebruikers', label: 'Gebruikers' }, { to: '/beheer/activiteit', label: 'Activiteit' }, { to: '/beheer/instellingen', label: 'Instellingen' }]} />
+    <Tabs items={[{ to: '/admin', label: 'Overzicht' }, { to: '/admin/koppelingen', label: 'Koppelingen' }, { to: '/admin/sleutels', label: 'Sleutels' },
+      { to: '/admin/gebruikers', label: 'Gebruikers' }, { to: '/admin/activiteit', label: 'Activiteit' }, { to: '/admin/instellingen', label: 'Instellingen' }]} />
     <Outlet />
   </>;
 }

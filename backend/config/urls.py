@@ -1,4 +1,4 @@
-"""API under /api, Django admin under /admin, the React app for everything else."""
+"""API under /api, Django admin under /django-admin, the React app for everything else."""
 from django.contrib import admin
 from django.urls import path, re_path
 from .api import api
@@ -14,7 +14,7 @@ def csrf_failure(request, reason=''):
     return JsonResponse({'error': 'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.'}, status=403)
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('django-admin/', admin.site.urls),
     path('api/', api.urls),
     re_path(r'^api/(?P<rest>.*)$', api_missing),
     re_path(r'^(?P<path>.*)$', spa),
