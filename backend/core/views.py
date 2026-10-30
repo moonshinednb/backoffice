@@ -21,7 +21,7 @@ SETTING_KEYS = {
     'odoo_fee_account', 'odoo_output_tax_map', 'auto_post', 'auto_match', 'auto_sumup', 'anthropic_model', 'microsoft_client_id',
     'microsoft_tenant', 'mail_enabled', 'onedrive_enabled', 'onedrive_drive_id', 'onedrive_folder', 'todo_enabled', 'todo_list_id',
     'bank_mode', 'odoo_bank_feed', 'labelgrid_label_id', 'opensign_base', 'opensign_template_id', 'advancing_sender',
-    'production_folder', 'production_sync', 'resend_from', 'public_url',
+    'production_folder', 'production_sync', 'resend_from', 'public_url', 'promo_senders',
 }
 SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token',
                'bank_webhook_secret', 'mail_webhook_secret', 'labelgrid_api_key', 'opensign_api_key', 'opensign_webhook_secret', 'resend_api_key'}
@@ -200,6 +200,8 @@ def create_task(request):
     _task_fields(body(request), task)
     task.save()
     audit(actor(request), 'Taak aangemaakt', task.id)
+    from .notify import assigned
+    assigned(task, actor(request))
     return task_dict(task)
 
 
@@ -210,6 +212,7 @@ def update_task(request, ident: str):
     task = Task.objects.filter(id=ident).first()
     if not task:
         raise HttpError(404, 'Taak niet gevonden.')
+    was_done, was_assignee = task.done, task.assignee_id
     if 'done' in d:
         if type(d['done']) is not bool:
             raise HttpError(400, 'Ongeldige taakstatus.')
@@ -218,7 +221,13 @@ def update_task(request, ident: str):
         _task_fields(d, task)
     task.dirty = True
     task.save()
-    audit(actor(request), ('Taak afgerond' if task.done else 'Taak heropend') if 'done' in d else 'Taak gewijzigd', ident)
+    who = actor(request)
+    audit(who, ('Taak afgerond' if task.done else 'Taak heropend') if 'done' in d else 'Taak gewijzigd', ident)
+    from .notify import assigned, done
+    if task.assignee_id != was_assignee:
+        assigned(task, who)
+    if task.done and not was_done:
+        done([task.id], who, 'Taak afgerond', f'{task.title} (door {who})', '/taken', key=f'taskdone:{task.id}')
     return task_dict(task)
 
 

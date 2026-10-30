@@ -7,6 +7,7 @@ import { can, useAuth } from '../lib/auth';
 import { ROLE } from '../lib/format';
 import { Avatar, Icon, Modal } from '../lib/ui';
 import { ChatWidget } from './Chat';
+import { NotificationBell } from './Notifications';
 import { ProfileDialog } from './Profile';
 import { PasswordDialog } from './PasswordDialog';
 import { installSteps } from './pwa';
@@ -65,7 +66,7 @@ export function Layout() {
           <div className="breadcrumb">{current ? current[0] : 'Werkplek'} <span>/ {current ? current[2] : 'Overzicht'}</span></div>
           <div className="top-actions">
             <span className="top-date">{new Date().toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'long' })}</span>
-            {can.finance(user) ? <button className="icon-btn ghost" onClick={() => navigate('/facturen?status=review')} aria-label={review ? `${review} facturen die aandacht vragen` : 'Facturen die aandacht vragen'}><Icon name="bell" />{review ? <span className="notification-count" /> : null}</button> : null}
+            <NotificationBell />
             <div className="profile-control">
               <button className="profile-trigger" onClick={() => setProfile(!profile)} aria-expanded={profile} aria-label={`Profielmenu van ${user.name}`}>
                 <Avatar user={user} /><Icon name="chevron" />

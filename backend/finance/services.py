@@ -131,6 +131,9 @@ def post_document(ident, actor):
         raise
     Document.objects.filter(id=ident).update(status='posted', odoo_id=move, error=None)
     audit(actor, 'Geboekt in Odoo', ident, str(move))
+    from core.notify import done
+    supplier = (Document.objects.filter(id=ident).values_list('details', flat=True).first() or {}).get('supplier') or 'Factuur'
+    done([ident], actor, f'Factuur geboekt: {supplier}', 'Staat in Odoo.', '/facturen', key=f'posted:{ident}')
     if settings().get('onedrive_enabled'):
         from jobs.queue import enqueue
         enqueue('archive_invoice', {'document_id': ident}, key=ident)

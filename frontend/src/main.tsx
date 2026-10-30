@@ -74,6 +74,9 @@ const router = createBrowserRouter([{
     { path: 'label/planning', element: <Label tab="planning" /> },
     { path: 'label/taken', element: <Label tab="tasks" /> },
     { path: 'label/artiesten', element: <Label tab="artists" /> },
+    { path: 'label/promo', element: <Label tab="promo" /> },
+    { path: 'label/promo/contacten', element: <Label tab="promo-contacts" /> },
+    { path: 'label/promo/:id', element: <Label tab="promo-campaign" /> },
     { path: 'label/afrekeningen', element: <Label tab="statements" /> },
     { element: <Area area="finance" />, children: [
       { path: 'facturen', element: <InvoicesPage /> },

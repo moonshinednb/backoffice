@@ -30,6 +30,7 @@ def handlers():
         'archive_invoice': lambda p: finance.archive_onedrive(p['document_id']),
         'sync_asset': lambda p: production.sync_asset(p['asset_id']),
         'archive_sent': lambda p: production.archive_sent(p['event_id'], p['send_id']),
+        'promo_send': lambda p: __import__('promo.services', fromlist=['send_batch']).send_batch(p['campaign_id']),
     }
 
 
@@ -69,6 +70,7 @@ def periodic():
     from finance import services as finance
     from integrations.providers import sync_todo
     from production.services import queue_pending_syncs
+    from core.notify import deadlines
     cfg = settings()
     return {
         'Outlook-facturen': (60, finance.poll_mail, cfg.get('mail_enabled')),
@@ -76,6 +78,7 @@ def periodic():
         'Microsoft To Do': (60, sync_todo, cfg.get('todo_enabled')),
         'Bestanden naar OneDrive': (30, queue_pending_syncs, cfg.get('production_sync')),
         'Automatisch afletteren': (300, finance.auto_match, cfg.get('auto_match')),
+        'Deadline-meldingen': (3600, deadlines, True),
     }
 
 

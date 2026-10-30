@@ -7,13 +7,14 @@ import { Badge, Empty, ErrorBox, Icon, Loading, PageTitle, Tabs, formValues, use
 import { FormDialog, useCanEdit } from './common';
 import { TaskDialog } from '../pages/Work';
 import { Task, useTasks, useUsers } from '../pages/shared';
+import { PromoCampaign, PromoCampaigns, PromoContacts } from './Promo';
 
 const RELEASE: Record<string, [string, string]> = { planned: ['Gepland', 'amber'], scheduled: ['Ingepland', 'purple'], released: ['Uitgebracht', 'lime'] };
 type Step = { id: string; label: string; due: string; done: boolean };
 type Release = { id: string; title: string; artist: string; release_date: string; status: string; labelgrid_release_id: string; notes: string;
   steps: Step[]; steps_done: number; tasks_open: number; tasks: number };
 type Statement = { id: string; period: string; invoice_number: string; status: string; total_due_usd: number };
-type Tab = 'releases' | 'planning' | 'tasks' | 'artists' | 'statements';
+type Tab = 'releases' | 'planning' | 'tasks' | 'artists' | 'statements' | 'promo' | 'promo-campaign' | 'promo-contacts';
 
 const useReleases = () => useQuery({ queryKey: ['releases'], queryFn: () => api<{ releases: Release[]; statements: Statement[] }>('/releases') });
 
@@ -28,8 +29,9 @@ export function Label({ tab }: { tab: Tab }) {
   return <>
     <PageTitle eyebrow="Productie" title="Label" sub="Releases van het Moonshine-label: planning, taken, artiesten en royalty’s." actions={button} />
     <Tabs items={[{ to: '/label', label: 'Releases' }, { to: '/label/planning', label: 'Planning' }, { to: '/label/taken', label: 'Taken' },
-      { to: '/label/artiesten', label: 'Artiesten' }, { to: '/label/afrekeningen', label: 'Afrekeningen' }]} />
-    {q.isPending ? <Loading /> : q.error ? <ErrorBox error={q.error} />
+      { to: '/label/promo', label: 'Promo', end: false }, { to: '/label/artiesten', label: 'Artiesten' }, { to: '/label/afrekeningen', label: 'Afrekeningen' }]} />
+    {tab === 'promo' ? <PromoCampaigns /> : tab === 'promo-campaign' ? <PromoCampaign /> : tab === 'promo-contacts' ? <PromoContacts />
+      : q.isPending ? <Loading /> : q.error ? <ErrorBox error={q.error} />
       : tab === 'planning' ? <Planning releases={q.data.releases} />
         : tab === 'tasks' ? <ReleaseTasks releases={q.data.releases} />
           : tab === 'artists' ? <LabelArtists />

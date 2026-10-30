@@ -394,6 +394,7 @@ def booking_update(booking_id, payload, actor):
     b = Booking.objects.filter(id=booking_id).first()
     if not b:
         raise ValueError('Onbekende boeking.')
+    was_complete = not booking_detail(booking_id)['missing']
     if isinstance(payload.get('artist'), dict):
         artist_update(b.artist_id, payload['artist'], actor)
     if fields:
@@ -401,6 +402,11 @@ def booking_update(booking_id, payload, actor):
             setattr(b, k, v)
         b.save()
         audit(actor, 'Advancing bijgewerkt', booking_id, ', '.join(fields))
+    after = booking_detail(booking_id)
+    if not was_complete and not after['missing'] and after['status'] != 'cancelled':
+        from core.notify import done
+        done([booking_id, b.artist_id, b.event_id], actor, f"Advancing compleet: {after['artist']['name']}",
+             f"{after['event']['name']} · alles is binnen", f'/evenementen/{b.event_id}/artiest/{booking_id}', key=f'advdone:{booking_id}')
 
 
 def booking_remove(booking_id, actor):
@@ -840,6 +846,11 @@ def step_save(release_id, payload, actor, ident=None):
         s.sort = (ReleaseStep.objects.filter(release_id=release_id).aggregate(m=models.Max('sort'))['m'] or 0) + 1
     s.save()
     audit(actor, 'Releaseplanning bijgewerkt', s.release_id)
+    steps = ReleaseStep.objects.filter(release_id=s.release_id)
+    if s.done and not steps.filter(done=False).exists():
+        from core.notify import done
+        done([s.release_id], actor, f'Planning afgerond: {s.release.title}', 'Alle stappen van de releaseplanning zijn klaar.', '/label/planning',
+             key=f'reldone:{s.release_id}:{steps.count()}')
     return release_dict(s.release)
 
 

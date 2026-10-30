@@ -118,3 +118,20 @@ class PasswordReset(models.Model):
     created = models.DateTimeField(auto_now_add=True)
     expires = models.DateTimeField()
     used = models.BooleanField(default=False)
+
+
+class Notification(models.Model):
+    """A short in-app notice for one person: something finished that they
+    worked on, a task assigned to them, or a deadline."""
+    id = models.BigAutoField(primary_key=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    kind = models.CharField(max_length=20)  # done | assigned | deadline
+    title = models.CharField(max_length=200)
+    body = models.CharField(max_length=500, blank=True, default='')
+    link = models.CharField(max_length=300, blank=True, default='')
+    key = models.CharField(max_length=120, blank=True, default='', db_index=True, help_text='Deduplicates repeated notices')
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+    read = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-id']
