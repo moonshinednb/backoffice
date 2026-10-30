@@ -92,3 +92,27 @@ class ResetTests(ApiTests):
         _, r = self.login('bram', 'nieuw-wachtwoord')
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.json()['user']['must_change_password'])
+
+
+class AiProviderTests(ApiTests):
+    def test_providers_and_validation(self):
+        import pathlib
+        from unittest import mock
+        from integrations import claude
+        a, _ = self.login('peppy', 'admin-pass-1')
+        self.assertEqual(self.send(a, 'post', '/api/settings', {'settings': {'ai_provider': 'bogus'}, 'secrets': {}}).status_code, 400)
+        r = self.send(a, 'post', '/api/settings', {'settings': {'ai_provider': 'gemini', 'ai_model': 'gemini-test'}, 'secrets': {'ai_api_key': 'geheime-sleutel'}})
+        self.assertEqual(r.status_code, 200)
+        self.assertNotIn('geheime-sleutel', json.dumps(a.get('/api/settings').json()))
+        self.assertTrue(any(c['id'] == 'ai' and c['status'] != 'not_connected' for c in a.get('/api/connections').json()['connections']))
+        self.assertEqual(claude.config()[0], 'gemini')
+        pathlib.Path('/tmp/files').mkdir(exist_ok=True)
+        pathlib.Path('/tmp/files/docx').write_bytes(b'%PDF-1')
+        reply = {'candidates': [{'content': {'parts': [{'text': '```json\n{"supplier":"X","currency":"EUR"}\n```'}]}}]}
+        with mock.patch.object(claude, 'http', return_value=reply) as h, mock.patch.object(claude, 'DATA', pathlib.Path('/tmp')):
+            d = claude.extract({'id': 'docx', 'mime': 'application/pdf'})
+        self.assertEqual(d['supplier'], 'X')
+        self.assertIn('generativelanguage', h.call_args[0][0])
+        self.send(a, 'post', '/api/settings', {'settings': {'ai_provider': 'openai', 'ai_base_url': 'https://api.example.com/v1'}, 'secrets': {}})
+        with mock.patch.object(claude, 'DATA', pathlib.Path('/tmp')), self.assertRaises(ValueError):
+            claude.extract({'id': 'docx', 'mime': 'application/pdf'})

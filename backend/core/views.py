@@ -18,12 +18,12 @@ router = Router()
 SETTING_KEYS = {
     'finance_email', 'company_name', 'odoo_url', 'odoo_database', 'odoo_username', 'odoo_expense_account', 'odoo_purchase_journal',
     'odoo_bank_journal', 'odoo_bank_account', 'odoo_tax_map', 'odoo_sales_journal', 'odoo_sales_account', 'odoo_sumup_clearing_account',
-    'odoo_fee_account', 'odoo_output_tax_map', 'auto_post', 'auto_match', 'auto_sumup', 'anthropic_model', 'microsoft_client_id',
+    'odoo_fee_account', 'odoo_output_tax_map', 'auto_post', 'auto_match', 'auto_sumup', 'anthropic_model', 'ai_provider', 'ai_model', 'ai_base_url', 'microsoft_client_id',
     'microsoft_tenant', 'mail_enabled', 'onedrive_enabled', 'onedrive_drive_id', 'onedrive_folder', 'todo_enabled', 'todo_list_id',
     'bank_mode', 'odoo_bank_feed', 'labelgrid_label_id', 'opensign_base', 'opensign_template_id', 'advancing_sender',
     'production_folder', 'production_sync', 'resend_from', 'public_url', 'promo_senders',
 }
-SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token',
+SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'ai_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token',
                'bank_webhook_secret', 'mail_webhook_secret', 'labelgrid_api_key', 'opensign_api_key', 'opensign_webhook_secret', 'resend_api_key'}
 BOOLEANS = ('auto_post', 'auto_match', 'auto_sumup', 'mail_enabled', 'onedrive_enabled', 'todo_enabled', 'odoo_bank_feed', 'production_sync')
 
@@ -253,6 +253,14 @@ def save_settings(request):
         raise HttpError(400, 'Onbekende instelling.')
     if cfg.get('odoo_url'):
         secure_url(cfg['odoo_url'])
+    if cfg.get('ai_provider') not in (None, '', 'anthropic', 'gemini', 'openai'):
+        raise HttpError(400, 'Onbekende AI-aanbieder.')
+    if cfg.get('ai_base_url'):
+        from integrations.http import secure_url as _secure
+        try:
+            _secure(str(cfg['ai_base_url']))
+        except ValueError as e:
+            raise HttpError(400, str(e))
     if cfg.get('public_url'):
         from urllib.parse import urlsplit
         u = urlsplit(str(cfg['public_url']))
@@ -293,7 +301,7 @@ def connections():
     microsoft = bool(sv.get('microsoft_refresh_token') or sv.get('microsoft_access_token') or sv.get('microsoft_client_secret'))
     providers = [
         ('odoo', 'Odoo', bool(cfg.get('odoo_url') and cfg.get('odoo_database') and sv.get('odoo_api_key'))),
-        ('claude', 'Claude', bool(cfg.get('anthropic_model') and sv.get('anthropic_api_key'))),
+        ('ai', 'AI', bool(((cfg.get('ai_model') and sv.get('ai_api_key')) or (cfg.get('anthropic_model') and sv.get('anthropic_api_key'))) and (cfg.get('ai_provider') != 'openai' or cfg.get('ai_base_url')))),
         ('microsoft', 'Outlook', microsoft),
         ('advancing', 'Advancing', bool(cfg.get('advancing_sender') and microsoft)),
         ('onedrive', 'OneDrive', bool(cfg.get('onedrive_drive_id'))),

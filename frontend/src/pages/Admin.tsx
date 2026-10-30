@@ -15,7 +15,7 @@ import { useOdoo } from './Finance';
 
 const TEXT: Record<string, [string, string, string]> = {
   odoo: ['OD', 'De boekhouding', 'Crediteuren, inkoopfacturen en originele bijlagen. Boek vanuit de backoffice rechtstreeks in Odoo.'],
-  claude: ['CL', 'Facturen lezen', 'Leest PDF’s en foto’s uit. Geeft twijfelgevallen door voor controle.'],
+  ai: ['AI', 'Facturen lezen', 'Leest PDF’s en foto’s uit met de AI-aanbieder die je kiest (Claude, Gemini of een OpenAI-compatibele). De code rekent alles na; twijfelgevallen gaan naar controle.'],
   microsoft: ['OU', 'De finance-inbox', 'Ontvangt facturen uit de finance-inbox. De worker kijkt elke minuut; webhook optioneel.'],
   advancing: ['AD', 'Riders en advancing', 'Verstuurt advancing via Outlook en bewaart riders, EPK’s en promo in OneDrive. Werkt lokaal door zonder koppeling.'],
   onedrive: ['ON', 'Het documentarchief', 'Archiveert geboekte facturen in de ingestelde Moonshine-map.'],
@@ -85,8 +85,12 @@ const PROVIDERS: Record<string, Provider> = {
     { key: 'odoo_bank_feed', label: 'Open ING-bankregels uit Odoo ophalen', kind: 'bool' },
     { key: 'odoo_tax_map', label: 'Btw-mapping (Odoo tax-ID per code)', kind: 'json', placeholder: '{"9": 12, "21": 14, "reverse_eu": 18, "reverse_non_eu": 19}' }],
     help: <p className="helper">Vul bij Databasenaam de naam van je Odoo-database in, zonder URL. Een opgeslagen API-sleutel blijft bewaard als je het sleutelveld leeg laat. Sla eerst de accountgegevens op en test de verbinding; daarna kun je dagboeken, rekeningen en btw-codes kiezen.</p> },
-  claude: { title: 'Claude aansluiten', fields: [{ key: 'anthropic_api_key', label: 'Anthropic API-sleutel', kind: 'secret' }, { key: 'anthropic_model', label: 'Claude-model-ID', placeholder: 'Vul het beschikbare model-ID in' }],
-    help: <p className="helper">Test na het opslaan de verbinding om beschikbare modellen te zien. Uploads worden pas naar Claude verzonden nadat deze koppeling is ingesteld.</p> },
+  ai: { title: 'AI-aanbieder instellen', fields: [
+    { key: 'ai_provider', label: 'Aanbieder', kind: 'select', options: [['anthropic', 'Claude (Anthropic)'], ['gemini', 'Google Gemini'], ['openai', 'OpenAI-compatibel (NIM, Groq, OpenRouter, Ollama)']] },
+    { key: 'ai_api_key', label: 'API-sleutel', kind: 'secret' },
+    { key: 'ai_model', label: 'Model-ID', placeholder: 'Bijv. gemini-2.5-flash of een Claude-model' },
+    { key: 'ai_base_url', label: 'API-adres (alleen OpenAI-compatibel)', kind: 'url', placeholder: 'https://integrate.api.nvidia.com/v1' }],
+    help: <p className="helper">Test na het opslaan de verbinding om de beschikbare modellen te zien. Gemini en Claude lezen PDF’s en foto’s; OpenAI-compatibele aanbieders hier alleen afbeeldingen. Let op: bij gratis aanbieders kan de invoer gebruikt worden om te trainen, en facturen bevatten bedragen en bankgegevens. Bedragen en btw worden altijd in code nagerekend.</p> },
   microsoft: { title: 'Outlook / Microsoft aansluiten', fields: [
     { key: 'microsoft_tenant', label: 'Microsoft tenant-ID' }, { key: 'microsoft_client_id', label: 'App client-ID' },
     { key: 'microsoft_client_secret', label: 'Client secret (optioneel bij gedelegeerde toegang)', kind: 'secret' },
@@ -252,7 +256,7 @@ export function SettingsPage() {
 /* --- Sleutels ------------------------------------------------------------------------ */
 
 const KEYS: [string, string, string][] = [
-  ['odoo_api_key', 'Odoo API-sleutel', 'Boekhouding'], ['anthropic_api_key', 'Anthropic API-sleutel', 'Facturen uitlezen met Claude'],
+  ['odoo_api_key', 'Odoo API-sleutel', 'Boekhouding'], ['ai_api_key', 'AI API-sleutel', 'Facturen uitlezen (gekozen aanbieder)'], ['anthropic_api_key', 'Anthropic API-sleutel (oud)', 'Alleen als Claude is gekozen en nog geen AI-sleutel is ingesteld'],
   ['microsoft_client_secret', 'Microsoft client secret', 'Outlook, OneDrive en To Do'], ['microsoft_refresh_token', 'Microsoft refresh-token', 'Gedelegeerde toegang'],
   ['microsoft_access_token', 'Microsoft access-token', 'Tijdelijk, optioneel'], ['bank_webhook_secret', 'Bank-webhooksleutel', 'ING / SumUp-aanvoer'],
   ['mail_webhook_secret', 'Mail-webhooksleutel', 'Outlook-notificaties'], ['labelgrid_api_key', 'LabelGrid API-sleutel', 'Royalties'],

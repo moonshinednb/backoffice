@@ -22,7 +22,7 @@ Lees dit eerst; dan hoef je niet de hele code door. Houd het bij als er iets str
 | `production/` | Event, Act, Booking (+showday_contact/phone), Artist (+contact_via agency/self, on_label), Asset (OneDrive-sync), ChecklistItem, Send (venue-mail via Graph), Release + ReleaseStep (planning, auto 7 stappen), LabelStatement, Contract |
 | `production/rules.py` | pure regels: validatie, `missing_items` (advancing compleet?), `contact_via`, `needs_id`, pdf's |
 | `promo/` | Contact, Template, Campaign, Recipient; import Excel (openpyxl), verzenden via Graph `send_mail` in worker-job `promo_send` |
-| `integrations/` | http.py (veilige HTTPS), graph.py (Microsoft), odoo.py, claude.py, providers.py (LabelGrid, OpenSign, To Do), resend.py, checks.py (verbinding testen) |
+| `integrations/` | http.py (veilige HTTPS), graph.py (Microsoft), odoo.py, claude.py (AI-factuurlezer met aanbieder-keuze: Claude, Gemini, OpenAI-compatibel; instellingen `ai_*`), providers.py (LabelGrid, OpenSign, To Do), resend.py, checks.py (verbinding testen) |
 | `jobs/` | Job/Schedule, queue.py (handlers + periodic) |
 
 Meldingen-hooks zitten in: core/views.py (taken), production/services.py (`booking_update`, `step_save`), finance/services.py (`post_document`), promo/services.py (`send_batch`).

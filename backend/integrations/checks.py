@@ -12,9 +12,9 @@ def test_connection(provider):
     if provider == 'odoo':
         from .odoo import Odoo, odoo_catalog
         return {'message': 'Odoo-account geverifieerd', 'data': odoo_catalog(Odoo())}
-    if provider == 'claude':
-        from .claude import models
-        return {'message': 'Claude-account geverifieerd', 'data': {'models': models()}}
+    if provider in ('ai', 'claude'):
+        from .claude import PROVIDERS, config, models
+        return {'message': f'{PROVIDERS[config()[0]]} geverifieerd', 'data': {'models': models()}}
     if provider == 'microsoft':
         mailbox = urllib.parse.quote(cfg.get('finance_email') or 'finance@moonshinednb.nl', safe='')
         graph('/users/' + mailbox + '/mailFolders/inbox?$select=id,displayName')
