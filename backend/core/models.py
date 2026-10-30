@@ -17,6 +17,7 @@ class User(AbstractUser):
     production  events, artists, advancing and label; no finance
     viewer      read-only everywhere they can see; passport/birth date masked
     """
+    password = models.CharField('password', max_length=256)  # legacy scrypt hashes are longer than 128
     ROLES = [('admin', 'Beheerder'), ('finance', 'Finance'), ('production', 'Productie'), ('viewer', 'Alleen lezen')]
     id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
     role = models.CharField(max_length=20, choices=ROLES, default='viewer')
