@@ -45,3 +45,6 @@ a.button { display: inline-flex; align-items: center; gap: 8px; text-decoration:
   .chat-dock { right: 14px; bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
   .chat-panel { position: fixed; inset: 0; width: auto; height: auto; border-radius: 0; }
 }
+.reset-page { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: #0b0809; }
+.reset-page .access-panel { position: static; transform: none; max-width: 440px; width: 100%; }
+.reset-page a.button.primary { justify-content: center; width: 100%; padding: 13px; }

@@ -15,6 +15,7 @@ import { Layout } from './shell/Layout';
 import { PasswordDialog } from './shell/PasswordDialog';
 import './shell/pwa';
 import { Login } from './login/Login';
+import { ResetPassword } from './login/Reset';
 import { DashboardPage, TasksPage } from './pages/Work';
 import { BankPage, DocumentsPage, InvoicesPage, OdooPage, VatPage } from './pages/Finance';
 import { ActivityPage, AdminHome, AdminLayout, IntegrationsPage, KeysPage, SettingsPage, UsersPage } from './pages/Admin';
@@ -39,6 +40,7 @@ function Area({ area }: { area: 'finance' | 'admin' }) {
 /** Login gate: no session → login; temporary password → choose your own first. */
 function Gate() {
   const { user, ready } = useAuth();
+  if (location.pathname === '/wachtwoord-herstellen') return <ResetPassword />;
   if (!ready) return <div className="loading"><div><Orb state="working" size={64} label="Moonshine openen" />Moonshine openen…</div></div>;
   if (!user) return <Login />;
   if (user.must_change_password) return <div className="forced-password"><PasswordDialog open forced onClose={() => {}} /></div>;

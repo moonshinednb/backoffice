@@ -108,3 +108,12 @@ class ChatRead(models.Model):
 
     class Meta:
         unique_together = [('user', 'conversation')]
+
+
+class PasswordReset(models.Model):
+    """One-time reset link. Only a hash of the token is stored."""
+    token_hash = models.CharField(primary_key=True, max_length=64)
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    created = models.DateTimeField(auto_now_add=True)
+    expires = models.DateTimeField()
+    used = models.BooleanField(default=False)

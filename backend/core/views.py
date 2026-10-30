@@ -21,10 +21,10 @@ SETTING_KEYS = {
     'odoo_fee_account', 'odoo_output_tax_map', 'auto_post', 'auto_match', 'auto_sumup', 'anthropic_model', 'microsoft_client_id',
     'microsoft_tenant', 'mail_enabled', 'onedrive_enabled', 'onedrive_drive_id', 'onedrive_folder', 'todo_enabled', 'todo_list_id',
     'bank_mode', 'odoo_bank_feed', 'labelgrid_label_id', 'opensign_base', 'opensign_template_id', 'advancing_sender',
-    'production_folder', 'production_sync',
+    'production_folder', 'production_sync', 'resend_from', 'public_url',
 }
 SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token',
-               'bank_webhook_secret', 'mail_webhook_secret', 'labelgrid_api_key', 'opensign_api_key', 'opensign_webhook_secret'}
+               'bank_webhook_secret', 'mail_webhook_secret', 'labelgrid_api_key', 'opensign_api_key', 'opensign_webhook_secret', 'resend_api_key'}
 BOOLEANS = ('auto_post', 'auto_match', 'auto_sumup', 'mail_enabled', 'onedrive_enabled', 'todo_enabled', 'odoo_bank_feed', 'production_sync')
 
 
@@ -238,6 +238,11 @@ def save_settings(request):
         raise HttpError(400, 'Onbekende instelling.')
     if cfg.get('odoo_url'):
         secure_url(cfg['odoo_url'])
+    if cfg.get('public_url'):
+        from urllib.parse import urlsplit
+        u = urlsplit(str(cfg['public_url']))
+        if u.scheme not in ('http', 'https') or not u.hostname or u.username or u.password or u.query or u.fragment:
+            raise HttpError(400, 'Adres van de backoffice: gebruik bijv. http://100.111.153.38:8096')
     if cfg.get('advancing_sender'):
         R._email(cfg['advancing_sender'], 'Verzendadres advancing')
     if 'production_folder' in cfg:
@@ -280,6 +285,7 @@ def connections():
         ('todo', 'Microsoft To Do', bool(cfg.get('todo_list_id'))),
         ('labelgrid', 'LabelGrid', bool(sv.get('labelgrid_api_key'))),
         ('opensign', 'OpenSign', bool(sv.get('opensign_api_key'))),
+        ('resend', 'Resend', bool(sv.get('resend_api_key') and cfg.get('resend_from'))),
         ('ing', 'ING', True),
         ('sumup', 'SumUp', True),
     ]

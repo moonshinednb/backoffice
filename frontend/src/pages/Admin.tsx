@@ -22,6 +22,7 @@ const TEXT: Record<string, [string, string, string]> = {
   todo: ['TO', 'Samen aan het werk', 'Synchroniseert taken met een Microsoft To Do-lijst via jouw Microsoft-account.'],
   labelgrid: ['LG', 'Royalties', 'Haalt LabelGrid-statements op voor halfjaarlijkse afrekeningen. Alleen lezen.'],
   opensign: ['OS', 'Contracten', 'Verstuurt contracten via OpenSign en volgt ondertekening.'],
+  resend: ['RE', 'Wachtwoordmails', 'Verstuurt herstellinks voor vergeten wachtwoorden. Alleen voor wachtwoordherstel.'],
   ing: ['IN', 'Banktransacties', 'Leest de bestaande ING-bankfeed vanuit Odoo. CSV-import en een beveiligde webhook zijn ook beschikbaar.'],
   sumup: ['SU', 'Pin & uitbetalingen', 'Importeer omzet, kosten en uitbetalingen. Groepeer via payout_id; de flow boekt omzet en kosten en lettert de uitbetaling af.'],
 };
@@ -108,6 +109,10 @@ const PROVIDERS: Record<string, Provider> = {
   opensign: { title: 'OpenSign aansluiten', fields: [{ key: 'opensign_base', label: 'OpenSign API-basis', placeholder: 'https://eu-app.opensignlabs.com/api/v1.2' }, { key: 'opensign_template_id', label: 'Standaard template-ID' },
     { key: 'opensign_api_key', label: 'OpenSign API-sleutel', kind: 'secret' }, { key: 'opensign_webhook_secret', label: 'Webhook-handtekeningssleutel', kind: 'secret' }],
     help: <p className="helper">EU-cloud aanbevolen. Test eerst met een niet-vertrouwelijk document in de sandbox.</p> },
+  resend: { title: 'Resend aansluiten', fields: [{ key: 'resend_api_key', label: 'Resend API-sleutel', kind: 'secret' },
+    { key: 'resend_from', label: 'Afzender', placeholder: 'Moonshine <noreply@moonshinednb.nl>' },
+    { key: 'public_url', label: 'Adres van de backoffice (voor de link)', kind: 'url', placeholder: 'http://100.111.153.38:8096' }],
+    help: <p className="helper">Het afzenderdomein moet in Resend geverifieerd zijn (DNS-records bij je domein). Test daarna de verbinding; je ziet dan welke domeinen klaarstaan. De link in de mail werkt alleen op een apparaat met Tailscale aan.</p> },
   ing: { title: 'ING aanvoer instellen', fields: [{ key: 'bank_webhook_secret', label: 'Webhook bearer-sleutel (optioneel vervangen)', kind: 'secret' }], help: BANK_HELP },
   sumup: { title: 'SumUp aanvoer instellen', fields: [{ key: 'bank_webhook_secret', label: 'Webhook bearer-sleutel (optioneel vervangen)', kind: 'secret' },
     { key: 'odoo_sales_journal', label: 'Verkoopdagboek-ID', kind: 'number' }, { key: 'odoo_sales_account', label: 'Omzetrekening-ID', kind: 'number' },
@@ -251,7 +256,7 @@ const KEYS: [string, string, string][] = [
   ['microsoft_client_secret', 'Microsoft client secret', 'Outlook, OneDrive en To Do'], ['microsoft_refresh_token', 'Microsoft refresh-token', 'Gedelegeerde toegang'],
   ['microsoft_access_token', 'Microsoft access-token', 'Tijdelijk, optioneel'], ['bank_webhook_secret', 'Bank-webhooksleutel', 'ING / SumUp-aanvoer'],
   ['mail_webhook_secret', 'Mail-webhooksleutel', 'Outlook-notificaties'], ['labelgrid_api_key', 'LabelGrid API-sleutel', 'Royalties'],
-  ['opensign_api_key', 'OpenSign API-sleutel', 'Contracten'], ['opensign_webhook_secret', 'OpenSign webhooksleutel', 'Ondertekenstatus'],
+  ['opensign_api_key', 'OpenSign API-sleutel', 'Contracten'], ['resend_api_key', 'Resend API-sleutel', 'Wachtwoordmails'], ['opensign_webhook_secret', 'OpenSign webhooksleutel', 'Ondertekenstatus'],
 ];
 
 /** All API keys in one place. Values are stored only on the server

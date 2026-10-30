@@ -6,6 +6,9 @@ from .graph import _ensure_folder, graph
 
 def test_connection(provider):
     cfg = settings()
+    if provider == 'resend':
+        from .resend import check
+        return check()
     if provider == 'odoo':
         from .odoo import Odoo, odoo_catalog
         return {'message': 'Odoo-account geverifieerd', 'data': odoo_catalog(Odoo())}

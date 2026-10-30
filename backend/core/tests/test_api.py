@@ -72,3 +72,23 @@ class ChatProfileTests(ApiTests):
         self.assertEqual(b.get('/api/chat').json()['unread'], 2)
         self.assertEqual(b.get(f'/api/chat/{self.admin.id}').json()['messages'][0]['body'], 'Hoi Bram')
         self.assertEqual(b.get('/api/chat').json()['unread'], 1)
+
+
+class ResetTests(ApiTests):
+    def test_forgot_and_reset(self):
+        from unittest import mock
+        self.bram.email = 'bram@example.com'; self.bram.save()
+        c = Client()
+        sent = {}
+        with mock.patch('integrations.resend.send_email', side_effect=lambda to, subject, html, text: sent.update(to=to, text=text)):
+            r = c.post('/api/auth/forgot', json.dumps({'login': 'bram'}), content_type='application/json')
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(c.post('/api/auth/forgot', json.dumps({'login': 'niemand'}), content_type='application/json').json(), r.json())
+        self.assertEqual(sent['to'], 'bram@example.com')
+        token = sent['text'].split('token=')[1].split()[0]
+        r = c.post('/api/auth/reset', json.dumps({'token': token, 'password': 'nieuw-wachtwoord'}), content_type='application/json')
+        self.assertEqual(r.status_code, 200)
+        self.assertEqual(c.post('/api/auth/reset', json.dumps({'token': token, 'password': 'nog-een-keer'}), content_type='application/json').status_code, 400)
+        _, r = self.login('bram', 'nieuw-wachtwoord')
+        self.assertEqual(r.status_code, 200)
+        self.assertFalse(r.json()['user']['must_change_password'])

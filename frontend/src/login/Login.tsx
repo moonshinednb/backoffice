@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { Icon, Modal } from '../lib/ui';
 
@@ -12,6 +13,9 @@ export function Login() {
   const [busy, setBusy] = useState(false);
   const [show, setShow] = useState(false);
   const [help, setHelp] = useState(false);
+  const [sent, setSent] = useState('');
+  const [helpError, setHelpError] = useState('');
+  const [sending, setSending] = useState(false);
   useEffect(() => {
     let dispose: (() => void) | undefined;
     let cancelled = false;
@@ -46,8 +50,18 @@ export function Login() {
         </form>
         <button className="text-link login-help" onClick={() => setHelp(true)}>Wachtwoord vergeten? <Icon name="chevron" /></button>
       </div></section>
-      <Modal title="Toegang herstellen" open={help} onClose={() => setHelp(false)} footer={<button onClick={() => setHelp(false)}>Sluiten</button>}>
-        <p className="helper">Vraag Peppy (beheerder) om je wachtwoord opnieuw in te stellen via Gebruikers. Je krijgt dan een tijdelijk wachtwoord en kiest bij het inloggen zelf een nieuw. Er worden geen wachtwoorden per e-mail verstuurd.</p>
+      <Modal title="Wachtwoord vergeten" open={help} onClose={() => { setHelp(false); setSent(''); setHelpError(''); }} error={helpError}
+        footer={sent ? <button onClick={() => { setHelp(false); setSent(''); }}>Sluiten</button> : <><button className="ghost" onClick={() => setHelp(false)}>Annuleren</button><button className="primary" type="submit" form="forgot-form" disabled={sending}>Herstellink sturen</button></>}>
+        {sent ? <div className="notice">{sent}</div> : <form id="forgot-form" onSubmit={async (e) => {
+          e.preventDefault();
+          const login = new FormData(e.currentTarget).get('login');
+          setSending(true);
+          try { setSent((await api<{ message: string }>('/auth/forgot', { method: 'POST', body: { login } })).message); setHelpError(''); }
+          catch (err) { setHelpError((err as Error).message); } finally { setSending(false); }
+        }}>
+          <p className="helper">Vul je gebruikersnaam of e-mailadres in. Je krijgt een link om een nieuw wachtwoord te kiezen, 30 minuten geldig. Heb je geen e-mailadres in je profiel staan? Vraag dan Peppy of Luc.</p>
+          <div className="field"><label htmlFor="forgot-login">Gebruikersnaam of e-mailadres</label><input id="forgot-login" name="login" autoComplete="username" autoCapitalize="none" required /></div>
+        </form>}
       </Modal>
     </main>
   );
