@@ -1,0 +1,124 @@
+/* Moonshine events + focus + print affordances.
+   Loaded after studio.css so these win without !important. */
+
+/* Visible keyboard focus. There was no :focus-visible anywhere in the
+   stylesheets, so buttons and .text-link controls fell back to a faint UA
+   ring on a near-black background. */
+:focus-visible {
+  outline: 2px solid #d9a3a8;
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+tr.clickable:focus-visible {
+  outline: 2px solid #d9a3a8;
+  outline-offset: -2px;
+  background: rgba(217, 163, 168, 0.07);
+}
+button:active { transform: translateY(1px); }
+
+/* Screen-reader-only utility (declared but never applied before). */
+.visually-hidden {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Login error. It was rendered but never announced and never styled as
+   visible when re-rendered in place. */
+.error-box.visible {
+  display: block;
+  margin-bottom: 12px;
+}
+#login-form [aria-invalid='true'] { border-color: #b4455c; }
+
+/* Honest polling indicator, so a frozen UI is distinguishable from a
+   deliberately idle one. */
+.last-updated {
+  font-size: 11px;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Events ---------------------------------------------------------- */
+.event-tabs { margin-bottom: 18px; }
+.event-tabs button.active { font-weight: 600; }
+
+.note-list {
+  list-style: none;
+  margin: 16px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.note-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--panel2);
+}
+.note-list time { color: var(--muted); font-size: 11px; white-space: nowrap; }
+
+.inline-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 16px 0 0;
+}
+.inline-form input,
+.inline-form select { flex: 1 1 200px; min-width: 0; }
+.inline-form select { flex: 1 1 240px; }
+
+.inline-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.notice-warn {
+  border-color: #7a5a2c;
+  background: rgba(122, 90, 44, 0.12);
+}
+
+/* Table inputs inside the event editor: readable, sized to their column. */
+#advancing-rows input,
+#artist-rows input,
+#post-rows input,
+#post-rows select,
+#post-rows textarea {
+  width: 100%;
+  min-width: 90px;
+  padding: 7px 9px;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--panel2);
+  color: var(--text);
+  font: inherit;
+  font-size: 13px;
+}
+#advancing-rows td,
+#artist-rows td,
+#post-rows td { vertical-align: top; }
+
+/* The advancing is the thing people read at the door. Give it room. */
+#advancing-rows input[name^='slot_act_'] { font-weight: 600; }
+
+/* Keep long announce copy from stretching the grid. */
+#post-rows textarea { resize: vertical; min-height: 44px; }
+
+@media (max-width: 860px) {
+  .inline-form { flex-direction: column; align-items: stretch; }
+  .event-tabs { overflow-x: auto; display: flex; gap: 6px; }
+  .note-list li { flex-direction: column; gap: 4px; }
+}

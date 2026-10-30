@@ -1,0 +1,222 @@
+/* Moonshine print layer. Accounting output must survive paper.
+   The app is dark-only on screen, so print inverts to black on white and
+   strips every interactive surface. Without this, Ctrl+P emits near-white
+   text (#f0f1f2) on white paper and prints nothing legible. */
+
+@media print {
+  /* Re-declare the palette for paper. Studio colours are screen-only. */
+  :root {
+    --bg: #fff;
+    --panel: #fff;
+    --panel2: #fff;
+    --line: #c9ccd2;
+    --muted: #4a4f57;
+    --text: #000;
+    --accent: #000;
+    --radius: 0;
+    color-scheme: light;
+  }
+
+  html, body {
+    background: #fff !important;
+    color: #000 !important;
+    font-size: 10.5pt;
+  }
+
+  /* Never paint a background: browsers strip it inconsistently and it
+     wastes toner. */
+  * {
+    background: transparent !important;
+    color: #000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Chrome that has no meaning on paper. */
+  .sidebar,
+  .topbar,
+  .mobile-menu,
+  .overview-nav,
+  .automation-strip,
+  .dashboard-activity,
+  .upload-zone,
+  .attention-footer,
+  .side-bottom,
+  .row-actions,
+  .toolbar,
+  .tabs,
+  .search,
+  .chart-legend,
+  .chart-total,
+  .expense-chart,
+  .card-head .text-link,
+  .attention-item button,
+  #toast,
+  #login-help,
+  .demo-banner,
+  .login-help,
+  .demo-link,
+  .upload-zone + .mail-info,
+  .file-card footer,
+  .task-edit,
+  .invoice-line .icon-btn,
+  [data-remove-line],
+  [data-action],
+  .icon-btn,
+  .page-title .eyebrow,
+  .login-story,
+  .brand-stage,
+  .private-badge,
+  .access-panel,
+  .donut,
+  .chart-zero {
+    display: none !important;
+  }
+
+  /* Full-width single column. The screen layout is a fixed two-column grid
+     that would print as a sliver. */
+  .layout,
+  .main,
+  .content,
+  .settings-wide,
+  .dashboard-primary,
+  .dashboard-secondary,
+  .stack,
+  .panel-grid,
+  .grid-main,
+  .lower-grid {
+    display: block !important;
+    width: 100% !important;
+    max-width: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    gap: 0 !important;
+  }
+
+  .content { padding: 0 !important; }
+
+  .card,
+  .panel,
+  .section,
+  .card-pad {
+    border: 0 !important;
+    border-top: 1px solid #000 !important;
+    border-radius: 0 !important;
+    padding: 6pt 0 !important;
+    margin: 0 0 8pt !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .card:first-of-type { border-top: 0 !important; }
+
+  h1, h2, h3 { break-after: avoid; page-break-after: avoid; margin: 8pt 0 4pt; }
+  h1 { font-size: 15pt; }
+  h2 { font-size: 12pt; }
+  h3 { font-size: 10.5pt; }
+
+  /* Tables must expand to the page and stop wrapping. `white-space:nowrap`
+     on every td is the screen default and guarantees overflow on paper. */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: auto !important;
+    font-size: 9.5pt;
+  }
+
+  .table-wrap { overflow: visible !important; max-height: none !important; }
+
+  thead { display: table-header-group; }
+  tr { break-inside: avoid; page-break-inside: avoid; }
+
+  th, td {
+    white-space: normal !important;
+    padding: 3pt 5pt !important;
+    border: 0 !important;
+    border-bottom: 1px solid #c9ccd2 !important;
+    text-align: left;
+    overflow-wrap: anywhere;
+  }
+
+  th {
+    border-bottom: 1.5px solid #000 !important;
+    font-size: 8.5pt;
+    text-transform: uppercase;
+    letter-spacing: .04em;
+  }
+
+  td.amount, th.amount { text-align: right; }
+
+  /* Badges lose their pill and become plain status text. */
+  .badge {
+    border: 1px solid #000 !important;
+    border-radius: 0 !important;
+    padding: 0 3pt !important;
+    font-size: 8pt;
+    text-transform: uppercase;
+  }
+
+  /* Charts and other decorative canvases never print meaningfully. */
+  canvas, svg.expense-chart { display: none !important; }
+
+  a { color: #000 !important; text-decoration: none !important; }
+  /* Print the destination for links whose href matters (skip hash-only). */
+  a[href^="http"]::after { content: " (" attr(href) ")"; font-size: 8pt; }
+
+  .helper, .vat-total, .notice, .split-note {
+    font-size: 8.5pt;
+    border: 1px solid #c9ccd2 !important;
+    padding: 3pt 5pt !important;
+    break-inside: avoid;
+  }
+
+  .vat-total { display: flex !important; }
+  .invoice-line { break-inside: avoid; page-break-inside: avoid; }
+  .divider { background: #000 !important; height: 1px !important; }
+
+  /* Dialog content prints inline, in flow, not as a floating layer. */
+  dialog#dialog {
+    position: static !important;
+    display: block !important;
+    border: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    max-height: none !important;
+    background: #fff !important;
+  }
+  dialog#dialog::backdrop { display: none !important; }
+  dialog#dialog .dialog-foot { display: none !important; }
+  dialog#dialog .dialog-error { display: none !important; }
+  dialog#dialog .dialog-head button { display: none !important; }
+  dialog#dialog fieldset[disabled] { display: block !important; opacity: 1 !important; }
+
+  /* Disabled fieldsets hide their values from paper on some engines. */
+  fieldset { border: 0 !important; padding: 0 !important; margin: 0 !important; }
+  .plain-fieldset:disabled { opacity: 1 !important; }
+
+  .stat { border: 0 !important; border-left: 2px solid #000 !important; }
+  .stats { display: flex !important; flex-wrap: wrap !important; gap: 6pt !important; }
+  .stat { flex: 1 1 45% !important; }
+
+  /* Never orphan a heading at the bottom of a page. */
+  .page-title { break-after: avoid; page-break-after: avoid; }
+}
+
+/* A dedicated print root, used by the invoice print button. It bypasses
+   screen chrome entirely so a single invoice prints as a clean document. */
+@media print {
+  body.printing-invoice .sidebar,
+  body.printing-invoice .topbar,
+  body.printing-invoice #toast { display: none !important; }
+
+  body.printing-invoice .content { padding: 0 !important; }
+  body.printing-invoice dialog#dialog {
+    position: static !important;
+    display: block !important;
+  }
+}
+
+/* Hide the WebGL canvas on paper: it rasterises as a black block. */
+@media print {
+  .logo-scene, .scene-fallback, .sculpture-view { display: none !important; }
+}
