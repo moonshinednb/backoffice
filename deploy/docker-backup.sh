@@ -1,18 +1,19 @@
 #!/bin/sh
-# Daily backup for the docker compose deployment: consistent SQLite snapshot + files + secrets.
+# Daily backup: PostgreSQL dump + stored files + secrets.
 set -eu
 DATA_DIR="${DATA_DIR:-$HOME/apps/backoffice-data}"
 TARGET="${BACKUP_DIR:-$HOME/apps/backoffice-backups}"
 KEEP_DAYS="${KEEP_DAYS:-30}"
 mkdir -p "$TARGET"; chmod 700 "$TARGET"
 STAMP=$(date -u +%Y%m%d-%H%M%S)
-docker exec moonshine-backoffice python3 -c "import sqlite3;s=sqlite3.connect('/data/moonshine.sqlite3');d=sqlite3.connect('/data/.backup.sqlite3');s.backup(d);d.close();s.close()"
-cd "$DATA_DIR"
-set -- .backup.sqlite3
-[ -d files ] && set -- "$@" files
-[ -f secrets.json ] && set -- "$@" secrets.json
 umask 077
-tar czf "$TARGET/backoffice-$STAMP.tar.gz" "$@"
-rm -f .backup.sqlite3
+WORK=$(mktemp -d); trap 'rm -rf "$WORK"' EXIT
+if docker ps --format '{{.Names}}' | grep -qx moonshine-db; then
+  docker exec moonshine-db pg_dump -U moonshine -d moonshine -Fc > "$WORK/moonshine.pgdump"
+fi
+cd "$DATA_DIR"
+set --
+for f in moonshine.sqlite3 files assets secrets.json django-secret.key; do [ -e "$f" ] && set -- "$@" "$f"; done
+tar czf "$TARGET/backoffice-$STAMP.tar.gz" "$@" -C "$WORK" .
 find "$TARGET" -name 'backoffice-*.tar.gz' -mtime +"$KEEP_DAYS" -delete
 echo "Backup gereed: $TARGET/backoffice-$STAMP.tar.gz"

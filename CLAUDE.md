@@ -4,7 +4,7 @@ Rapporteer kort en in het Nederlands. Raak `/opt/mo` niet aan en gebruik geen su
 
 ## Productie
 - Server: `clawd@100.111.153.38` (Tailscale-host `clawd-gk5npfo`).
-- Code: `~/apps/backoffice`. Docker compose, container `moonshine-backoffice`.
+- Code: `~/apps/backoffice`. Docker compose: `moonshine-backoffice` (web), `moonshine-worker`, `moonshine-db` (Postgres, volume `pgdata`).
 - URL: http://100.111.153.38:8096/ (alleen via het tailnet; `BIND_ADDR` staat in `~/apps/backoffice/.env`).
 - Data: `~/apps/backoffice-data`. Nooit overschrijven of verwijderen.
 - Admin `peppy`: het wachtwoord staat in `~/apps/backoffice-admin.txt` (chmod 600). Nooit printen.
@@ -24,7 +24,8 @@ ssh -o StrictHostKeyChecking=accept-new -o ProxyCommand="nc -X 5 -x localhost:10
 ```
 
 ## Werkwijze bij wijzigingen
-1. Wijzig de code hier en test: `python3 -m unittest discover -s tests`.
+1. Wijzig de code hier en test: `cd backend && python manage.py test` en `cd frontend && npm run build`.
+   Stack: Django 5.2 + Django Ninja (`backend/`), React + Vite + TS (`frontend/`), PostgreSQL en een aparte worker (`manage.py run_worker`) in docker compose.
 2. Commit en push naar de sessie-branch.
 3. Deploy: maak eerst een backup, kopieer dan de code en herbouw. `.env` en de data blijven staan:
 ```sh

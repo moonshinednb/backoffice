@@ -1,13 +1,41 @@
+# Web (Django + React), worker (achtergrondtaken) and PostgreSQL.
+x-app: &app
+  build: .
+  restart: unless-stopped
+  user: "${APP_UID:-1000}:${APP_GID:-1000}"
+  environment:
+    DATABASE_URL: "postgres://moonshine:${POSTGRES_PASSWORD:-moonshine}@db:5432/moonshine"
+    MOONSHINE_SECURE_COOKIE: "${MOONSHINE_SECURE_COOKIE:-0}"
+  volumes:
+    - "${DATA_DIR:-./data}:/data"
+  depends_on:
+    db:
+      condition: service_healthy
+
 services:
-  backoffice:
-    build: .
-    container_name: moonshine-backoffice
+  db:
+    image: postgres:17-alpine
+    container_name: moonshine-db
     restart: unless-stopped
-    user: "${APP_UID:-1000}:${APP_GID:-1000}"
     environment:
-      MOONSHINE_SECURE_COOKIE: "${MOONSHINE_SECURE_COOKIE:-0}"
-      MOONSHINE_WORKER: "1"
-    ports:
-      - "${BIND_ADDR:-127.0.0.1}:8096:8765"
+      POSTGRES_DB: moonshine
+      POSTGRES_USER: moonshine
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:-moonshine}"
     volumes:
-      - "${DATA_DIR:-./data}:/data"
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U moonshine -d moonshine"]
+      interval: 5s
+      retries: 20
+  backoffice:
+    <<: *app
+    container_name: moonshine-backoffice
+    ports:
+      - "${BIND_ADDR:-127.0.0.1}:8096:8000"
+  worker:
+    <<: *app
+    container_name: moonshine-worker
+    command: ["python", "manage.py", "run_worker"]
+
+volumes:
+  pgdata:

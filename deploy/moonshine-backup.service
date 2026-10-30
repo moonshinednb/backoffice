@@ -1,6 +1,0 @@
-[Unit]
-Description=Moonshine daily backup
-[Service]
-Type=oneshot
-UMask=0077
-ExecStart=/usr/bin/python3 /opt/moonshine-backoffice/deploy/backup.py
