@@ -31,16 +31,24 @@ export function logoShapes(paths) {
   return shapes;
 }
 
+/* Chunky round profile: the bevel swells bevelSize outside the SVG outline
+   while the front cap keeps the exact SVG fill. An inset cap (negative
+   bevelOffset) would be rounder, but this traced SVG has tiny notches that
+   make inset contours self-intersect and flood the N. */
+export const PROFILE = Object.freeze({
+  depth: 14,
+  bevelEnabled: true,
+  bevelThickness: 8,
+  bevelSize: 6,
+  bevelSegments: 12,
+});
+
 /* Smooth bevels by exact quantized position. Numeric packed keys exceeded
    JavaScript's 53-bit integer precision and merged unrelated vertices,
    producing broken metal highlights. Tuple keys preserve the silhouette. */
 export function extrudeLogo(shape) {
   const geometry = new THREE.ExtrudeGeometry(shape, {
-    depth: 42,
-    bevelEnabled: true,
-    bevelThickness: 4.2,
-    bevelSize: 4.2,
-    bevelSegments: 8,
+    ...PROFILE,
     curveSegments: 1,
     steps: 1,
   });
