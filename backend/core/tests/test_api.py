@@ -58,3 +58,17 @@ class ApiTests(TestCase):
         b = self.send(c, 'patch', f"/api/bookings/{r['booking_id']}", {'fee': '1.500', 'artist': {'full_name': 'Lui'}}).json()
         self.assertEqual(b['fee'], 150000)
         self.assertEqual(c.get(f"/api/events/{e['id']}/advancing.pdf").status_code, 200)
+
+
+class ChatProfileTests(ApiTests):
+    def test_profile_and_chat(self):
+        a, _ = self.login('peppy', 'admin-pass-1')
+        r = self.send(a, 'patch', '/api/profile', {'language': 'nl', 'job_title': 'Founder'}).json()
+        self.assertEqual(r['user']['language'], 'nl')
+        self.assertEqual(self.send(a, 'post', '/api/chat/team', {'body': 'Hoi team'}).status_code, 200)
+        self.send(a, 'post', f'/api/chat/{self.bram.id}', {'body': 'Hoi Bram'})
+        self.bram.must_change_password = False; self.bram.save()
+        b, _ = self.login('bram', 'tijdelijk1')
+        self.assertEqual(b.get('/api/chat').json()['unread'], 2)
+        self.assertEqual(b.get(f'/api/chat/{self.admin.id}').json()['messages'][0]['body'], 'Hoi Bram')
+        self.assertEqual(b.get('/api/chat').json()['unread'], 1)

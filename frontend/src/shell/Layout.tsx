@@ -1,10 +1,13 @@
+import { locale } from '../lib/i18n';
 import { useEffect, useState } from 'react';
 import { Link, NavLink, Outlet, useLocation, useNavigate } from 'react-router';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api';
 import { can, useAuth } from '../lib/auth';
 import { ROLE } from '../lib/format';
-import { Icon, Modal } from '../lib/ui';
+import { Avatar, Icon, Modal } from '../lib/ui';
+import { ChatWidget } from './Chat';
+import { ProfileDialog } from './Profile';
 import { PasswordDialog } from './PasswordDialog';
 import { installSteps } from './pwa';
 
@@ -28,6 +31,7 @@ export function Layout() {
   const [profile, setProfile] = useState(false);
   const [password, setPassword] = useState(false);
   const [install, setInstall] = useState(false);
+  const [me, setMe] = useState(false);
   const docs = useQuery({ queryKey: ['review-count'], queryFn: () => api<{ documents: { status: string }[] }>('/documents?limit=2000'), enabled: can.finance(user), refetchInterval: 30000 });
   const review = docs.data?.documents.filter((d) => d.status === 'review').length || 0;
   useEffect(() => { setMenu(false); setProfile(false); }, [location.pathname]);
@@ -59,16 +63,17 @@ export function Layout() {
           <button className="mobile-menu icon-btn" onClick={() => setMenu(!menu)} aria-label="Menu openen" aria-expanded={menu}><Icon name="menu" /></button>
           <div className="breadcrumb">{current ? current[0] : 'Werkplek'} <span>/ {current ? current[2] : 'Overzicht'}</span></div>
           <div className="top-actions">
-            <span className="top-date">{new Date().toLocaleDateString('nl-NL', { weekday: 'short', day: 'numeric', month: 'long' })}</span>
+            <span className="top-date">{new Date().toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'long' })}</span>
             {can.finance(user) ? <button className="icon-btn ghost" onClick={() => navigate('/facturen?status=review')} aria-label={review ? `${review} facturen die aandacht vragen` : 'Facturen die aandacht vragen'}><Icon name="bell" />{review ? <span className="notification-count" /> : null}</button> : null}
             <div className="profile-control">
               <button className="profile-trigger" onClick={() => setProfile(!profile)} aria-expanded={profile} aria-label={`Profielmenu van ${user.name}`}>
-                <span className="avatar" aria-hidden="true">{user.name.slice(0, 2).toUpperCase()}</span><Icon name="chevron" />
+                <Avatar user={user} /><Icon name="chevron" />
               </button>
               {profile ? (
                 <div className="profile-menu">
                   <div className="profile-summary"><strong>{user.name}</strong><span>@{user.username} · {ROLE[user.role]}</span></div>
                   <div className="profile-options" role="group" aria-label="Accountopties">
+                    <button onClick={() => { setProfile(false); setMe(true); }}><Icon name="user" /> Mijn profiel</button>
                     <button onClick={() => { setProfile(false); setPassword(true); }}><Icon name="lock" /> Wachtwoord wijzigen</button>
                     <button onClick={() => { setProfile(false); setInstall(true); }}><Icon name="download" /> Installeer als app</button>
                     {user.role === 'admin' ? <button onClick={() => navigate('/beheer/instellingen')}><Icon name="settings" /> Werkplekinstellingen</button> : null}
@@ -82,6 +87,8 @@ export function Layout() {
         <div className="content" id="content"><Outlet /></div>
       </main>
       <PasswordDialog open={password} onClose={() => setPassword(false)} />
+      <ProfileDialog open={me} onClose={() => setMe(false)} onPassword={() => { setMe(false); setPassword(true); }} />
+      <ChatWidget />
       <Modal title="Moonshine als app" open={install} onClose={() => setInstall(false)} footer={<button onClick={() => setInstall(false)}>Sluiten</button>}>
         {installSteps()}
       </Modal>

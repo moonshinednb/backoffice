@@ -1,4 +1,5 @@
 import { StrictMode } from 'react';
+import './lib/i18n';
 import { createRoot } from 'react-dom/client';
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from 'react-router';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';

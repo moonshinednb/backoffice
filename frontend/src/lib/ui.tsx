@@ -121,3 +121,9 @@ export function formValues(form: HTMLFormElement) {
   for (const [key, value] of new FormData(form)) if (typeof value === 'string') out[key] = value;
   return out;
 }
+
+/** Profile photo, or initials when there is none. */
+export function Avatar({ user, size = 36 }: { user: { name: string; avatar?: string }; size?: number }) {
+  const style = { width: size, height: size, fontSize: size * 0.36 };
+  return user.avatar ? <img className="avatar avatar-img" src={user.avatar} alt="" style={style} /> : <span className="avatar" aria-hidden="true" style={style}>{user.name.slice(0, 2).toUpperCase()}</span>;
+}

@@ -1,7 +1,8 @@
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from 'react';
 import { api, setCsrf } from './api';
+import { setLang } from './i18n';
 
-export type User = { id: string; username: string; name: string; role: 'admin' | 'finance' | 'production' | 'viewer'; active: boolean; must_change_password: boolean };
+export type User = { id: string; username: string; name: string; role: 'admin' | 'finance' | 'production' | 'viewer'; active: boolean; must_change_password: boolean; language: 'en' | 'nl'; job_title: string; phone: string; email: string; avatar: string };
 
 type Auth = {
   user: User | null;
@@ -21,7 +22,8 @@ export const can = {
 };
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUserState] = useState<User | null>(null);
+  const setUser = useCallback((u: User | null) => { if (u?.language) setLang(u.language); setUserState(u); }, []);
   const [ready, setReady] = useState(false);
   useEffect(() => {
     api<{ user: User | null; csrf: string }>('/auth/me').then((r) => { setCsrf(r.csrf); setUser(r.user); }).catch(() => setUser(null)).finally(() => setReady(true));

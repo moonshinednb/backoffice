@@ -1,3 +1,4 @@
+import { locale } from '../lib/i18n';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
@@ -95,7 +96,7 @@ function ExpenseChart({ docs }: { docs: Doc[] }) {
   const now = new Date();
   const months = Array.from({ length: 6 }, (_, k) => {
     const d = new Date(now.getFullYear(), now.getMonth() - 5 + k, 1);
-    return { key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), label: d.toLocaleDateString('nl-NL', { month: 'short' }), value: 0 };
+    return { key: d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'), label: d.toLocaleDateString(locale(), { month: 'short' }), value: 0 };
   });
   for (const d of docs) { if (d.status !== 'posted') continue; const m = months.find((x) => x.key === (d.details.date || '').slice(0, 7)); if (m) m.value += d.details.total || 0; }
   const max = Math.max(10000, ...months.map((m) => m.value));

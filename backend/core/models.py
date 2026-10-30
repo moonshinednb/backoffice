@@ -22,6 +22,10 @@ class User(AbstractUser):
     id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
     role = models.CharField(max_length=20, choices=ROLES, default='viewer')
     must_change_password = models.BooleanField(default=False)
+    language = models.CharField(max_length=2, choices=[('en', 'English'), ('nl', 'Nederlands')], default='en')
+    job_title = models.CharField(max_length=100, blank=True, default='')
+    phone = models.CharField(max_length=40, blank=True, default='')
+    avatar = models.CharField(max_length=40, blank=True, default='', help_text='File name in DATA/avatars')
 
     @property
     def display_name(self):
@@ -83,3 +87,26 @@ class Task(models.Model):
 
     class Meta:
         ordering = ['done', 'due', '-created']
+
+
+class ChatMessage(models.Model):
+    """Team chat. recipient empty = the shared team channel, otherwise a
+    direct message between sender and recipient."""
+    id = models.BigAutoField(primary_key=True)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='sent_messages')
+    recipient = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='received_messages')
+    body = models.TextField()
+    created = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['id']
+
+
+class ChatRead(models.Model):
+    """Last message id a user has seen per conversation ('team' or a user id)."""
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    conversation = models.CharField(max_length=24)
+    last_id = models.BigIntegerField(default=0)
+
+    class Meta:
+        unique_together = [('user', 'conversation')]

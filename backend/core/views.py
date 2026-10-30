@@ -29,8 +29,8 @@ BOOLEANS = ('auto_post', 'auto_match', 'auto_sumup', 'mail_enabled', 'onedrive_e
 
 
 def user_dict(u):
-    return {'id': u.id, 'username': u.username, 'name': u.display_name, 'role': u.role, 'active': u.is_active,
-            'must_change_password': u.must_change_password}
+    from .chat import profile_dict
+    return profile_dict(u)
 
 
 def check_origin(request):

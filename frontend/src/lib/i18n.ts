@@ -1,0 +1,407 @@
+/* Language: English (default) or Dutch. The interface is written in Dutch;
+   in English every visible text node and the placeholder, aria-label, title
+   and alt attributes are translated as they appear (a MutationObserver), so
+   pages, dialogs and toasts follow without wrapping every string. Switching
+   back to Dutch reloads the page to restore the original text. */
+
+const KEY = 'moonshine-lang';
+export type Lang = 'en' | 'nl';
+let current: Lang = (() => { try { return localStorage.getItem(KEY) === 'nl' ? 'nl' : 'en'; } catch { return 'en'; } })();
+export const lang = () => current;
+export const locale = () => (current === 'en' ? 'en-GB' : 'nl-NL');
+
+const D: Record<string, string> = {
+  // Navigation and shell
+  'Werkplek': 'Workspace', 'Overzicht': 'Overview', 'Taken': 'Tasks', 'Productie': 'Production', 'Evenementen': 'Events', 'Artiesten': 'Artists',
+  'Label': 'Label', 'Financiën': 'Finance', 'Facturen': 'Invoices', 'Odoo-administratie': 'Odoo accounting', 'Bank & pin': 'Bank & card payments',
+  'Btw-overzicht': 'VAT overview', 'Documenten': 'Documents', 'Beheer': 'Admin', 'Admin': 'Admin', 'Koppelingen': 'Integrations', 'Gebruikers': 'Users',
+  'Sleutels': 'Keys', 'Instellingen': 'Settings', 'Activiteit': 'Activity', 'Besloten Moonshine-omgeving': 'Private Moonshine workspace',
+  'Menu openen': 'Open menu', 'Mijn profiel': 'My profile', 'Wachtwoord wijzigen': 'Change password', 'Installeer als app': 'Install as app',
+  'Werkplekinstellingen': 'Workspace settings', 'Uitloggen': 'Log out', 'Accountopties': 'Account options', 'Facturen die aandacht vragen': 'Invoices needing attention',
+  'Moonshine openen…': 'Opening Moonshine…', 'Moonshine openen': 'Opening Moonshine', 'Laden…': 'Loading…', 'Geen toegang': 'No access',
+  'Deze pagina is niet beschikbaar voor jouw rol.': 'This page is not available for your role.', 'Moonshine backoffice': 'Moonshine backoffice',
+  // Common
+  'Opslaan': 'Save', 'Annuleren': 'Cancel', 'Sluiten': 'Close', 'Toevoegen': 'Add', 'Aanmaken': 'Create', 'Bewerken': 'Edit', 'Verwijderen': 'Delete',
+  'Vervangen': 'Replace', 'Instellen': 'Set up', 'Beheren': 'Manage', 'Bekijken': 'View', 'Terug': 'Back', 'Versturen': 'Send', 'Upload': 'Upload', 'Link': 'Link',
+  'Jij': 'You', 'Ja': 'Yes', 'Nee': 'No', 'Nog onbekend': 'Unknown yet', 'Datum': 'Date', 'Status': 'Status', 'Naam': 'Name', 'Naam *': 'Name *', 'Titel *': 'Title *',
+  'Notities': 'Notes', 'Gegevens': 'Details', 'Opmerking': 'Note', 'Stage': 'Stage', 'Start': 'Start', 'Eind': 'End', 'Tijd': 'Time', 'Act': 'Act', 'Acts': 'Acts',
+  'Artiest': 'Artist', 'Evenement': 'Event', 'Locatie': 'Location', 'Bedrag': 'Amount', 'Totaal': 'Total', 'Bron': 'Source', 'Omschrijving': 'Description',
+  'Classificatie': 'Classification', 'Rubriek': 'Box', 'Grondslag': 'Base', 'Btw': 'VAT', 'Jaar': 'Year', 'Kwartaal': 'Quarter', 'Gebruiker': 'User',
+  'Gebruikersnaam': 'Username', 'Wachtwoord': 'Password', 'Rol': 'Role', 'Handeling': 'Action', 'Moment': 'When', 'Details': 'Details', 'Iedereen': 'Everyone',
+  'Sleutel': 'Key', 'Gebruikt voor': 'Used for', 'Kanaal': 'Channel', 'Crediteur / factuur': 'Supplier / invoice', 'Crediteur / nummer': 'Supplier / number',
+  'Nog te betalen': 'Outstanding', 'Optredens': 'Shows', 'Bestanden': 'Files', 'Timetable': 'Timetable', 'Venue': 'Venue', 'Advancing': 'Advancing',
+  'Gage (€)': 'Fee (€)', 'Prijs (€)': 'Price (€)', 'Content': 'Content', 'Agency': 'Agency', 'Agent': 'Agent', 'E-mail': 'Email', 'Telefoon': 'Phone',
+  'Instagram': 'Instagram', 'Functie': 'Role / title', 'Bijv. Productie': 'E.g. Production', 'Taal / Language': 'Language / Taal',
+  // Roles and states
+  'Beheerder': 'Admin', 'Finance': 'Finance', 'Alleen lezen': 'Read only', 'Actief': 'Active', 'Inactief': 'Inactive', 'Tijdelijk wachtwoord': 'Temporary password',
+  'In planning': 'Planning', 'Bevestigd': 'Confirmed', 'Live': 'Live', 'Afgelopen': 'Past', 'Geannuleerd': 'Cancelled', 'Optie': 'Option', 'Komend': 'Upcoming',
+  'Compleet': 'Complete', 'Geboekt': 'Posted', 'Controle nodig': 'Needs review', 'Wacht op AI': 'Waiting for AI', 'Wordt verwerkt': 'Processing',
+  'Geverifieerd': 'Verified', 'Nog testen': 'Needs test', 'Niet gekoppeld': 'Not connected', 'Ingesteld': 'Set', 'Niet ingesteld': 'Not set', 'OK': 'OK',
+  'Mislukt': 'Failed', 'Onzeker': 'Uncertain', 'Aangenomen door Outlook': 'Accepted by Outlook', 'Afgeletterd': 'Reconciled', 'Open': 'Open',
+  'Omzet': 'Revenue', 'Verzameluitbetaling': 'Settlement payout', 'Kosten': 'Fees', 'Nog indelen': 'To classify', 'Concept': 'Draft', 'Creditnota': 'Credit note',
+  'Onbetaald': 'Unpaid', 'Deels betaald': 'Partly paid', 'Betaling onderweg': 'Payment in progress', 'Betaald': 'Paid', 'Teruggedraaid': 'Reversed', 'Geblokkeerd': 'Blocked',
+  'Gepland': 'Planned', 'Ingepland': 'Scheduled', 'Uitgebracht': 'Released', 'Te doen': 'To do', 'Klaar': 'Done', 'Verstuurd': 'Sent', 'N.v.t.': 'N/A',
+  'al verstuurd': 'already sent', 'n.v.t.': 'n/a', 'Prioriteit': 'Priority', 'Openstaand': 'Open', 'Afgerond': 'Done', 'Alle taken': 'All tasks',
+  'Inkoop': 'Purchases', 'Deze maand': 'This month', 'Inkoop-btw': 'Purchase VAT', 'Dagboeken': 'Journals', 'Bank': 'Bank',
+  // Login
+  'Welkom': 'Welcome', 'terug.': 'back.', 'TEAM ACCESS': 'TEAM ACCESS', 'Inloggen': 'Log in', 'Vul je wachtwoord in': 'Enter your password',
+  'Wachtwoord tonen': 'Show password', 'Wachtwoord verbergen': 'Hide password', 'Wachtwoord vergeten?': 'Forgot password?', 'Toegang herstellen': 'Restore access',
+  'Vraag Peppy (beheerder) om je wachtwoord opnieuw in te stellen via Gebruikers. Je krijgt dan een tijdelijk wachtwoord en kiest bij het inloggen zelf een nieuw. Er worden geen wachtwoorden per e-mail verstuurd.': 'Ask Peppy or Luc (admins) to reset your password. You get a temporary password and choose a new one when you log in. Passwords are never sent by email.',
+  'Private workspace': 'Private workspace', 'Gebruikersnaam of wachtwoord klopt niet.': 'Username or password is incorrect.',
+  // Password and profile
+  'Kies je eigen wachtwoord': 'Choose your own password', 'Huidig wachtwoord': 'Current password', 'Nieuw wachtwoord': 'New password',
+  'Herhaal nieuw wachtwoord': 'Repeat new password', 'De nieuwe wachtwoorden zijn niet gelijk.': 'The new passwords do not match.',
+  'Je logt voor het eerst in met een tijdelijk wachtwoord. Kies een eigen wachtwoord van minimaal 8 tekens.': 'You are logging in with a temporary password. Choose your own password of at least 8 characters.',
+  'Wachtwoord gewijzigd.': 'Password changed.', 'Huidig wachtwoord klopt niet.': 'Current password is incorrect.', 'Foto kiezen': 'Choose photo', 'Foto verwijderen': 'Remove photo',
+  'Profiel opgeslagen.': 'Profile saved.', 'Gebruik een JPG-, PNG- of WebP-afbeelding.': 'Use a JPG, PNG or WebP image.', 'Maximaal 3 MB.': 'Max 3 MB.',
+  'Moonshine als app': 'Moonshine as an app', 'Nu installeren': 'Install now', 'Je gebruikt Moonshine al als app.': 'You are already using Moonshine as an app.',
+  'Moonshine opent dan als losse app met een eigen icoon, zonder adresbalk. Je blijft gewoon inloggen zoals nu.': 'Moonshine then opens as its own app with an icon and no address bar. You log in as usual.',
+  'Open deze pagina in Chrome of Edge.': 'Open this page in Chrome or Edge.', 'Klik op het installatie-icoon rechts in de adresbalk.': 'Click the install icon on the right of the address bar.',
+  'Tik op de deelknop: het vierkant met de pijl omhoog.': 'Tap the share button: the square with the arrow.', 'Tik op het menu met de drie puntjes.': 'Tap the three-dot menu.',
+  // Chat
+  'Chat': 'Chat', 'Team': 'Team', 'Chat openen': 'Open chat', 'Chat sluiten': 'Close chat', 'Iedereen in Moonshine': 'Everyone at Moonshine', 'Nog geen berichten': 'No messages yet',
+  'Nog geen berichten. Zeg hallo!': 'No messages yet. Say hi!', 'Typ een bericht…': 'Type a message…', 'Bericht': 'Message', 'Onbekend': 'Unknown',
+  // Dashboard
+  'Evenementen, label en financiën op één plek.': 'Events, label and finance in one place.', 'Exporteren': 'Export', 'Export': 'Export', 'Nieuwe factuur': 'New invoice',
+  'Komende evenementen': 'Upcoming events', 'Advancing per evenement': 'Advancing per event', 'Alle evenementen': 'All events', 'Geen komende evenementen': 'No upcoming events',
+  'Plan het volgende evenement bij Productie.': 'Plan the next event under Production.', 'Naar evenementen': 'Go to events', 'Nog geen line-up': 'No line-up yet',
+  'Ontvangen facturen': 'Invoices received', 'Geboekt in Odoo': 'Posted in Odoo', 'Te controleren': 'To review', 'Openstaande taken': 'Open tasks',
+  'In de controle-inbox': 'In the review inbox', 'Voor jou en je team': 'For you and your team', 'Nog geen boekingen': 'No postings yet', 'Financieel overzicht': 'Financial overview',
+  'Geboekte inkoopfacturen · afgelopen 6 maanden': 'Posted purchase invoices · last 6 months', 'Nog geen geboekte facturen in deze periode': 'No posted invoices in this period',
+  'Jouw aandacht': 'Needs your attention', 'Nieuwe taak': 'New task', 'Alles bijgewerkt': 'All caught up', 'Geen facturen of taken die aandacht vragen.': 'No invoices or tasks need attention.',
+  'Taak toevoegen': 'Add task', 'Moonshine-team': 'Moonshine team', 'Verwerking actief': 'Processing active', 'Verwerking klaar voor aansluiting': 'Processing ready to connect',
+  'Verwerking nog niet actief': 'Processing not active yet', 'Recente facturen': 'Recent invoices', 'De laatste ontvangen documenten': 'The latest received documents',
+  'Alle facturen': 'All invoices', 'Verbindingen': 'Connections', 'Factuur controleren': 'Review invoice', 'Nog uit te lezen': 'Not read yet', 'Nog niet uitgelezen': 'Not read yet',
+  'Je inbox staat klaar': 'Your inbox is ready', 'Upload je eerste factuur of sluit finance@ aan.': 'Upload your first invoice or connect finance@.',
+  'Factuur uploaden': 'Upload invoice', 'Sleep een factuur of bon naar dit venster.': 'Drag an invoice or receipt into this window.', 'PDF of afbeelding · maximaal 15 MB': 'PDF or image · max 15 MB',
+  'Bestand kiezen': 'Choose file', 'Geen deadline': 'No deadline', 'Laatste activiteit': 'Latest activity', 'Achtergrondwerk': 'Background work',
+  'Alleen zichtbaar voor beheerders': 'Only visible to admins', 'Gebruikers beheren': 'Manage users', 'nog niet gedraaid': 'not run yet', 'nog nooit ingelogd': 'never logged in',
+  // Tasks
+  'Werk voor jou en het Moonshine-team': 'Work for you and the Moonshine team', 'Geen taken in deze lijst': 'No tasks in this list',
+  'Voeg een taak toe en wijs hem toe aan je team.': 'Add a task and assign it to your team.', 'Microsoft To Do instellen': 'Set up Microsoft To Do',
+  'Lokale taken worden direct opgeslagen. Synchronisatie met Microsoft To Do start zodra de verbinding is ingesteld.': 'Tasks are saved immediately. Sync with Microsoft To Do starts once the connection is set up.',
+  'Taak bewerken': 'Edit task', 'Wat moet er gebeuren?': 'What needs to happen?', 'Toelichting': 'Notes', 'Extra informatie voor het team': 'Extra information for the team',
+  'Deadline': 'Deadline', 'Toewijzen aan': 'Assign to', 'Niet toegewezen': 'Unassigned', 'Hoge prioriteit': 'High priority', 'Taak afgerond.': 'Task completed.',
+  'Taak heropend.': 'Task reopened.', 'Taak bijgewerkt.': 'Task updated.', 'Taak toegevoegd.': 'Task added.', 'taak': 'task', 'taken': 'tasks', 'Vul een taaknaam in.': 'Enter a task name.',
+  // Invoices
+  'Ontvangst, controle en boeking': 'Receipt, review and posting', 'Factuur toevoegen': 'Add invoice', 'Zoek facturen': 'Search invoices',
+  'Zoek crediteur of factuurnummer': 'Search supplier or invoice number', 'In verwerking': 'Processing', 'Geen resultaten in deze weergave': 'No results in this view',
+  'Filters wissen': 'Clear filters', 'De originele bijlage blijft bewaard. Alleen geverifieerde facturen worden in Odoo geboekt.': 'The original attachment is kept. Only verified invoices are posted in Odoo.',
+  'Origineel': 'Original', 'Opnieuw uitlezen': 'Read again', 'Afdrukken': 'Print', 'Opslaan & boeken': 'Save & post', 'Crediteur': 'Supplier', 'Factuurnummer': 'Invoice number',
+  'Factuurdatum': 'Invoice date', 'Totaal incl. btw (€)': 'Total incl. VAT (€)', 'IBAN': 'IBAN', 'KvK-nummer': 'Chamber of Commerce no.', 'Btw-nummer': 'VAT number',
+  'Landcode': 'Country code', 'Artiestennaam / aliases (komma’s)': 'Artist name / aliases (commas)', 'Factuurregels': 'Invoice lines', 'Omschrijving ': 'Description',
+  'Excl. btw (€)': 'Excl. VAT (€)', 'Tarief verlegging': 'Reverse-charge rate', 'Btw aftrekbaar': 'VAT deductible', 'Regel toevoegen': 'Add line', 'Regel verwijderen': 'Remove line',
+  'Btw-verlegging gecontroleerd en bevestigd': 'Reverse charge checked and confirmed', 'Verlegd EU': 'Reverse charge EU', 'Verlegd buiten EU': 'Reverse charge non-EU', 'Vrijgesteld': 'Exempt',
+  'Controleer de gegevens vóór het boeken. Btw-codes moeten gekoppeld zijn aan jouw Odoo-administratie.': 'Check the details before posting. VAT codes must be mapped to your Odoo accounts.',
+  'Deze factuur is gekoppeld aan Odoo. Correcties lopen via de bestaande Odoo-boeking.': 'This invoice is linked to Odoo. Corrections go through the existing Odoo entry.',
+  'Deze factuur bestaat niet meer.': 'This invoice no longer exists.', 'Factuur geboekt in Odoo.': 'Invoice posted in Odoo.', 'Factuur opgeslagen.': 'Invoice saved.',
+  'Factuur wordt opnieuw uitgelezen.': 'Invoice is being read again.', 'Vul de verplichte factuurvelden in.': 'Fill in the required invoice fields.', 'Er loopt al een upload.': 'An upload is already running.',
+  'Je hebt alleen leesrechten.': 'You have read-only access.',
+  // Odoo
+  'Live gegevens uit jouw Odoo-account': 'Live data from your Odoo account', 'Vernieuwen': 'Refresh', 'Koppeling instellen': 'Set up connection', 'Odoo-administratie ophalen…': 'Loading Odoo accounts…',
+  'Controleer de koppeling onder Koppelingen en probeer opnieuw.': 'Check the connection under Integrations and try again.', 'Inkoopfacturen': 'Purchase invoices',
+  'Inclusief creditnota’s': 'Including credit notes', 'In jouw Odoo-administratie': 'In your Odoo accounts', 'Openstaand ': 'Outstanding', 'Geboekt · nog niet betaald': 'Posted · not yet paid',
+  'Concepten': 'Drafts', 'Nog niet geboekt': 'Not posted yet', 'Recente inkoopfacturen': 'Recent purchase invoices', 'Onbekende crediteur': 'Unknown supplier',
+  'Nog geen inkoopfacturen in Odoo': 'No purchase invoices in Odoo yet', 'Er staan voor dit account geen inkoopfacturen of creditnota’s.': 'This account has no purchase invoices or credit notes.',
+  'Boeken vanuit Moonshine': 'Posting from Moonshine', 'Inkoopdagboek': 'Purchase journal', 'Kostenrekening': 'Expense account', 'Btw-mapping': 'VAT mapping', 'Nog kiezen': 'Not chosen',
+  'Boekingsinstellingen': 'Posting settings', 'Beschikbare dagboeken en btw-codes': 'Available journals and VAT codes',
+  'De boekingsinstellingen zijn ingevuld. Controleer ze vóór je een factuur boekt.': 'Posting settings are filled in. Check them before posting an invoice.',
+  'De verbinding werkt; kies nog het inkoopdagboek, de kostenrekening en btw-codes om vanuit Moonshine te boeken.': 'The connection works; choose the purchase journal, expense account and VAT codes to post from Moonshine.',
+  'Dit overzicht leest Odoo. Facturen onder ‘Facturen’ en cijfers op ‘Overzicht’ gaan over documenten die Moonshine heeft ontvangen; Odoo-facturen worden daar niet dubbel geïmporteerd.': 'This page reads Odoo. Invoices under ‘Invoices’ and figures on ‘Overview’ cover documents Moonshine received; Odoo invoices are not imported twice.',
+  // Bank
+  'Transacties, pinomzet en aflettering': 'Transactions, card revenue and reconciliation', 'CSV-template': 'CSV template', 'Bankexport importeren': 'Import bank export',
+  'Banktransacties': 'Bank transactions', 'Geïmporteerd of ontvangen': 'Imported or received', 'Te matchen': 'To match', 'Openstaande afschrijvingen': 'Open debits',
+  'Pinomzet': 'Card revenue', 'Geclassificeerde SumUp-omzet': 'Classified SumUp revenue', 'Transactiekosten': 'Transaction fees', 'Apart van de omzet': 'Separate from revenue',
+  'Voorgestelde matches': 'Suggested matches', 'Een boeking wordt pas afgeletterd na een geslaagde Odoo-verwerking.': 'An entry is only reconciled after Odoo processed it successfully.',
+  'Afletteren': 'Reconcile', 'Meerdere kandidaten': 'Multiple candidates', 'Geen matches om te beoordelen': 'No matches to review',
+  'Importeer banktransacties en boek je facturen in Odoo.': 'Import bank transactions and post your invoices in Odoo.', 'SumUp · tussenrekening': 'SumUp · clearing account',
+  'Controleoverzicht': 'Check overview', 'Bruto pinomzet': 'Gross card revenue', 'Te ontvangen': 'To receive', 'Alle transacties': 'All transactions', 'Verwerken': 'Process',
+  'Je bankoverzicht staat klaar': 'Your bank overview is ready', 'Importeer een CSV of sluit de bank-webhook aan.': 'Import a CSV or connect the bank webhook.',
+  'Transactie indelen': 'Classify transaction', 'Transactie indelen ': 'Classify transaction', 'Categorie': 'Category', 'Bank- / transactiekosten': 'Bank / transaction fees',
+  'Btw-tarief voor omzet': 'VAT rate for revenue', 'SumUp payout-ID': 'SumUp payout ID', 'Transactie bijgewerkt.': 'Transaction updated.', 'Afgeletterd in Odoo.': 'Reconciled in Odoo.',
+  'ING-uitbetalingen van SumUp zijn een verzameluitbetaling. Alleen de onderliggende pintransacties tellen als omzet.': 'ING payouts from SumUp are settlement payouts. Only the underlying card transactions count as revenue.',
+  'CSV-bestand': 'CSV file', 'Transacties importeren': 'Import transactions', 'Template downloaden': 'Download template', 'Kies een CSV-bestand.': 'Choose a CSV file.', 'Maximaal 5 MB.': 'Max 5 MB.',
+  'SumUp-omzet, kosten en uitbetaling geboekt en afgeletterd.': 'SumUp revenue, fees and payout posted and reconciled.',
+  // VAT
+  'Kwartaalcijfers per aangifterubriek': 'Quarterly figures per return box', 'Download overzicht': 'Download overview', 'Btw-overzicht ophalen…': 'Loading VAT overview…',
+  'Omzet · hoog tarief': 'Revenue · standard rate', 'Omzet · laag tarief': 'Revenue · reduced rate', 'Verlegd · buiten de EU': 'Reverse charge · outside the EU',
+  'Verlegd · binnen de EU': 'Reverse charge · within the EU', 'Voorbelasting': 'Input VAT', 'Voorlopig te betalen': 'Provisionally payable', 'Voorlopig terug te ontvangen': 'Provisionally refundable',
+  'Dit is een voorlopig werkoverzicht. Vergelijk het vóór indiening met het volledige btw-rapport in Odoo. Buitenlandse diensten worden gesplitst in EU (4b) en buiten EU (4a).': 'This is a provisional working overview. Compare it with the full VAT report in Odoo before filing. Foreign services are split into EU (4b) and non-EU (4a).',
+  // Documents
+  'Originele facturen en bonnen': 'Original invoices and receipts', 'Bestand toevoegen': 'Add file', 'Ook gearchiveerd in OneDrive': 'Also archived in OneDrive',
+  'Je bestanden worden op de server bewaard en bij boeking aan Odoo gekoppeld. OneDrive-archivering kun je aanzetten bij Koppelingen.': 'Your files are stored on the server and attached in Odoo when posted. OneDrive archiving can be enabled under Integrations.',
+  // Events
+  'Nieuw evenement': 'New event', 'Advancing per avond: artiesten, reis, riders en wat de venue heeft ontvangen.': 'Advancing per night: artists, travel, riders and what the venue has received.',
+  'Openen': 'Open', 'Nog geen artiesten': 'No artists yet', 'Nog geen afgelopen evenementen': 'No past events yet', 'Evenementen verschijnen hier zodra hun datum voorbij is.': 'Events appear here once their date has passed.',
+  'Maak een evenement aan en zet de line-up erin. De advancing-checklist komt er automatisch bij.': 'Create an event and add the line-up. The advancing checklist is added automatically.',
+  'Locatie nog onbekend': 'Location unknown', 'Datum nog onbekend': 'Date unknown', 'datum': 'date', 'Deuren': 'Doors', 'Evenement aangemaakt. De venue-checklist staat klaar.': 'Event created. The venue checklist is ready.',
+  'Advancingblad': 'Advancing sheet', 'Advancing versturen': 'Send advancing', 'Artiesten compleet': 'Artists complete', 'Alles is binnen': 'Everything is in',
+  'Nog niemand geboekt': 'Nobody booked yet', 'Venue-checklist': 'Venue checklist', 'Venue nog onbekend': 'Venue unknown', 'Eerste act': 'First act', 'Deuren nog onbekend': 'Doors unknown',
+  'In de timetable': 'In the timetable', 'Nog geen timetable': 'No timetable yet', 'Advancing overview': 'Advancing overview', 'Artiest toevoegen': 'Add artist',
+  'Een vinkje betekent dat alles binnen is. Klik op een artiest voor gegevens, reis en content.': 'A tick means everything is in. Click an artist for details, travel and content.',
+  'Voeg de line-up toe. Een bekende artiest neemt zijn riders, content en gegevens mee.': 'Add the line-up. A known artist brings their riders, content and details.',
+  'Nog geen act': 'No act yet', 'Nog te regelen': 'Still to arrange', 'Alle artiesten zijn compleet.': 'All artists are complete.', 'Nog niets te regelen.': 'Nothing to arrange yet.',
+  'Alles is verstuurd of niet van toepassing.': 'Everything has been sent or does not apply.', 'Naar de checklist': 'To the checklist', 'Zoek in de artiesten of typ een nieuwe naam': 'Search artists or type a new name',
+  'Een bekende artiest neemt zijn gegevens, riders en content mee. Een nieuwe naam maakt een nieuw profiel aan.': 'A known artist brings their details, riders and content. A new name creates a new profile.',
+  'Artiest toegevoegd. Vul nu de gegevens aan.': 'Artist added. Now complete the details.', 'Act toevoegen': 'Add act', 'Act bewerken': 'Edit act', 'Act bijgewerkt.': 'Act updated.', 'Act toegevoegd.': 'Act added.',
+  'Een act kan meerdere artiesten hebben, zoals een B2B. Tijden na middernacht sorteren gewoon na de avond.': 'An act can have several artists, like a B2B. Times after midnight sort after the evening.',
+'Geen artiesten gekoppeld': 'No artists linked', 'Nog geen acts': 'No acts yet', 'Plan de acts met set times en koppel de artiesten.': 'Plan the acts with set times and link the artists.',
+  'Voeg eerst artiesten toe bij Advancing.': 'First add artists under Advancing.', 'Artiesten in deze act': 'Artists in this act', 'Nog geen artiesten op dit evenement.': 'No artists on this event yet.',
+  'Naam van de act': 'Act name', 'Leeg laten: namen van de artiesten, bijv. Dwonji B2B HDN': 'Leave empty: artist names, e.g. Dwonji B2B HDN',
+  'Onderdeel': 'Item', 'Vink af wat klaar is.': 'Tick off what is done.', 'stuurt alles wat nog open staat in één mail via Outlook.': 'sends everything still open in one email via Outlook.',
+  'Contact venue': 'Venue contact', 'Gegevens bewerken': 'Edit details', 'Nog geen contactpersoon. Vul die in bij Gegevens; het e-mailadres wordt de standaardontvanger.': 'No contact yet. Add one under Details; the email becomes the default recipient.',
+  'Bestanden voor de venue': 'Files for the venue', 'Verzonden': 'Sent', 'Nog niets verstuurd.': 'Nothing sent yet.', 'bijlagen': 'attachments', 'Onderdeel toevoegen': 'Add item',
+  'Wat moet er naar de venue?': 'What needs to go to the venue?', 'Bijv. lichtplot of merchandise-afspraken': 'E.g. lighting plot or merchandise agreements',
+  'Alles wat je tijdens de voorbereiding of de opbouw niet mag vergeten.': 'Everything you must not forget during preparation or setup.', 'Nieuwe notitie': 'New note',
+  'Bijv. tweede monitor defect': 'E.g. second monitor broken', 'Nog geen notities.': 'No notes yet.', 'Locatie / venue': 'Location / venue', 'Capaciteit': 'Capacity',
+  'Contact bij de venue': 'Venue contact', 'Contactpersoon': 'Contact person', 'E-mail (meerdere met komma)': 'Email (several with commas)', 'Gegevens opgeslagen.': 'Details saved.',
+  'Evenement verwijderen': 'Delete event', 'Evenement verwijderd.': 'Event deleted.',
+  'Verwijdert dit evenement met timetable, boekingen, checklist en verzendlog. Artiesten, hun riders en content blijven bewaard, net als de mappen in OneDrive.': 'Deletes this event with its timetable, bookings, checklist and send log. Artists, their riders and content are kept, as are the OneDrive folders.',
+  'Pakket samenstellen…': 'Building package…', 'Wordt verstuurd vanaf': 'Will be sent from', 'Aan': 'To', 'Cc': 'Cc', 'Onderwerp': 'Subject', 'Meesturen': 'Include',
+  'optioneel': 'optional', 'Versturen via Outlook': 'Send via Outlook', 'Versturen…': 'Sending…', 'Kies hierboven wat er mee moet.': 'Choose above what to include.',
+  'Aangenomen door Outlook. De checklist is bijgewerkt.': 'Accepted by Outlook. The checklist has been updated.', 'Verzending onzeker. Controleer Verzonden items in Outlook.': 'Delivery uncertain. Check Sent Items in Outlook.',
+  'Nog geen verzendadres ingesteld. Stel het in bij Koppelingen → Advancing. Het pakket kun je hieronder al controleren.': 'No sender address set. Set it under Integrations → Advancing. You can already check the package below.',
+  'via Outlook. Een kopie van de documenten komt in de evenementmap in OneDrive als die koppeling aan staat.': 'via Outlook. A copy of the documents goes to the event folder in OneDrive if that connection is on.',
+  // Booking and travel
+  'Profiel en riders': 'Profile and riders', 'Van evenement halen': 'Remove from event', 'Boeking verwijderd.': 'Booking removed.', 'Nog nodig voor deze artiest': 'Still needed for this artist',
+  'Advancing compleet. Alles wat de venue nodig heeft is binnen.': 'Advancing complete. Everything the venue needs is in.', 'Deze boeking is geannuleerd en telt niet mee voor de advancing.': 'This booking is cancelled and does not count for advancing.',
+  'Volledige naam *': 'Full name *', 'Volledige naam': 'Full name', 'Paspoort / ID': 'Passport / ID', 'Geboortedatum': 'Date of birth', 'Nationaliteit': 'Nationality',
+  'Alleen nodig als Moonshine of de venue de vlucht of het hotel boekt. Gaat nooit mee in de mail naar de venue.': 'Only needed if Moonshine or the venue books the flight or hotel. Never included in the email to the venue.',
+  'E-mail agent': 'Agent email', 'Telefoon agent': 'Agent phone', 'Een e-mailadres van de artiest of de agent is genoeg.': 'An email address of the artist or the agent is enough.',
+  'Boeking': 'Booking', 'Vlucht': 'Flight', 'Grondvervoer': 'Ground transport', 'Hotel': 'Hotel', 'Riderlink': 'Rider link', 'EPK-link': 'EPK link',
+  'Nog niet ingepland in de timetable.': 'Not scheduled in the timetable yet.', 'Nog geen tijd': 'No time yet', 'Notities voor deze boeking': 'Notes for this booking',
+  'Logo’s, persfoto’s en riders horen bij de artiest en gaan mee naar elk volgend evenement. De technical rider bewerk je in het': 'Logos, press photos and riders belong to the artist and come along to every next event. Edit the technical rider in the',
+  'profiel': 'profile', 'Opgeslagen.': 'Saved.', 'Opgeslagen. Advancing compleet.': 'Saved. Advancing complete.', 'Vluchtgegevens': 'Flight details', 'Tickets': 'Tickets',
+  'Tickets geboekt?': 'Tickets booked?', 'Geboekt door': 'Booked by', 'Geregeld door': 'Arranged by', 'Heen (inbound)': 'Inbound', 'Terug (outbound)': 'Outbound',
+  'Vertrekluchthaven': 'Departure airport', 'Aankomstluchthaven': 'Arrival airport', 'Vertrek': 'Departure', 'Aankomst': 'Arrival', 'Vluchtnummer': 'Flight number',
+  'Verblijf': 'Stay', 'Adres': 'Address', 'Bevestigingsnummer': 'Confirmation number', 'Check-in': 'Check-in', 'Check-out': 'Check-out', 'Kamers': 'Rooms',
+  'Ophalen': 'Pick-up', 'Ophaaltijd': 'Pick-up time', 'Ophaallocatie': 'Pick-up location', 'Afzetten bij': 'Drop off at', 'Hotel of venue': 'Hotel or venue',
+  'Terug en chauffeur': 'Return and driver', 'Terugrit': 'Return trip', 'Terug naar': 'Return to', 'Chauffeur': 'Driver', 'Telefoon chauffeur': 'Driver phone',
+  'Moonshine': 'Moonshine', 'Je hebt wijzigingen die nog niet zijn opgeslagen. Toch verlaten?': 'You have unsaved changes. Leave anyway?',
+  // Files
+  'Technical rider': 'Technical rider', 'Hospitality rider': 'Hospitality rider', 'Rider': 'Rider', 'EPK': 'EPK', 'Logo’s': 'Logos', 'Persfoto’s': 'Press photos',
+  'Persvideo’s': 'Press videos', 'Bio / promotekst': 'Bio / promo text', 'Visuals': 'Visuals', 'Contracten': 'Contracts', 'Stage plot': 'Stage plot', 'Gastenlijst': 'Guest list',
+  'Productieplanning': 'Production schedule', 'Overig': 'Other', 'Nog niets': 'Nothing yet', 'Externe link': 'External link', 'Opgeslagen in OneDrive': 'Saved in OneDrive',
+  'Opgeslagen in OneDrive.': 'Saved in OneDrive.', 'Verwijderd.': 'Deleted.', 'Link opgeslagen.': 'Link saved.', 'Naam (optioneel)': 'Name (optional)',
+  'Lokaal opgeslagen. Wordt naar OneDrive gekopieerd zodra die koppeling aan staat.': 'Stored locally. Copied to OneDrive once that connection is on.',
+  'Dit bestand verwijderen? Een kopie in OneDrive blijft bewaard.': 'Delete this file? A copy in OneDrive is kept.', 'Bijv. EPK 2026 of persvideo Dekmantel': 'E.g. EPK 2026 or press video Dekmantel',
+  'Handig voor grote video’s of mappen in WeTransfer, Dropbox of Google Drive. De link gaat mee in de mail naar de venue.': 'Handy for large videos or folders in WeTransfer, Dropbox or Google Drive. The link goes with the email to the venue.',
+  'Maximaal 20 MB per bestand. Zet grotere bestanden (video) als link.': 'Max 20 MB per file. Add larger files (video) as a link.',
+  // Artists
+  'Nieuwe artiest': 'New artist', 'Eén profiel per artiest: gegevens, riders, EPK en promo. Herbruikbaar voor elk evenement.': 'One profile per artist: details, riders, EPK and promo. Reusable for every event.',
+  'Zoek artiest': 'Search artist', 'Zoek op naam, agent of agency': 'Search by name, agent or agency', 'Geen rider': 'No rider', 'Volledige naam ontbreekt': 'Full name missing',
+  'evenement': 'event', 'evenementen': 'events', 'Artiesten ontstaan vanzelf als je ze op een evenement zet, of maak er hier een aan.': 'Artists are created when you add them to an event, or create one here.',
+  'Artiestennaam *': 'Artist name *', 'Alle artiesten': 'All artists', 'Profiel': 'Profile', 'Links': 'Links', 'Promo': 'Promo', 'Interne notities': 'Internal notes',
+  'Artiest verwijderen': 'Delete artist', 'Artiest verwijderd.': 'Artist deleted.', 'Kan alleen als de artiest niet meer op een evenement staat. Bestanden in OneDrive blijven bewaard.': 'Only possible when the artist is no longer on an event. Files in OneDrive are kept.',
+  'Begin met sjabloon': 'Start from template', 'Sjabloon onderaan toevoegen': 'Append template', 'Ridertekst': 'Rider text', 'Begin een regel met': 'Start a line with',
+  'voor een kop en met': 'for a heading and with', 'voor een opsomming. De PDF en de mail naar de venue worden hieruit gemaakt.': 'for a list item. The PDF and the venue email are made from this.',
+  'Riderbestanden': 'Rider files', 'Heeft de artiest een eigen PDF? Upload die hier; hij gaat mee naar de venue naast de rider hierboven.': 'Does the artist have their own PDF? Upload it here; it goes to the venue alongside the rider above.',
+  'Nog geen optredens': 'No shows yet', 'Zet de artiest op een evenement via Advancing.': 'Add the artist to an event via Advancing.',
+  // Label
+  'Nieuwe release': 'New release', 'Releases': 'Releases', 'Titel': 'Title', 'Releases van het Moonshine-label. Royalty-afrekeningen komen uit LabelGrid zodra die koppeling aan staat.': 'Releases of the Moonshine label. Royalty statements come from LabelGrid once that connection is on.',
+  'Nog geen releases': 'No releases yet', 'Plan een release met titel, artiest en datum.': 'Plan a release with title, artist and date.', 'LabelGrid-afrekeningen': 'LabelGrid statements',
+  'Alleen-lezen overzicht. Ophalen gaat via Koppelingen.': 'Read-only overview. Fetching happens via Integrations.', 'Periode': 'Period', 'Factuur': 'Invoice', 'Te ontvangen (USD)': 'Receivable (USD)',
+  'Nog geen afrekeningen opgehaald.': 'No statements fetched yet.', 'Release bewerken': 'Edit release', 'Releasedatum': 'Release date', 'LabelGrid-ID (optioneel)': 'LabelGrid ID (optional)',
+  'Release bijgewerkt.': 'Release updated.', 'Release toegevoegd.': 'Release added.',
+  // Admin
+  'Koppelingen, sleutels, gebruikers en de gezondheid van het systeem. Alleen voor beheerders.': 'Integrations, keys, users and system health. Admins only.',
+  'Accounts en administratiestromen': 'Accounts and data flows', 'Verbinding testen': 'Test connection', 'Testen…': 'Testing…', 'Verbinding gecontroleerd': 'Connection checked',
+  'Beschikbare gegevens voor je configuratie:': 'Available data for your configuration:', 'Een koppeling krijgt pas de status Geverifieerd na een geslaagde accountcontrole.': 'A connection is only Verified after a successful account check.',
+  'De boekhouding': 'Accounting', 'Facturen lezen': 'Reading invoices', 'De finance-inbox': 'The finance inbox', 'Riders en advancing': 'Riders and advancing',
+  'Het documentarchief': 'The document archive', 'Samen aan het werk': 'Working together', 'Royalties': 'Royalties', 'Banktransacties ': 'Bank transactions', 'Pin & uitbetalingen': 'Card payments & payouts',
+  'Crediteuren, inkoopfacturen en originele bijlagen. Boek vanuit de backoffice rechtstreeks in Odoo.': 'Suppliers, purchase invoices and original attachments. Post straight into Odoo from the backoffice.',
+  'Leest PDF’s en foto’s uit. Geeft twijfelgevallen door voor controle.': 'Reads PDFs and photos. Passes doubtful cases on for review.',
+  'Ontvangt facturen uit de finance-inbox. De worker kijkt elke minuut; webhook optioneel.': 'Receives invoices from the finance inbox. The worker checks every minute; webhook optional.',
+  'Verstuurt advancing via Outlook en bewaart riders, EPK’s en promo in OneDrive. Werkt lokaal door zonder koppeling.': 'Sends advancing via Outlook and stores riders, EPKs and promo in OneDrive. Works locally without a connection.',
+  'Archiveert geboekte facturen in de ingestelde Moonshine-map.': 'Archives posted invoices in the configured Moonshine folder.',
+  'Synchroniseert taken met een Microsoft To Do-lijst via jouw Microsoft-account.': 'Syncs tasks with a Microsoft To Do list via your Microsoft account.',
+  'Haalt LabelGrid-statements op voor halfjaarlijkse afrekeningen. Alleen lezen.': 'Fetches LabelGrid statements for half-yearly settlements. Read only.',
+  'Verstuurt contracten via OpenSign en volgt ondertekening.': 'Sends contracts via OpenSign and tracks signing.',
+  'Leest de bestaande ING-bankfeed vanuit Odoo. CSV-import en een beveiligde webhook zijn ook beschikbaar.': 'Reads the existing ING bank feed from Odoo. CSV import and a secure webhook are also available.',
+  'Importeer omzet, kosten en uitbetalingen. Groepeer via payout_id; de flow boekt omzet en kosten en lettert de uitbetaling af.': 'Import revenue, fees and payouts. Group by payout_id; the flow posts revenue and fees and reconciles the payout.',
+  'Odoo aansluiten': 'Connect Odoo', 'Claude aansluiten': 'Connect Claude', 'Outlook / Microsoft aansluiten': 'Connect Outlook / Microsoft', 'Advancing en productie-opslag': 'Advancing and production storage',
+  'OneDrive-archief instellen': 'Set up OneDrive archive', 'LabelGrid aansluiten': 'Connect LabelGrid', 'OpenSign aansluiten': 'Connect OpenSign', 'ING aanvoer instellen': 'Set up ING feed',
+  'SumUp aanvoer instellen': 'Set up SumUp feed', 'Automatische verwerking': 'Automatic processing', 'Automatisering instellen': 'Set up automation',
+  'Ingesteld — leeg laten om te bewaren': 'Set — leave empty to keep', 'Nog niet ingesteld': 'Not set yet', 'Instellingen opgeslagen. Test de verbinding opnieuw.': 'Settings saved. Test the connection again.',
+  'Odoo-URL': 'Odoo URL', 'Databasenaam': 'Database name', 'Odoo-login': 'Odoo login', 'Odoo API-sleutel': 'Odoo API key', 'ING-bankdagboek': 'ING bank journal', 'ING-bankrekening': 'ING bank account',
+  'ING-aanvoer': 'ING feed', 'ING-bankfeed is al in Odoo aanwezig': 'ING bank feed already exists in Odoo', 'Alleen import via deze backoffice': 'Import via this backoffice only',
+  'Open ING-bankregels uit Odoo ophalen': 'Fetch open ING bank lines from Odoo', 'Btw-mapping (Odoo tax-ID per code)': 'VAT mapping (Odoo tax ID per code)',
+  'Anthropic API-sleutel': 'Anthropic API key', 'Claude-model-ID': 'Claude model ID', 'Vul het beschikbare model-ID in': 'Enter the available model ID',
+  'Microsoft tenant-ID': 'Microsoft tenant ID', 'App client-ID': 'App client ID', 'Client secret (optioneel bij gedelegeerde toegang)': 'Client secret (optional with delegated access)',
+  'Refresh-token voor jouw Microsoft-account': 'Refresh token for your Microsoft account', 'Access-token (optioneel / tijdelijk)': 'Access token (optional / temporary)',
+  'Finance-inbox': 'Finance inbox', 'Facturen elke minuut uit Outlook ophalen': 'Fetch invoices from Outlook every minute', 'Verzendadres voor advancing': 'Sender address for advancing',
+  'Map in OneDrive voor productie': 'OneDrive folder for production', 'Riders, EPK’s en promobestanden naar OneDrive kopiëren': 'Copy riders, EPKs and promo files to OneDrive',
+  'Drive-ID': 'Drive ID', 'Archiefmap': 'Archive folder', 'Geboekte facturen naar OneDrive archiveren': 'Archive posted invoices to OneDrive', 'To Do-lijst-ID': 'To Do list ID',
+  'Taken synchroniseren met Microsoft To Do': 'Sync tasks with Microsoft To Do', 'LabelGrid API-sleutel': 'LabelGrid API key', 'Label-ID (optioneel)': 'Label ID (optional)',
+  'OpenSign API-basis': 'OpenSign API base', 'Standaard template-ID': 'Default template ID', 'OpenSign API-sleutel': 'OpenSign API key', 'Webhook-handtekeningssleutel': 'Webhook signing key',
+  'Webhook bearer-sleutel (optioneel vervangen)': 'Webhook bearer key (optionally replace)', 'Verkoopdagboek-ID': 'Sales journal ID', 'Omzetrekening-ID': 'Revenue account ID',
+  'SumUp-tussenrekening-ID': 'SumUp clearing account ID', 'Kostenrekening-ID': 'Expense account ID', 'Verkoop-btw-mapping (JSON)': 'Sales VAT mapping (JSON)',
+  'Automatisch boeken bij minimaal 98% zekerheid': 'Post automatically at 98% confidence or more', 'Unieke bankmatches automatisch afletteren': 'Reconcile unique bank matches automatically',
+  'Sluitende SumUp-uitbetalingen automatisch verwerken': 'Process balanced SumUp payouts automatically',
+  'Activeer pas nadat Odoo-rekeningen en btw-codes getest zijn. Ontbrekende gegevens, verlegging, vreemde valuta en mogelijke duplicaten vragen altijd controle.': 'Only enable after Odoo accounts and VAT codes have been tested. Missing data, reverse charge, foreign currency and possible duplicates always need review.',
+  'API-sleutels en tokens van alle koppelingen': 'API keys and tokens for all integrations', 'Nieuwe waarde': 'New value', 'Vul een waarde in.': 'Enter a value.', 'Sleutel opgeslagen.': 'Key saved.', 'Sleutel verwijderd.': 'Key deleted.',
+  'Na opslaan test je de koppeling opnieuw onder Koppelingen.': 'After saving, test the connection again under Integrations.',
+  'Sleutels worden alleen op de server bewaard. Na het opslaan zijn ze hier niet meer te zien; je kunt ze alleen vervangen of verwijderen.': 'Keys are stored only on the server. After saving they cannot be viewed here; you can only replace or delete them.',
+  'Boekhouding': 'Accounting', 'Facturen uitlezen met Claude': 'Reading invoices with Claude', 'Outlook, OneDrive en To Do': 'Outlook, OneDrive and To Do', 'Gedelegeerde toegang': 'Delegated access',
+  'Tijdelijk, optioneel': 'Temporary, optional', 'ING / SumUp-aanvoer': 'ING / SumUp feed', 'Outlook-notificaties': 'Outlook notifications', 'Ondertekenstatus': 'Signing status',
+  'Microsoft client secret': 'Microsoft client secret', 'Microsoft refresh-token': 'Microsoft refresh token', 'Microsoft access-token': 'Microsoft access token',
+  'Bank-webhooksleutel': 'Bank webhook key', 'Mail-webhooksleutel': 'Mail webhook key', 'OpenSign webhooksleutel': 'OpenSign webhook key',
+  'Team, toegang en rechten': 'Team, access and permissions', 'Gebruiker toevoegen': 'Add user', 'Gebruiker beheren': 'Manage user', 'Productie ': 'Production',
+  'Tijdelijk wachtwoord (optioneel)': 'Temporary password (optional)', 'Gebruiker heeft toegang': 'User has access', 'Gebruiker bijgewerkt.': 'User updated.',
+  'Gebruiker toegevoegd. Geef het tijdelijke wachtwoord persoonlijk door.': 'User added. Share the temporary password in person.',
+  'Het wachtwoord wordt alleen als hash opgeslagen. De gebruiker kiest bij de volgende login een eigen wachtwoord.': 'The password is stored only as a hash. The user chooses their own password at the next login.',
+  'Finance, productie & alleen lezen': 'Finance, production & read only',
+  'Beheert gebruikers, koppelingen en instellingen, ziet het beheeroverzicht op het dashboard en kan facturen boeken en banktransacties afletteren.': 'Manages users, integrations, keys and settings, sees the admin area and can post invoices and reconcile bank transactions.',
+  'Finance verwerkt facturen, bank en taken en ziet ook productie. Productie werkt aan evenementen, artiesten en label. Alleen lezen kan alles bekijken. Nieuwe accounts en gereset wachtwoorden zijn tijdelijk: bij de eerste login kiest iemand een eigen wachtwoord.': 'Finance handles invoices, bank and tasks and also sees production. Production works on events, artists and label. Read only can view everything. New accounts and reset passwords are temporary: people choose their own at first login.',
+  'Wie wat wanneer deed: logins, wijzigingen, boekingen en verzendingen.': 'Who did what and when: logins, changes, postings and sends.', 'Nog geen activiteit': 'No activity yet', 'Handelingen verschijnen hier.': 'Actions appear here.',
+  'Bedrijfsgegevens, verwerking en beveiliging': 'Company details, processing and security', 'Bedrijfsnaam': 'Company name', 'Finance e-mailadres': 'Finance email address',
+  'Claude leest facturen uit zodra de koppeling is ingesteld. Automatisch boeken kun je aanzetten na controle van de Odoo-rekeningen en btw-mapping. Onzekere gevallen blijven altijd in de controle-inbox.': 'Claude reads invoices once the connection is set up. Automatic posting can be enabled after checking the Odoo accounts and VAT mapping. Uncertain cases always stay in the review inbox.',
+  'Beveiliging': 'Security', 'Wachtwoorden worden gehasht opgeslagen. Inlogsessies verlopen na 12 uur. De server is alleen bereikbaar via het Moonshine-tailnet.': 'Passwords are stored hashed. Sessions expire after 12 hours. The server is only reachable via the Moonshine tailnet.',
+  // Activity and advancing items
+  'Achtergrondtaak mislukt': 'Background job failed',
+  'Act verwijderd': 'Act deleted',
+  'Advancing bijgewerkt': 'Advancing updated',
+  'Artiest aangemaakt': 'Artist created',
+  'Artiest bijgewerkt': 'Artist updated',
+  'Artiest geboekt': 'Artist booked',
+  'Bank-webhook ontvangen': 'Bank webhook received',
+  'Bankexport geïmporteerd': 'Bank export imported',
+  'Bankmatch vraagt controle': 'Bank match needs review',
+  'Banktransactie afgeletterd in Odoo': 'Bank transaction reconciled in Odoo',
+  'Banktransactie automatisch afgeletterd': 'Bank transaction reconciled automatically',
+  'Bestand opgeslagen': 'File saved',
+  'Bestand verwijderd': 'File deleted',
+  'Boekkoppeling verbroken': 'Posting link removed',
+  'Checklist bijgewerkt': 'Checklist updated',
+  'Checklistonderdeel toegevoegd': 'Checklist item added',
+  'Checklistonderdeel verwijderd': 'Checklist item deleted',
+  'Contract verstuurd': 'Contract sent',
+  'Contractstatus bijgewerkt': 'Contract status updated',
+  'Evenement bijgewerkt': 'Event updated',
+  'Factuur gecontroleerd': 'Invoice reviewed',
+  'Factuur geüpload': 'Invoice uploaded',
+  'Factuur ontvangen': 'Invoice received',
+  'Factuur uitgelezen': 'Invoice read',
+  'Gebruiker gewijzigd': 'User changed',
+  'Ingelogd': 'Logged in',
+  'Koppeling gecontroleerd': 'Connection checked',
+  'Koppelinstellingen opgeslagen': 'Integration settings saved',
+  'Notitie toegevoegd': 'Note added',
+  'Statements opgehaald': 'Statements fetched',
+  'SumUp-uitbetaling geboekt en afgeletterd': 'SumUp payout posted and reconciled',
+  'Taak aangemaakt': 'Task created',
+  'Transactie geclassificeerd': 'Transaction classified',
+  'Verwerking vraagt controle': 'Processing needs review',
+  'Wachtwoord gewijzigd': 'Password changed',
+  'Release verwijderd': 'Release deleted',
+  'Act en set time': 'Act and set time',
+  'E-mail van artiest of agent': 'Email of artist or agent',
+  'Grondvervoer: ja of nee': 'Ground transport: yes or no',
+  'Grondvervoer: ophaaltijd en -locatie': 'Ground transport: pick-up time and place',
+  'Heenvlucht': 'Inbound flight',
+  'Hotel: ja of nee': 'Hotel: yes or no',
+  'Persfoto': 'Press photo',
+  'Terugvlucht': 'Return flight',
+  'Vlucht: geboekt door': 'Flight: booked by',
+  'Vlucht: ja of nee': 'Flight: yes or no',
+  'Vlucht: tickets geboekt': 'Flight: tickets booked',
+  'in de wachtrij ·': 'queued ·', 'mislukt': 'failed', 'pogingen': 'attempts', 'facturen ·': 'invoices ·', 'open taken': 'open tasks', 'naar': 'to',
+  // Server messages
+  'Geen verbinding met de server. Controleer of Tailscale aan staat.': 'No connection to the server. Check that Tailscale is on.',
+  'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.': 'Your session expired or the page is outdated. Refresh the page and try again.',
+  'Onbekend adres. Ververs de pagina om de nieuwste versie te laden.': 'Unknown address. Refresh the page to load the latest version.',
+  'De server gaf een onverwacht antwoord. Ververs de pagina.': 'The server gave an unexpected response. Refresh the page.',
+  'Handeling mislukt.': 'Action failed.', 'Downloaden is niet gelukt.': 'Download failed.', 'Leeg bericht.': 'Empty message.', 'Vul je naam in.': 'Enter your name.',
+  'Nieuw wachtwoord moet 8 tot 1024 tekens zijn.': 'New password must be 8 to 1024 characters.', 'Kies een ander wachtwoord dan het huidige.': 'Choose a different password from the current one.',
+  'Kies je eigen wachtwoord eerst.': 'Choose your own password first.',
+  'Te veel inlogpogingen. Probeer het over een paar minuten opnieuw.': 'Too many login attempts. Try again in a few minutes.',
+  'Odoo is nog niet ingesteld.': 'Odoo is not set up yet.',
+};
+
+const P: [RegExp, (...m: string[]) => string][] = [
+  [/^Goedendag, (.+)$/, (_, n) => `Hello, ${n}`],
+  [/^(\d+) facturen · (\d+) open taken$/, (_, a, b) => `${a} invoices · ${b} open tasks`],
+  [/^facturen ·$/, () => 'invoices ·'], [/^open taken$/, () => 'open tasks'],
+  [/^(.+) totaal$/, (_, a) => `${a} total`], [/^(\d+)% verwerkt$/, (_, a) => `${a}% processed`],
+  [/^(\d+)\/(\d+) compleet$/, (_, a, b) => `${a}/${b} complete`], [/^(\d+)\/(\d+) venue$/, (_, a, b) => `${a}/${b} venue`],
+  [/^(\d+)\/(\d+) artiesten compleet$/, (_, a, b) => `${a}/${b} artists complete`], [/^(\d+) nog niet compleet$/, (_, a) => `${a} not complete yet`],
+  [/^(\d+) punt(en)? open$/, (_, a) => `${a} open item${a === '1' ? '' : 's'}`], [/^(\d+) (taak|taken)$/, (_, a) => `${a} task${a === '1' ? '' : 's'}`],
+  [/^(\d+) (evenement|evenementen)$/, (_, a) => `${a} event${a === '1' ? '' : 's'}`], [/^(\d+) voorstellen$/, (_, a) => `${a} suggestions`],
+  [/^(\d+) (bijlage|bijlagen)(?: en (\d+) links?)?$/, (_, a, _b, l) => `${a} attachment${a === '1' ? '' : 's'}${l ? ` and ${l} link${l === '1' ? '' : 's'}` : ''}`],
+  [/^(\d+) (onderdeel is|onderdelen zijn) nog niet naar de venue gestuurd\.$/, (_, a) => `${a} item${a === '1' ? ' has' : 's have'} not been sent to the venue yet.`],
+  [/^(\d+) (persoon moet|personen moeten) bij de eerste login nog een eigen wachtwoord kiezen\.$/, (_, a) => `${a} ${a === '1' ? 'person still has' : 'people still have'} to choose their own password at first login.`],
+  [/^(\d+) geverifieerde koppelingen · (.*)$/, (_, a, r) => `${a} verified connections · ${r.replace(/(\d+) facturen in behandeling/, '$1 invoices in progress').replace(/(\d+) taken in de wachtrij/, '$1 jobs queued')}`],
+  [/^(\d+) in de wachtrij · (\d+) mislukt$/, (_, a, b) => `${a} queued · ${b} failed`], [/^(\d+)× mislukt$/, (_, a) => `failed ${a}×`],
+  [/^(.+) · laatst (.+)$/, (_, a, b) => `${t(a)} · last ${b}`], [/^laatst gelukt (.+)$/, (_, a) => `last succeeded ${a}`],
+  [/^Laatst gecontroleerd (.+)$/, (_, a) => `Last checked ${a}`], [/^Verstuurd (.+?)( naar (.+))?$/, (_, a, _b, c) => `Sent ${a}${c ? ' to ' + c : ''}`],
+  [/^Deuren (.+)$/, (_, a) => `Doors ${a}`], [/^Voor (.+)$/, (_, a) => `For ${a}`], [/^Checklist voor (.+)$/, (_, a) => `Checklist for ${a === 'de venue' ? 'the venue' : a}`],
+  [/^Artiest · (.+)$/, (_, a) => `Artist · ${a}`], [/^Bestanden van (.+)$/, (_, a) => `Files of ${a}`], [/^Saldo btw · (.+)$/, (_, a) => `VAT balance · ${a}`],
+  [/^Uploaden: (.+)$/, (_, a) => `Uploading: ${a}`], [/^(.+) opgeslagen\.$/, (_, a) => `${a} saved.`], [/^(\d+) bestand\(en\) opgeslagen(.*)$/, (_, a, r) => `${a} file(s) saved${r.replace(/(\d+) al aanwezig/, '$1 already present')}`],
+  [/^(\d+) transacties geïmporteerd(.*)$/, (_, a, r) => `${a} transactions imported${r.replace(/(\d+) al aanwezig/, '$1 already present')}`],
+  [/^(\d+)% herkenningszekerheid$/, (_, a) => `${a}% recognition confidence`], [/^(\d+)% overeenkomst$/, (_, a) => `${a}% match`],
+  [/^Regel (\d+)$/, (_, a) => `Line ${a}`], [/^Link toevoegen: (.*)$/, (_, a) => `Add link: ${t(a)}`], [/^Laatste 50 · rechtstreeks uit Odoo · (.+)$/, (_, a) => `Last 50 · straight from Odoo · ${a}`],
+  [/^(\d+) codes ingesteld$/, (_, a) => `${a} codes set`], [/^(.+) bewerken$/, (_, a) => `Edit ${a}`], [/^(.+) verwijderen$/, (_, a) => `Delete ${a}`],
+  [/^(.+) afronden$/, (_, a) => `Complete ${a}`], [/^(.+) downloaden$/, (_, a) => `Download ${a}`], [/^Profielmenu van (.+)$/, (_, a) => `Profile menu of ${a}`],
+  [/^Chat openen, (\d+) ongelezen$/, (_, a) => `Open chat, ${a} unread`], [/^(\d+) facturen die aandacht vragen$/, (_, a) => `${a} invoices needing attention`],
+  [/^Status: (.+)$/, (_, a) => `Status: ${a}`], [/^Kies (.+)$/, (_, a) => `Choose ${t(a.charAt(0).toUpperCase() + a.slice(1)).toLowerCase()}`],
+];
+
+export function t(text: string): string {
+  if (current !== 'en' || !text) return text;
+  const trimmed = text.trim();
+  if (!trimmed || !/[a-zà-ÿ]/i.test(trimmed)) return text;
+  let out = D[trimmed];
+  if (out === undefined) {
+    for (const [re, fn] of P) { const m = trimmed.match(re); if (m) { out = fn(...m); break; } }
+  }
+  if (out === undefined || out === trimmed) return text;
+  const lead = text.match(/^\s*/)![0], trail = text.match(/\s*$/)![0];
+  return lead + out + trail;
+}
+
+const ATTRS = ['placeholder', 'aria-label', 'title', 'alt'];
+function translateNode(node: Node) {
+  if (node.nodeType === Node.TEXT_NODE) {
+    const parent = node.parentElement;
+    if (!parent || parent.closest('textarea, script, style, [data-no-translate], .chat-msg')) return;
+    const next = t(node.nodeValue || '');
+    if (next !== node.nodeValue) node.nodeValue = next;
+    return;
+  }
+  if (node.nodeType !== Node.ELEMENT_NODE) return;
+  const el = node as Element;
+  if (el.closest('[data-no-translate], .chat-msg')) return;
+  for (const a of ATTRS) { const v = el.getAttribute(a); if (v) { const n = t(v); if (n !== v) el.setAttribute(a, n); } }
+  const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT | NodeFilter.SHOW_ELEMENT);
+  let n: Node | null = walker.nextNode();
+  while (n) { if (n.nodeType === Node.TEXT_NODE) translateNode(n); else for (const a of ATTRS) { const e = n as Element; const v = e.getAttribute(a); if (v) { const x = t(v); if (x !== v) e.setAttribute(a, x); } } n = walker.nextNode(); }
+}
+
+let observer: MutationObserver | null = null;
+function start() {
+  if (observer || current !== 'en') return;
+  document.documentElement.lang = 'en';
+  translateNode(document.body);
+  observer = new MutationObserver((list) => {
+    for (const m of list) {
+      if (m.type === 'characterData') translateNode(m.target);
+      else if (m.type === 'attributes') translateNode(m.target);
+      else m.addedNodes.forEach(translateNode);
+    }
+  });
+  observer.observe(document.body, { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ATTRS });
+  const confirm = window.confirm.bind(window);
+  window.confirm = (msg?: string) => confirm(msg ? msg.split('\n\n').map(t).join('\n\n') : msg);
+}
+
+/** Apply a language. Going back to Dutch reloads to restore the original text. */
+export function setLang(next: Lang) {
+  const changed = next !== current;
+  try { localStorage.setItem(KEY, next); } catch { /* private mode */ }
+  if (changed && current === 'en') { window.location.reload(); return; }
+  current = next;
+  if (next === 'nl') document.documentElement.lang = 'nl';
+  start();
+}
+
+if (current === 'en') { if (document.body) start(); else document.addEventListener('DOMContentLoaded', start); }
