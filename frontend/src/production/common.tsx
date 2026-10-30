@@ -165,3 +165,46 @@ export function FormDialog({ id, title, open, onClose, submit, label = 'Opslaan'
     </Modal>
   );
 }
+
+/** How advancing for this artist runs: via their agency or with the artist.
+    Only the chosen route's fields are required; the rest stays optional. */
+export function ContactBlock({ a, prefix = '' }: { a: Record<string, any>; prefix?: string }) {
+  const edit = useCanEdit();
+  const [via, setVia] = useState<string>(a.contact_via || (a.agency || a.agent_email ? 'agency' : 'self'));
+  const artistFields = <>
+    <Field name={prefix + 'email'} label="E-mail artiest" value={a.email} type="email" />
+    <Field name={prefix + 'phone'} label="Telefoon artiest" value={a.phone} type="tel" />
+    <Field name={prefix + 'instagram'} label="Instagram" value={a.instagram} placeholder="@naam" />
+  </>;
+  return <>
+    <h2 className="sub">Advancing via</h2>
+    <div className="segmented contact-via" role="radiogroup" aria-label="Advancing via">
+      {([['agency', 'Agency'], ['self', 'Artiest zelf']] as const).map(([v, l]) => (
+        <label key={v} className={via === v ? 'active' : ''}><input type="radio" className="visually-hidden" name={prefix + 'contact_via'} value={v} checked={via === v} disabled={!edit} onChange={() => setVia(v)} />{l}</label>
+      ))}
+    </div>
+    {via === 'agency' ? <>
+      <Field name={prefix + 'agency'} label="Agency" value={a.agency} />
+      <Field name={prefix + 'agent'} label="Agent" value={a.agent} />
+      <Field name={prefix + 'agent_email'} label="E-mail agent *" value={a.agent_email} type="email" />
+      <Field name={prefix + 'agent_phone'} label="Telefoon agent" value={a.agent_phone} type="tel" />
+      <p className="field-hint">Alle advancing loopt via de agent. Alleen het e-mailadres van de agent is verplicht.</p>
+      <details className="optional-block"><summary>Contact van de artiest zelf (optioneel)</summary>{artistFields}</details>
+    </> : <>
+      {artistFields}
+      <p className="field-hint">Geen agency: advancing loopt via de artiest. E-mail of telefoon is genoeg.</p>
+    </>}
+  </>;
+}
+
+/** Full name and passport: only asked for when Moonshine or the venue books
+    travel or a room in the artist's name. */
+export function TravelId({ a, prefix = '', needed }: { a: Record<string, any>; prefix?: string; needed: boolean }) {
+  const body = <>
+    <Field name={prefix + 'full_name'} label={needed ? 'Volledige naam (zoals in paspoort) *' : 'Volledige naam (zoals in paspoort)'} value={a.full_name} autoComplete="off" />
+    <Field name={prefix + 'passport'} label={needed ? 'Paspoort / ID *' : 'Paspoort / ID'} value={a.passport} autoComplete="off" readOnly={a.masked} />
+    <p className="field-hint">Gaat nooit mee in de mail naar de venue.</p>
+  </>;
+  return needed ? <><h2 className="sub">Reisgegevens</h2><p className="field-hint">Nodig omdat Moonshine of de venue de reis of het hotel boekt.</p>{body}</>
+    : <details className="optional-block"><summary>Reisgegevens (alleen nodig als Moonshine of de venue boekt)</summary>{body}</details>;
+}

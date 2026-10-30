@@ -7,7 +7,7 @@ import { Badge, Icon, Orb, useToast } from '../lib/ui';
 
 export type Doc = { id: string; name: string; mime: string; size: number; source: string; status: string; odoo_id: number | null; error: string | null; created: number; updated: number;
   details: { supplier?: string; number?: string; date?: string; total?: number; currency?: string; confidence?: number; onedrive_url?: string; [k: string]: any } };
-export type Task = { id: string; title: string; description: string; assignee: string | null; due: string | null; priority: string; done: boolean };
+export type Task = { id: string; title: string; description: string; assignee: string | null; due: string | null; priority: string; done: boolean; release?: string };
 export type Connection = { id: string; name: string; status: string; checked: number | null };
 
 export const useDocuments = (enabled = true) => useQuery({ queryKey: ['documents'], queryFn: () => api<{ documents: Doc[] }>('/documents?limit=2000'), enabled, refetchInterval: 20000 });

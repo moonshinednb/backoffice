@@ -148,7 +148,7 @@ function TaskRow({ t, onEdit }: { t: Task; onEdit: (t: Task) => void }) {
 }
 
 /** task: undefined = closed, null = new, Task = edit. */
-export function TaskDialog({ task, onClose }: { task: Task | null | undefined; onClose: () => void }) {
+export function TaskDialog({ task, onClose, release = '', releases }: { task: Task | null | undefined; onClose: () => void; release?: string; releases?: { id: string; title: string }[] }) {
   const qc = useQueryClient();
   const toast = useToast();
   const users = useUsers();
@@ -160,11 +160,12 @@ export function TaskDialog({ task, onClose }: { task: Task | null | undefined; o
     qc.invalidateQueries({ queryKey: ['tasks'] }); qc.invalidateQueries({ queryKey: ['dashboard'] });
     onClose();
   }}>
-    <div key={t?.id || 'new'}>
+    <div key={(t?.id || 'new') + release}>
       <div className="field"><label htmlFor="f-title">Wat moet er gebeuren?</label><input id="f-title" name="title" defaultValue={t?.title} required /></div>
       <div className="field"><label htmlFor="task-description">Toelichting</label><textarea id="task-description" name="description" defaultValue={t?.description} placeholder="Extra informatie voor het team" /></div>
       <div className="form-grid"><div className="field"><label htmlFor="f-due">Deadline</label><input id="f-due" name="due" type="date" defaultValue={t?.due || ''} /></div>
         <div className="field"><label htmlFor="task-assignee">Toewijzen aan</label><select id="task-assignee" name="assignee" defaultValue={t?.assignee || ''}><option value="">Niet toegewezen</option>{(users.data?.users || []).filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div></div>
+      {releases ? <div className="field"><label htmlFor="task-release">Release</label><select id="task-release" name="release" defaultValue={(t as any)?.release || release}><option value="">Geen release</option>{releases.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}</select></div> : null}
       <label><input type="checkbox" name="high" defaultChecked={t?.priority === 'high'} /> Hoge prioriteit</label>
     </div>
   </FormDialog>;

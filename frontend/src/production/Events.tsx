@@ -23,7 +23,7 @@ export function Events({ past = false }: { past?: boolean }) {
   const button = edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Nieuw evenement</button> : null;
   return <>
     <PageTitle eyebrow="Productie" title="Evenementen" sub="Advancing per avond: artiesten, reis, riders en wat de venue heeft ontvangen." actions={button} />
-    <Tabs items={[{ to: '/evenementen', label: <>Komend <span className="count">{upcoming.length}</span></> }, { to: '/evenementen/afgelopen', label: <>Afgelopen <span className="count">{done.length}</span></> }]} />
+    <EventTabs upcoming={upcoming.length} past={done.length} />
     <section className="card">
       {list.length ? (
         <div className="table-wrap"><table className="events-table">
@@ -58,4 +58,10 @@ export function Events({ past = false }: { past?: boolean }) {
       <div className="field"><label htmlFor="ne-venue">Venue</label><input id="ne-venue" name="venue" placeholder="Luxor Live, Arnhem" /></div>
     </FormDialog>
   </>;
+}
+
+export function EventTabs({ upcoming, past }: { upcoming?: number; past?: number }) {
+  return <Tabs items={[{ to: '/evenementen', label: <>Komend {upcoming !== undefined ? <span className="count">{upcoming}</span> : null}</> },
+    { to: '/evenementen/afgelopen', label: <>Afgelopen {past !== undefined ? <span className="count">{past}</span> : null}</> },
+    { to: '/evenementen/artiesten', label: 'Artiesten' }]} />;
 }

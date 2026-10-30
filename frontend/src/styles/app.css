@@ -48,3 +48,23 @@ a.button { display: inline-flex; align-items: center; gap: 8px; text-decoration:
 .reset-page { min-height: 100vh; display: grid; place-items: center; padding: 16px; background: #0b0809; }
 .reset-page .access-panel { position: static; transform: none; max-width: 440px; width: 100%; }
 .reset-page a.button.primary { justify-content: center; width: 100%; padding: 13px; }
+/* Contact route and optional blocks */
+.contact-via { display: inline-flex; margin-bottom: 14px; }
+.contact-via label { margin: 0; cursor: pointer; padding: 7px 14px; border-radius: 7px; font-size: .82rem; }
+.contact-via label.active { background: #2b1c1f; color: #f0d6db; }
+.optional-block { margin: 6px 0 14px; border: 1px dashed #3b2f31; border-radius: 10px; padding: 10px 14px; }
+.optional-block summary { cursor: pointer; font-size: .82rem; opacity: .75; }
+.optional-block[open] summary { margin-bottom: 12px; }
+.label-toggle { margin-top: 10px; }
+/* Release planning */
+.planning-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 18px; }
+.planning-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 12px; }
+.planning-head h2 { margin: 0 0 4px; font-size: 1rem; } .planning-head .helper { margin: 0; }
+.step-list { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 4px; }
+.step-list li { display: grid; grid-template-columns: 20px 1fr 140px 26px; align-items: center; gap: 10px; padding: 6px 0; border-bottom: 1px solid #262021; }
+.step-list li.done .step-label { text-decoration: line-through; opacity: .55; }
+.step-list li.late .step-label, .step-list li.late .step-date { color: #ff919b; }
+.step-date { padding: 6px 8px; font-size: .8rem; }
+.planning-card .inline-form { display: flex; gap: 8px; }
+.planning-card .inline-form input[type=date] { width: 150px; }
+@media (max-width: 640px) { .planning-grid { grid-template-columns: 1fr; } .step-list li { grid-template-columns: 20px 1fr 120px 26px; } }

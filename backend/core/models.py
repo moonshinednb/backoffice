@@ -80,6 +80,7 @@ class Task(models.Model):
     priority = models.CharField(max_length=10, default='normal')
     done = models.BooleanField(default=False)
     graph_id = models.CharField(max_length=300, blank=True, default='')
+    release = models.CharField(max_length=24, blank=True, default='', db_index=True, help_text='Release id when this task belongs to a release')
     dirty = models.BooleanField(default=False, help_text='Changed locally since the last To Do push')
     created = models.DateTimeField(auto_now_add=True)
 

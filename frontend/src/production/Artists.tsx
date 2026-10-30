@@ -4,7 +4,8 @@ import { useNavigate, useParams } from 'react-router';
 import { api, download } from '../lib/api';
 import { shortDate } from '../lib/format';
 import { BackLink, Badge, Empty, ErrorBox, Icon, Loading, PageTitle, Tabs, formValues, useAction, useToast } from '../lib/ui';
-import { Area, Asset, AssetGroups, Field, FormDialog, SaveBar, useCanEdit, useDirty } from './common';
+import { Area, Asset, AssetGroups, ContactBlock, Field, FormDialog, SaveBar, TravelId, useCanEdit, useDirty } from './common';
+import { EventTabs } from './Events';
 
 type Row = { id: string; name: string; full_name: string; agency: string; agent: string; has_tech_rider: boolean; has_rider_url: boolean; rider_files: number; has_epk: boolean; booking_count: number };
 
@@ -20,7 +21,8 @@ export function Artists() {
   const rows = q.data.artists.filter((a) => !term || [a.name, a.full_name, a.agency, a.agent].join(' ').toLowerCase().includes(term));
   const button = edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Nieuwe artiest</button> : null;
   return <>
-    <PageTitle eyebrow="Productie" title="Artiesten" sub="Eén profiel per artiest: gegevens, riders, EPK en promo. Herbruikbaar voor elk evenement." actions={button} />
+    <PageTitle eyebrow="Evenementen" title="Artiesten" sub="Eén profiel per artiest: contact, riders, EPK en promo. Herbruikbaar voor elk evenement en het label." actions={button} />
+    <EventTabs />
     <section className="card">{q.data.artists.length ? <>
       <div className="card-head"><div className="search-field"><label className="visually-hidden" htmlFor="artist-search">Zoek artiest</label><input id="artist-search" type="search" placeholder="Zoek op naam, agent of agency" value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
       <div className="table-wrap"><table className="artists-table"><thead><tr><th>Artiest</th><th>Agent</th><th>Rider</th><th>EPK</th><th>Optredens</th><th aria-label="Openen" /></tr></thead><tbody>
@@ -80,15 +82,17 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
   const { setDirty, track, isDirty } = useDirty();
   const q = useQuery({ queryKey: ['artist', id], queryFn: () => api<Artist>(`/artists/${id}`) });
   if (q.isPending) return <Loading />;
-  if (q.error) return <><BackLink to="/artiesten">Alle artiesten</BackLink><ErrorBox error={q.error} /></>;
+  if (q.error) return <><BackLink to="/evenementen/artiesten">Alle artiesten</BackLink><ErrorBox error={q.error} /></>;
   const a = q.data;
   const base = `/artiesten/${a.id}`;
   const reload = () => qc.invalidateQueries({ queryKey: ['artist', id] });
   const form = tab === 'info' ? 'artist-form' : tab === 'tech' || tab === 'hospitality' ? 'rider-form' : '';
   async function save(f: HTMLFormElement, quiet = false) {
     const values = formValues(f);
-    if (a.masked) { delete values.passport; delete values.date_of_birth; }
-    qc.setQueryData(['artist', id], await api<Artist>(`/artists/${a.id}`, { method: 'PATCH', body: values }));
+    if (a.masked) delete values.passport;
+    const payload: Record<string, unknown> = { ...values };
+    if (f.id === 'artist-form') payload.on_label = 'on_label' in values;
+    qc.setQueryData(['artist', id], await api<Artist>(`/artists/${a.id}`, { method: 'PATCH', body: payload }));
     qc.invalidateQueries({ queryKey: ['artists'] });
     setDirty(false);
     if (!quiet) toast('Opgeslagen.');
@@ -96,7 +100,7 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
   const autosave = async () => { const f = form && document.getElementById(form) as HTMLFormElement | null; if (f && isDirty()) await save(f, true); };
   const submit = (ev: React.FormEvent<HTMLFormElement>) => { ev.preventDefault(); const f = ev.currentTarget; run(() => save(f)); };
   return <>
-    <BackLink to="/artiesten">Alle artiesten</BackLink>
+    <BackLink to="/evenementen/artiesten">Alle artiesten</BackLink>
     <PageTitle eyebrow="Artiest" title={a.name} sub={[a.full_name, a.agency].filter(Boolean).join(' · ') || 'Profiel'}
       actions={<>{tab === 'tech' || tab === 'hospitality' ? <button className="ghost" onClick={() => run(async () => { await autosave(); await download(`/artists/${a.id}/rider.pdf?kind=${tab}`); })}><Icon name="pdf" /> PDF</button> : null}
         {edit && form ? <button className="primary" type="submit" form={form}>Opslaan</button> : null}</>} />
@@ -114,19 +118,12 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
             <form id="artist-form" className="booking-form" {...track} onSubmit={submit}>
               <section className="card card-pad"><h2>Gegevens</h2>
                 <Field name="name" label="Artiestennaam *" value={a.name} required />
-                <Field name="full_name" label="Volledige naam" value={a.full_name} />
-                <Field name="passport" label="Paspoort / ID" value={a.passport} autoComplete="off" readOnly={a.masked} />
-                <Field name="date_of_birth" label="Geboortedatum" value={a.date_of_birth} type={a.masked ? 'text' : 'date'} readOnly={a.masked} />
                 <Field name="nationality" label="Nationaliteit" value={a.nationality} />
-                <Field name="email" label="E-mail" value={a.email} type="email" />
-                <Field name="phone" label="Telefoon" value={a.phone} type="tel" />
-                <Field name="instagram" label="Instagram" value={a.instagram} placeholder="@naam" />
+                <TravelId a={a} needed={false} />
+                <label className="label-toggle"><input type="checkbox" name="on_label" defaultChecked={a.on_label} disabled={!edit} /> Artiest van het Moonshine-label</label>
               </section>
-              <section className="card card-pad"><h2>Agency</h2>
-                <Field name="agency" label="Agency" value={a.agency} />
-                <Field name="agent" label="Agent" value={a.agent} />
-                <Field name="agent_email" label="E-mail agent" value={a.agent_email} type="email" />
-                <Field name="agent_phone" label="Telefoon agent" value={a.agent_phone} type="tel" />
+              <section className="card card-pad">
+                <ContactBlock a={a} />
                 <h2 className="sub">Links</h2>
                 <Field name="rider_url" label="Riderlink" value={a.rider_url} type="url" placeholder="https://" />
                 <Field name="epk_url" label="EPK-link" value={a.epk_url} type="url" placeholder="https://" />
@@ -137,7 +134,7 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
               </section>
             </form>
             {edit ? <section className="card card-pad danger-zone"><h2>Artiest verwijderen</h2><p className="helper">Kan alleen als de artiest niet meer op een evenement staat. Bestanden in OneDrive blijven bewaard.</p>
-              <button className="danger" onClick={() => confirm(`${a.name} verwijderen? Alle lokale bestanden van deze artiest worden verwijderd.`) && run(async () => { await api(`/artists/${a.id}`, { method: 'DELETE' }); setDirty(false); qc.invalidateQueries({ queryKey: ['artists'] }); toast('Artiest verwijderd.'); navigate('/artiesten'); })}><Icon name="trash" /> Artiest verwijderen</button></section> : null}
+              <button className="danger" onClick={() => confirm(`${a.name} verwijderen? Alle lokale bestanden van deze artiest worden verwijderd.`) && run(async () => { await api(`/artists/${a.id}`, { method: 'DELETE' }); setDirty(false); qc.invalidateQueries({ queryKey: ['artists'] }); toast('Artiest verwijderd.'); navigate('/evenementen/artiesten'); })}><Icon name="trash" /> Artiest verwijderen</button></section> : null}
           </>}
     {form ? <SaveBar form={form} /> : null}
   </>;

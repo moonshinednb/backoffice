@@ -4,14 +4,15 @@ The rules (validation, completeness, PDFs, mail HTML) live in rules.py and
 work on plain dicts; this module loads and saves them."""
 import hashlib
 import os
+import re
 import time
 from pathlib import Path
-from django.db import IntegrityError, transaction
+from django.db import IntegrityError, models, transaction
 from django.db.models import Q
 from django.utils import timezone
 from core.services import DATA, audit, safe_error, settings
 from . import rules as R
-from .models import Act, Artist, Asset, Booking, ChecklistItem, Event, EventNote, Release, Send
+from .models import Act, Artist, Asset, Booking, ChecklistItem, Event, EventNote, Release, ReleaseStep, Send
 
 ASSETS = DATA / 'assets'
 ASSETS.mkdir(parents=True, exist_ok=True)
@@ -33,12 +34,14 @@ ARTIST_KEYS = tuple(R.ARTIST_FIELDS)
 
 
 def artist_dict(a):
-    return {'id': a.id, **{k: getattr(a, k) for k in ARTIST_KEYS}, 'created': ts(a.created), 'updated': ts(a.updated)}
+    return {'id': a.id, **{k: getattr(a, k) for k in ARTIST_KEYS}, 'contact_via': R.contact_via({k: getattr(a, k) for k in ARTIST_KEYS}),
+            'on_label': a.on_label, 'created': ts(a.created), 'updated': ts(a.updated)}
 
 
 def booking_dict(b):
     return {'id': b.id, 'event_id': b.event_id, 'artist_id': b.artist_id, 'status': b.status, 'fee': b.fee,
             'flight': b.flight, 'grounds': b.grounds, 'hotel': b.hotel, 'notes': b.notes, 'sort': b.sort,
+            'showday_contact': b.showday_contact, 'showday_phone': b.showday_phone,
             'flight_info': R._structured_defaults(R.FLIGHT_FIELDS, b.flight_info or {}),
             'hotel_info': R._structured_defaults(R.HOTEL_FIELDS, b.hotel_info or {}),
             'ground_info': R._structured_defaults(R.GROUND_FIELDS, b.ground_info or {})}
@@ -250,7 +253,8 @@ def artist_list():
         rows.append({'id': a.id, 'name': a.name, 'full_name': a.full_name, 'agency': a.agency, 'agent': a.agent, 'email': a.email,
                      'agent_email': a.agent_email, 'instagram': a.instagram, 'updated': ts(a.updated),
                      'has_tech_rider': bool(a.tech_rider.strip()), 'has_rider_url': bool(a.rider_url), 'has_epk': bool(a.epk_url),
-                     'booking_count': bookings.get(a.id, 0), 'asset_count': files.get(a.id, 0), 'rider_files': riders.get(a.id, 0)})
+                     'booking_count': bookings.get(a.id, 0), 'asset_count': files.get(a.id, 0), 'rider_files': riders.get(a.id, 0),
+                     'on_label': a.on_label, 'contact_via': R.contact_via({'contact_via': a.contact_via, 'agency': a.agency, 'agent_email': a.agent_email})})
     return rows
 
 
@@ -286,6 +290,10 @@ def artist_create(payload, actor):
 
 def artist_update(ident, payload, actor):
     data = R._artist_payload(payload, partial=True)
+    if 'on_label' in payload:
+        if type(payload['on_label']) is not bool:
+            raise ValueError('Ongeldige labelstatus.')
+        data['on_label'] = payload['on_label']
     if not data:
         return
     if not Artist.objects.filter(id=ident).exists():
@@ -380,6 +388,9 @@ def booking_update(booking_id, payload, actor):
             fields[key] = R._structured(spec, payload[key], label)
     if 'notes' in payload:
         fields['notes'] = R._text(payload['notes'], 4000)
+    for key, limit in (('showday_contact', 200), ('showday_phone', 40)):
+        if key in payload:
+            fields[key] = R._text(payload[key], limit)
     b = Booking.objects.filter(id=booking_id).first()
     if not b:
         raise ValueError('Onbekende boeking.')
@@ -784,9 +795,65 @@ def archive_sent(event_id, send_id):
 
 # --- Releases ----------------------------------------------------------------
 
+DEFAULT_STEPS = [('Master en artwork binnen', -42), ('Aanleveren bij distributie', -28), ('Pitch en pre-save naar DSP’s', -21),
+                 ('Promo-assets klaar (visuals, teaser)', -14), ('Aankondiging op socials', -7), ('Release day', 0),
+                 ('Promo-push en playlist-follow-up', 7)]
+
+
+def step_dict(s):
+    return {'id': s.id, 'label': s.label, 'due': s.due, 'done': s.done, 'sort': s.sort}
+
+
 def release_dict(r):
+    from core.models import Task
+    steps = [step_dict(s) for s in r.steps.all()]
+    tasks = Task.objects.filter(release=r.id)
     return {'id': r.id, 'title': r.title, 'artist': r.artist, 'release_date': r.release_date, 'status': r.status,
-            'labelgrid_release_id': r.labelgrid_release_id, 'notes': r.notes, 'created': ts(r.created)}
+            'labelgrid_release_id': r.labelgrid_release_id, 'notes': r.notes, 'created': ts(r.created), 'steps': steps,
+            'steps_done': sum(1 for s in steps if s['done']), 'tasks_open': tasks.filter(done=False).count(), 'tasks': tasks.count()}
+
+
+def seed_steps(r):
+    from datetime import date, timedelta
+    base = date.fromisoformat(r.release_date) if r.release_date else None
+    ReleaseStep.objects.bulk_create([ReleaseStep(release=r, label=label, sort=i, due=(base + timedelta(days=d)).isoformat() if base else '')
+                                     for i, (label, d) in enumerate(DEFAULT_STEPS)])
+
+
+def step_save(release_id, payload, actor, ident=None):
+    s = ReleaseStep.objects.filter(id=ident).first() if ident else ReleaseStep(release_id=release_id)
+    if ident and not s:
+        raise ValueError('Stap niet gevonden.')
+    if not ident and not Release.objects.filter(id=release_id).exists():
+        raise ValueError('Release niet gevonden.')
+    if 'label' in payload or not ident:
+        s.label = R._text(payload.get('label'), 200)
+        if not s.label:
+            raise ValueError('Geef de stap een naam.')
+    if 'due' in payload:
+        s.due = R._date(payload.get('due'), 'Datum')
+    if 'done' in payload:
+        if type(payload['done']) is not bool:
+            raise ValueError('Ongeldige status.')
+        s.done = payload['done']
+    if not ident:
+        s.sort = (ReleaseStep.objects.filter(release_id=release_id).aggregate(m=models.Max('sort'))['m'] or 0) + 1
+    s.save()
+    audit(actor, 'Releaseplanning bijgewerkt', s.release_id)
+    return release_dict(s.release)
+
+
+def label_artists():
+    names = {}
+    for r in Release.objects.all():
+        for n in [x.strip() for x in re.split(r',|&| x | feat\.? ', r.artist or '') if x.strip()]:
+            names.setdefault(n.casefold(), []).append(r.id)
+    out = []
+    for a in Artist.objects.all():
+        releases = names.get(a.name.casefold(), [])
+        if a.on_label or releases:
+            out.append({'id': a.id, 'name': a.name, 'on_label': a.on_label, 'releases': len(releases), 'agency': a.agency})
+    return sorted(out, key=lambda x: x['name'].casefold())
 
 
 def release_save(payload, actor, ident=None):
@@ -801,5 +868,7 @@ def release_save(payload, actor, ident=None):
     if not r.title:
         raise ValueError('Geef de release een titel.')
     r.save()
+    if not ident:
+        seed_steps(r)
     audit(actor, 'Release bijgewerkt' if ident else 'Release aangemaakt', r.id)
     return release_dict(r)

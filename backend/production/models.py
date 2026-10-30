@@ -60,6 +60,8 @@ class Artist(models.Model):
     agent = models.CharField(max_length=200, blank=True, default='')
     agent_email = models.CharField(max_length=320, blank=True, default='')
     agent_phone = models.CharField(max_length=40, blank=True, default='')
+    contact_via = models.CharField(max_length=10, blank=True, default='', help_text="'agency' or 'self'; empty = agency when one is filled in")
+    on_label = models.BooleanField(default=False)
     rider_url = models.CharField(max_length=1000, blank=True, default='')
     epk_url = models.CharField(max_length=1000, blank=True, default='')
     bio = models.TextField(blank=True, default='')
@@ -88,6 +90,8 @@ class Booking(models.Model):
     ground_info = models.JSONField(default=dict)
     hotel_info = models.JSONField(default=dict)
     notes = models.TextField(blank=True, default='')
+    showday_contact = models.CharField(max_length=200, blank=True, default='')
+    showday_phone = models.CharField(max_length=40, blank=True, default='')
     sort = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
@@ -197,3 +201,16 @@ class Contract(models.Model):
 
     class Meta:
         ordering = ['-created']
+
+
+class ReleaseStep(models.Model):
+    """One step in a release's planning, e.g. master in or artwork done."""
+    id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
+    release = models.ForeignKey(Release, on_delete=models.CASCADE, related_name='steps')
+    label = models.CharField(max_length=200)
+    due = models.CharField(max_length=10, blank=True, default='')
+    done = models.BooleanField(default=False)
+    sort = models.IntegerField(default=0)
+
+    class Meta:
+        ordering = ['sort', 'due']

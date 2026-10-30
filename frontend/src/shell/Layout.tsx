@@ -16,7 +16,7 @@ type Item = [path: string, label: string, icon: string];
 export function sections(role: string): [string, Item[]][] {
   const all: [string, Item[]][] = [
     ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/taken', 'Taken', 'tasks']]],
-    ['Productie', [['/evenementen', 'Evenementen', 'calendar'], ['/artiesten', 'Artiesten', 'user'], ['/label', 'Label', 'music']]],
+    ['Productie', [['/evenementen', 'Evenementen', 'calendar'], ['/label', 'Label', 'music']]],
     ['Financiën', [['/facturen', 'Facturen', 'invoice'], ['/odoo', 'Odoo-administratie', 'bank'], ['/bank', 'Bank & pin', 'wallet'], ['/btw', 'Btw-overzicht', 'tax'], ['/documenten', 'Documenten', 'folder']]],
     ['Beheer', [['/beheer', 'Admin', 'settings']]],
   ];
@@ -37,8 +37,9 @@ export function Layout() {
   useEffect(() => { setMenu(false); setProfile(false); }, [location.pathname]);
   if (!user) return null;
   const nav = sections(user.role);
+  const path = location.pathname.startsWith('/artiesten') ? '/evenementen' + location.pathname : location.pathname;
   const current = nav.flatMap(([section, items]) => items.map((i) => [section, ...i] as const))
-    .filter(([, path]) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)).sort((a, b) => b[1].length - a[1].length)[0];
+    .filter(([, p]) => p === '/' ? path === '/' : path.startsWith(p)).sort((a, b) => b[1].length - a[1].length)[0];
 
   return (
     <div className="layout">
@@ -49,7 +50,7 @@ export function Layout() {
             <div className="nav-label">{section}</div>
             <nav className="nav" aria-label={section}>
               {items.map(([path, label, icon]) => (
-                <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive ? 'active' : '')}>
+                <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive || (path === '/evenementen' && location.pathname.startsWith('/artiesten')) ? 'active' : '')}>
                   <Icon name={icon} />{label}{path === '/facturen' && review ? <span className="nav-count">{review}</span> : null}
                 </NavLink>
               ))}

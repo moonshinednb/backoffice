@@ -87,7 +87,7 @@ class Command(BaseCommand):
             for n in rows('event_notes'):
                 EventNote.objects.create(id=n['id'], event_id=n['event_id'], body=n['body'])
             stamp(EventNote, 'created', [(n['id'], n['created']) for n in rows('event_notes')])
-            artist_fields = [f.name for f in Artist._meta.fields if f.name not in ('id', 'created', 'updated')]
+            artist_fields = [f.name for f in Artist._meta.fields if f.name not in ('id', 'created', 'updated', 'on_label')]
             for a in rows('artists'):
                 Artist.objects.create(id=a['id'], **{k: a.get(k) or '' for k in artist_fields})
             for b in rows('bookings'):

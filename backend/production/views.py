@@ -239,7 +239,7 @@ def delete_asset(request, ident: str):
 @router.get('/releases')
 def releases(request):
     require(request, 'production')
-    return {'releases': [S.release_dict(r) for r in Release.objects.all()[:500]],
+    return {'releases': [S.release_dict(r) for r in Release.objects.prefetch_related('steps')[:500]],
             'statements': [{'id': s.id, 'invoice_number': s.invoice_number, 'period': s.period, 'status': s.status, 'currency': s.currency,
                             'gross_usd': s.gross_usd, 'fee_usd': s.fee_usd, 'total_due_usd': s.total_due_usd} for s in LabelStatement.objects.all()[:200]]}
 
@@ -262,6 +262,36 @@ def delete_release(request, ident: str):
     if not Release.objects.filter(id=ident).delete()[0]:
         raise HttpError(404, 'Release niet gevonden.')
     return {'ok': True}
+
+
+@router.post('/releases/{ident}/steps')
+def add_step(request, ident: str):
+    require(request, 'production', write=True)
+    return S.step_save(ident, body(request), actor(request))
+
+
+@router.patch('/release-steps/{ident}')
+def update_step(request, ident: str):
+    require(request, 'production', write=True)
+    return S.step_save(None, body(request), actor(request), ident)
+
+
+@router.delete('/release-steps/{ident}')
+def delete_step(request, ident: str):
+    require(request, 'production', write=True)
+    from .models import ReleaseStep
+    step = ReleaseStep.objects.filter(id=ident).select_related('release').first()
+    if not step:
+        raise HttpError(404, 'Stap niet gevonden.')
+    release = step.release
+    step.delete()
+    return S.release_dict(release)
+
+
+@router.get('/label/artists')
+def label_artists(request):
+    require(request, 'production')
+    return {'artists': S.label_artists()}
 
 
 @router.post('/label/pull')

@@ -165,7 +165,7 @@ def update_user(request, ident: str):
 
 def task_dict(t):
     return {'id': t.id, 'title': t.title, 'description': t.description, 'assignee': t.assignee_id, 'due': t.due.isoformat() if t.due else None,
-            'priority': t.priority, 'done': t.done, 'created': t.created.timestamp()}
+            'priority': t.priority, 'done': t.done, 'release': t.release, 'created': t.created.timestamp()}
 
 
 def _task_fields(d, task):
@@ -180,6 +180,12 @@ def _task_fields(d, task):
         raise HttpError(400, 'Kies een actieve gebruiker.')
     task.assignee_id = assignee
     task.priority = 'high' if d.get('priority') == 'high' else 'normal'
+    if 'release' in d:
+        from production.models import Release
+        release = str(d.get('release') or '')
+        if release and not Release.objects.filter(id=release).exists():
+            raise HttpError(400, 'Release niet gevonden.')
+        task.release = release
 
 
 @router.get('/tasks')

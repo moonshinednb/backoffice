@@ -22,7 +22,7 @@ RETRY_SECONDS = 15 * 60
 ARTIST_FIELDS = {
     'name': 120, 'full_name': 200, 'passport': 60, 'date_of_birth': 10, 'nationality': 60,
     'email': 320, 'phone': 40, 'instagram': 80, 'agency': 200, 'agent': 200,
-    'agent_email': 320, 'agent_phone': 40, 'rider_url': 1000, 'epk_url': 1000,
+    'agent_email': 320, 'agent_phone': 40, 'contact_via': 10, 'rider_url': 1000, 'epk_url': 1000,
     'bio': 6000, 'tech_rider': 20000, 'hospitality_rider': 20000, 'notes': 4000,
 }
 
@@ -260,6 +260,10 @@ def _artist_payload(payload, partial):
             out[key] = _email(raw, LABELS[key])
         elif key in ('rider_url', 'epk_url'):
             out[key] = _url(raw, LABELS[key])
+        elif key == 'contact_via':
+            if raw not in ('', 'agency', 'self'):
+                raise ValueError('Kies contact via agency of via de artiest zelf.')
+            out[key] = raw
         elif key == 'date_of_birth':
             out[key] = _date(raw, LABELS[key], past=True)
         elif key == 'instagram':
@@ -296,10 +300,11 @@ def missing_items(booking, artist, acts, assets):
     missing = []
     mine = assets.get(('artist', artist.get('id')), [])
     kinds = {a['kind'] for a in mine}
-    if not artist.get('full_name'):
-        missing.append('Volledige naam')
-    if not (artist.get('email') or artist.get('agent_email')):
-        missing.append('E-mail van artiest of agent')
+    if contact_via(artist) == 'agency':
+        if not artist.get('agent_email'):
+            missing.append('E-mail van de agent')
+    elif not (artist.get('email') or artist.get('phone')):
+        missing.append('E-mail of telefoon van de artiest')
     if not any(artist.get('id') in act['artist_ids'] and act['start'] and act['end'] for act in acts):
         missing.append('Act en set time')
     if not ((artist.get('tech_rider') or '').strip() or artist.get('rider_url') or kinds & {'tech_rider', 'rider'}):
@@ -330,13 +335,24 @@ def missing_items(booking, artist, acts, assets):
     elif booking['hotel'] == 'yes' and not (hotel.get('name') and hotel.get('check_in') and hotel.get('check_out')):
         missing.append('Hotel: naam, check-in en check-out')
 
-    # Passport and date of birth only matter when we or the venue book
-    # travel or a room in the artist's name.
-    needs_id = (booking['flight'] == 'yes' and flight.get('booked_by') in ('moonshine', 'venue')) or \
-               (booking['hotel'] == 'yes' and hotel.get('booked_by') in ('moonshine', 'venue'))
-    if needs_id and not (artist.get('passport') and artist.get('date_of_birth')):
-        missing.append('Paspoort/ID en geboortedatum')
+    # Full name and passport only matter when we or the venue book travel or
+    # a room in the artist's name.
+    if needs_id(booking):
+        if not artist.get('full_name'):
+            missing.append('Volledige naam (voor reis/hotel)')
+        if not artist.get('passport'):
+            missing.append('Paspoort/ID (voor reis/hotel)')
     return missing
+
+
+def contact_via(artist):
+    return artist.get('contact_via') or ('agency' if artist.get('agency') or artist.get('agent_email') else 'self')
+
+
+def needs_id(booking):
+    flight, hotel = booking.get('flight_info') or {}, booking.get('hotel_info') or {}
+    return (booking.get('flight') == 'yes' and flight.get('booked_by') in ('moonshine', 'venue')) or \
+           (booking.get('hotel') == 'yes' and hotel.get('booked_by') in ('moonshine', 'venue'))
 
 
 def _structured_defaults(spec, value):
@@ -426,9 +442,12 @@ def advancing_pdf(data, keys):
                    [[f"{a['start']} – {a['end']}".strip(' –'), a['name'], ', '.join(a.get('artists', [])), a.get('stage', '')]
                     for a in data['acts']] or [['', 'Nog geen acts ingepland', '', '']])]
     if 'contacts' in keys:
-        blocks += [('h', 'Contacten'), ('table', ['Artiest', 'Naam', 'E-mail', 'Telefoon', 'Agent'],
-                   [[b['artist']['name'], b['artist']['full_name'], b['artist']['email'], b['artist']['phone'],
-                     ' · '.join(x for x in (b['artist']['agent'], b['artist']['agency'], b['artist']['agent_email'], b['artist']['agent_phone']) if x)]
+        def contact(a):
+            if contact_via(a) == 'agency':
+                return ' · '.join(x for x in (a['agent'], a['agency'], a['agent_email'], a['agent_phone']) if x)
+            return ' · '.join(x for x in ('Artiest zelf', a['email'], a['phone']) if x)
+        blocks += [('h', 'Contacten'), ('table', ['Artiest', 'Advancing via', 'Showdag'],
+                   [[b['artist']['name'], contact(b['artist']), ' · '.join(x for x in (b.get('showday_contact'), b.get('showday_phone')) if x)]
                     for b in active])]
     if 'travel' in keys:
         flights = []

@@ -5,11 +5,11 @@ import { api } from '../lib/api';
 import { euroInput, longDate } from '../lib/format';
 import { BackLink, Badge, ErrorBox, Icon, Loading, PageTitle, formValues, useAction, useToast } from '../lib/ui';
 import { Act, ActDialog } from './dialogs';
-import { Area, Asset, AssetGroups, BOOKED_BY, Field, SaveBar, Select, YES_NO, useCanEdit, useDirty } from './common';
+import { Area, Asset, AssetGroups, BOOKED_BY, ContactBlock, Field, SaveBar, Select, TravelId, YES_NO, useCanEdit, useDirty } from './common';
 
 type Leg = { from: string; to: string; departure: string; arrival: string; number: string };
 type Detail = {
-  id: string; status: string; fee: number; flight: string; grounds: string; hotel: string; notes: string; complete: boolean; missing: string[];
+  id: string; status: string; fee: number; flight: string; grounds: string; hotel: string; notes: string; complete: boolean; missing: string[]; showday_contact: string; showday_phone: string;
   flight_info: { tickets_booked: string; booked_by: string; price: number; notes: string; inbound: Leg; outbound: Leg };
   hotel_info: Record<string, any>; ground_info: Record<string, any>;
   artist: Record<string, any> & { id: string; name: string; masked: boolean };
@@ -47,6 +47,7 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
   const a = b.artist;
   const e = b.event;
   const mine = b.acts.filter((x) => x.artist_ids.includes(a.id));
+  const needsId = (b.flight === 'yes' && ['moonshine', 'venue'].includes(b.flight_info.booked_by)) || (b.hotel === 'yes' && ['moonshine', 'venue'].includes(b.hotel_info.booked_by));
 
   async function save(quiet = false) {
     const form = document.getElementById('booking-main') as HTMLFormElement | null;
@@ -54,7 +55,7 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
     const artist: Record<string, string> = {};
     const booking: Record<string, any> = {};
     Object.entries(formValues(form)).forEach(([k, v]) => { if (k.startsWith('a_')) artist[k.slice(2)] = v; else if (k.startsWith('b_')) booking[k.slice(2)] = v; });
-    if (a.masked) { delete artist.passport; delete artist.date_of_birth; }
+    if (a.masked) delete artist.passport;
     booking.artist = artist;
     const next = await api<Detail>(`/bookings/${b.id}`, { method: 'PATCH', body: booking });
     setDirty(false);
@@ -83,19 +84,8 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
       <form id="booking-main" className="booking-form" {...track} onSubmit={(ev) => { ev.preventDefault(); run(() => save()); }}>
         <section className="card card-pad">
           <h2>Artiest</h2>
-          <Field name="a_full_name" label="Volledige naam *" value={a.full_name} autoComplete="off" />
-          <Field name="a_passport" label="Paspoort / ID" value={a.passport} autoComplete="off" readOnly={a.masked} />
-          <Field name="a_date_of_birth" label="Geboortedatum" value={a.date_of_birth} type={a.masked ? 'text' : 'date'} readOnly={a.masked} />
-          <p className="field-hint">Alleen nodig als Moonshine of de venue de vlucht of het hotel boekt. Gaat nooit mee in de mail naar de venue.</p>
-          <Field name="a_email" label="E-mail" value={a.email} type="email" />
-          <Field name="a_phone" label="Telefoon" value={a.phone} type="tel" />
-          <Field name="a_instagram" label="Instagram" value={a.instagram} placeholder="@naam" />
-          <h2 className="sub">Agency</h2>
-          <Field name="a_agency" label="Agency" value={a.agency} />
-          <Field name="a_agent" label="Agent" value={a.agent} />
-          <Field name="a_agent_email" label="E-mail agent" value={a.agent_email} type="email" />
-          <Field name="a_agent_phone" label="Telefoon agent" value={a.agent_phone} type="tel" />
-          <p className="field-hint">Een e-mailadres van de artiest of de agent is genoeg.</p>
+          <ContactBlock a={a} prefix="a_" />
+          <TravelId a={a} prefix="a_" needed={needsId} />
         </section>
         <section className="card card-pad">
           <h2>Boeking</h2>
@@ -111,6 +101,9 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
             {edit ? <button type="button" className="icon-btn ghost tiny" aria-label={`${x.name} bewerken`} onClick={() => run(async () => { await autosave(); setAct({ act: x }); })}><Icon name="edit" /></button> : null}</li>)}</ul>
             : <p className="helper">Nog niet ingepland in de timetable.</p>}
           {edit ? <button type="button" className="small" onClick={() => run(async () => { await autosave(); setAct({ act: null }); })}><Icon name="plus" /> Act toevoegen</button> : null}
+          <h2 className="sub">Showdag</h2>
+          <Field name="b_showday_contact" label="Contact op de dag (bijv. tourmanager)" value={b.showday_contact} />
+          <Field name="b_showday_phone" label="Telefoon op de dag" value={b.showday_phone} type="tel" />
           <Area name="b_notes" label="Notities voor deze boeking" value={b.notes} />
         </section>
       </form>
