@@ -255,8 +255,8 @@ async function start(canvas) {
     const svg = await response.text();
     if (!alive) return;
 
-    const face = keep(new THREE.MeshPhysicalMaterial({ color: '#e2e4e8', metalness: 1, roughness: 0.22, envMap: envTarget.texture, envMapIntensity: 1.2, clearcoat: 0.35, clearcoatRoughness: 0.22 }));
-    const bevel = keep(new THREE.MeshPhysicalMaterial({ color: '#b4b7bd', metalness: 1, roughness: 0.14, envMap: envTarget.texture, envMapIntensity: 1.25, clearcoat: 0.25, clearcoatRoughness: 0.18 }));
+    const face = keep(new THREE.MeshPhysicalMaterial({ color: '#e2e4e8', metalness: 1, roughness: 0.3, envMap: envTarget.texture, envMapIntensity: 1.2, clearcoat: 0.35, clearcoatRoughness: 0.3 }));
+    const bevel = keep(new THREE.MeshPhysicalMaterial({ color: '#b4b7bd', metalness: 1, roughness: 0.26, envMap: envTarget.texture, envMapIntensity: 1.25, clearcoat: 0.25, clearcoatRoughness: 0.28 }));
     const logo = new THREE.Group();
     for (const shape of logoShapes(new SVGLoader().parse(svg).paths)) {
       const mesh = new THREE.Mesh(keep(extrudeLogo(shape)), [face, bevel]);
@@ -498,7 +498,10 @@ async function start(canvas) {
           return smoothstep(uFocus, uFocus + uRange, dist) * uMaxBlur;
         }
         void main() {
+          // Depth is not multisampled: dilate focus over 3x3 so anti-aliased
+          // logo edges are never blurred into stair steps.
           float radius = blurAt(vUv);
+          for (int x = -1; x <= 1; x++) for (int y = -1; y <= 1; y++) radius = min(radius, blurAt(vUv + vec2(float(x), float(y)) * uTexel));
           vec3 color = texture2D(tColor, vUv).rgb;
           if (radius > 0.6) {
             float spin = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) * 6.2831853;

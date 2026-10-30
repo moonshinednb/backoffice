@@ -29,9 +29,8 @@ export function Login() {
   return (
     <main className="studio-login">
       <section className="brand-stage" aria-label="Moonshine">
-        <div className="stage-top"><span>MOONSHINE</span></div>
         <div className="sculpture-view"><img className="scene-fallback" src="/assets/moonshine-logo.svg" alt="Moonshine" /><canvas ref={canvas} className="logo-scene" role="img" aria-label="Moonshine-logo in chroom op een ruwe grijze ondergrond" /></div>
-        <div className="stage-bottom"><h1>Premium <span>Backoffice.</span></h1><p>Manage your team, content, documents and more.<br />All in one place.</p><div className="stage-progress" aria-hidden="true"><i /></div></div>
+        <div className="stage-bottom"><h1>Moonshine <span>Backoffice.</span></h1><p>Manage your team, content, documents and more.<br />All in one place.</p><div className="stage-progress" aria-hidden="true"><i /></div></div>
       </section>
       <div className="private-badge"><Icon name="lock" /> Private workspace</div>
       <section className="access-panel"><div className="access-form">
@@ -47,7 +46,7 @@ export function Login() {
           <button className="primary" type="submit" disabled={busy}>Inloggen <Icon name="arrow" /></button>
         </form>
         <button className="text-link login-help" onClick={() => setHelp(true)}>Wachtwoord vergeten? <Icon name="chevron" /></button>
-      </div><div className="access-bottom"><span>Moonshine Backoffice</span></div></section>
+      </div></section>
       <Modal title="Toegang herstellen" open={help} onClose={() => setHelp(false)} footer={<button onClick={() => setHelp(false)}>Sluiten</button>}>
         <p className="helper">Vraag Peppy (beheerder) om je wachtwoord opnieuw in te stellen via Gebruikers. Je krijgt dan een tijdelijk wachtwoord en kiest bij het inloggen zelf een nieuw. Er worden geen wachtwoorden per e-mail verstuurd.</p>
       </Modal>
