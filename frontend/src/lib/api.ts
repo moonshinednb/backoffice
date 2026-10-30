@@ -14,8 +14,18 @@ export async function api<T = any>(path: string, opts: Options = {}): Promise<T>
   if (opts.method && opts.method !== 'GET') headers['X-CSRFToken'] = csrf;
   if (opts.body instanceof FormData) body = opts.body;
   else if (opts.body !== undefined) { headers['Content-Type'] = 'application/json'; body = JSON.stringify(opts.body); }
-  const response = await fetch('/api' + path, { method: opts.method || 'GET', headers, body, credentials: 'same-origin', signal: opts.signal });
-  const data = await response.json().catch(() => ({}));
+  let response: Response;
+  try {
+    response = await fetch('/api' + path, { method: opts.method || 'GET', headers, body, credentials: 'same-origin', signal: opts.signal });
+  } catch (e) {
+    if ((e as Error).name === 'AbortError') throw e;
+    throw new ApiError('Geen verbinding met de server. Controleer of Tailscale aan staat.', 0);
+  }
+  const text = await response.text();
+  let data: any = {};
+  try { data = text ? JSON.parse(text) : {}; } catch {
+    throw new ApiError(response.ok ? 'De server gaf een onverwacht antwoord. Ververs de pagina.' : `De server is even niet bereikbaar (fout ${response.status}). Probeer het zo opnieuw.`, response.status);
+  }
   if (!response.ok) {
     if (response.status === 401 && path !== '/auth/login') window.dispatchEvent(new Event('moonshine:logged-out'));
     throw new ApiError(data.error || data.detail || 'Handeling mislukt.', response.status);

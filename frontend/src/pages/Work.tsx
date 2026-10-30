@@ -39,7 +39,6 @@ export function DashboardPage() {
   return <>
     <PageTitle title={`Goedendag, ${user?.name.split(' ')[0]}`} sub="Evenementen, label en financiën op één plek."
       actions={finance ? <><a className="button ghost" href="/api/export"><Icon name="download" /> Exporteren</a><button className="primary" onClick={() => upload()}><Icon name="plus" /> Nieuwe factuur</button></> : null} />
-    {d.admin ? <AdminPanel d={d} /> : null}
     {user?.role !== 'finance' || d.upcoming_events.length ? <section className="card dash-events"><div className="card-head"><div><h2>Komende evenementen</h2><p>Advancing per evenement</p></div><Link className="text-link" to="/evenementen">Alle evenementen</Link></div>
       {d.upcoming_events.length ? <div className="dash-event-list">{d.upcoming_events.map((e) => {
         const p = e.progress || { artists: 0, complete: 0 };
@@ -62,12 +61,12 @@ export function DashboardPage() {
     </div> : <Attention review={[]} tasks={open} onDoc={setDoc} onTask={setTask} />}
     <div className="automation-strip"><Orb state="breathing" size={32} tone={verified >= 3 ? 'ok' : 'ink'} paused={verified < 3} label={verified >= 3 ? 'Verwerking actief' : 'Verwerking nog niet actief'} />
       <div><strong>{verified >= 3 ? 'Verwerking actief' : 'Verwerking klaar voor aansluiting'}</strong><p>{verified} geverifieerde koppelingen · {f ? `${f.pending} facturen in behandeling · ` : ''}{d.jobs.queued} taken in de wachtrij</p></div>
-      {user?.role === 'admin' ? <Link className="button" to="/koppelingen">Koppelingen</Link> : null}</div>
+      {user?.role === 'admin' ? <Link className="button" to="/beheer/koppelingen">Koppelingen</Link> : null}</div>
     {finance ? <div className="dashboard-secondary">
       <section className="card"><div className="card-head"><div><h2>Recente facturen</h2><p>De laatste ontvangen documenten</p></div><Link className="text-link" to="/facturen">Alle facturen</Link></div>
         <InvoiceTable docs={all.slice(0, 5)} compact onOpen={setDoc} /><div className="table-foot"><Icon name="mail" /> {d.finance_email}</div></section>
       <aside className="stack"><section className="card card-pad"><UploadZone /><div className="mail-info"><Icon name="mail" />{d.finance_email}</div></section>
-        <section className="card"><div className="card-head"><h2>Verbindingen</h2>{user?.role === 'admin' ? <Link className="text-link" to="/koppelingen">Beheren</Link> : null}</div>
+        <section className="card"><div className="card-head"><h2>Verbindingen</h2>{user?.role === 'admin' ? <Link className="text-link" to="/beheer/koppelingen">Beheren</Link> : null}</div>
           <div className="connections-compact">{d.connections.slice(0, 4).map((c) => <div key={c.id} className="conn-row"><span className="conn-logo">{c.name.slice(0, 2)}</span><div>{c.name}<small className="connection-description">{c.status === 'verified' ? 'Geverifieerd' : c.status === 'configured' ? 'Nog testen' : 'Niet gekoppeld'}</small></div></div>)}</div></section></aside>
     </div> : null}
     <InvoiceDialog id={doc} onClose={() => setDoc(null)} />
@@ -75,10 +74,10 @@ export function DashboardPage() {
   </>;
 }
 
-function AdminPanel({ d }: { d: Dashboard }) {
+export function AdminPanel({ d }: { d: Dashboard }) {
   const a = d.admin!;
   const pending = a.users.filter((u) => u.active && u.must_change_password);
-  return <section className="card admin-panel"><div className="card-head"><div><h2>Beheer</h2><p>Alleen zichtbaar voor beheerders</p></div><Link className="text-link" to="/gebruikers">Gebruikers beheren</Link></div>
+  return <section className="card admin-panel"><div className="card-head"><div><h2>Beheer</h2><p>Alleen zichtbaar voor beheerders</p></div><Link className="text-link" to="/beheer/gebruikers">Gebruikers beheren</Link></div>
     <div className="admin-grid">
       <div><h3>Team</h3><ul className="admin-list">{a.users.map((u) => <li key={u.id}><span className="avatar" aria-hidden="true">{u.name.slice(0, 2).toUpperCase()}</span>
         <span><strong>{u.name}</strong><small>{ROLE[u.role]} · {u.last_login ? 'laatst ' + stamp(u.last_login) : 'nog nooit ingelogd'}</small></span>
@@ -183,7 +182,7 @@ export function TasksPage() {
     <PageTitle title="Taken" sub="Werk voor jou en het Moonshine-team" actions={<button className="primary" onClick={() => setTask(null)}><Icon name="plus" /> Nieuwe taak</button>} />
     <div className="toolbar"><div className="tabs">{([['open', 'Openstaand'], ['done', 'Afgerond'], ['all', 'Alle taken']] as const).map(([v, l]) => <button key={v} className={filter === v ? 'active' : ''} onClick={() => setFilter(v)}>{l}</button>)}</div>
       <div className="task-filters"><ConnectionBadge c={conns.data?.connections.find((c) => c.id === 'todo')} /></div></div>
-    <section className="card"><div className="card-head"><h2>{list.length} {list.length === 1 ? 'taak' : 'taken'}</h2>{user?.role === 'admin' ? <Link className="text-link" to="/koppelingen">Microsoft To Do instellen</Link> : null}</div>
+    <section className="card"><div className="card-head"><h2>{list.length} {list.length === 1 ? 'taak' : 'taken'}</h2>{user?.role === 'admin' ? <Link className="text-link" to="/beheer/koppelingen">Microsoft To Do instellen</Link> : null}</div>
       {list.length ? list.map((t) => <TaskRow key={t.id} t={t} onEdit={setTask} />) : <Empty title="Geen taken in deze lijst" sub="Voeg een taak toe en wijs hem toe aan je team." action={<button onClick={() => setTask(null)}>Nieuwe taak</button>} icon="tasks" />}</section>
     <p className="helper">Lokale taken worden direct opgeslagen. Synchronisatie met Microsoft To Do start zodra de verbinding is ingesteld.</p>
     <TaskDialog task={task} onClose={() => setTask(undefined)} />

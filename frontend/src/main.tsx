@@ -16,7 +16,7 @@ import './shell/pwa';
 import { Login } from './login/Login';
 import { DashboardPage, TasksPage } from './pages/Work';
 import { BankPage, DocumentsPage, InvoicesPage, OdooPage, VatPage } from './pages/Finance';
-import { IntegrationsPage, KeysPage, SettingsPage, UsersPage } from './pages/Admin';
+import { ActivityPage, AdminHome, AdminLayout, IntegrationsPage, KeysPage, SettingsPage, UsersPage } from './pages/Admin';
 import { Events } from './production/Events';
 import { EventPage } from './production/Event';
 import { BookingPage } from './production/Booking';
@@ -74,12 +74,14 @@ const router = createBrowserRouter([{
       { path: 'btw', element: <VatPage /> },
       { path: 'documenten', element: <DocumentsPage /> },
     ] },
-    { element: <Area area="admin" />, children: [
+    { element: <Area area="admin" />, children: [{ path: 'beheer', element: <AdminLayout />, children: [
+      { index: true, element: <AdminHome /> },
       { path: 'koppelingen', element: <IntegrationsPage /> },
-      { path: 'gebruikers', element: <UsersPage /> },
       { path: 'sleutels', element: <KeysPage /> },
+      { path: 'gebruikers', element: <UsersPage /> },
+      { path: 'activiteit', element: <ActivityPage /> },
       { path: 'instellingen', element: <SettingsPage /> },
-    ] },
+    ] }] },
     { path: '*', element: <Navigate to="/" replace /> },
   ],
 }]);

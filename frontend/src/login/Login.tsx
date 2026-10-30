@@ -36,7 +36,6 @@ export function Login() {
       <section className="access-panel"><div className="access-form">
         <img className="access-logo" src="/assets/moonshine-logo.svg" alt="Moonshine" />
         <p className="access-kicker">TEAM ACCESS</p><h2>Welkom <span>terug.</span></h2>
-        <p className="access-copy">Je administratie, documenten en team.<br />Alles op één plek.</p>
         <form id="login-form" onSubmit={submit}>
           {error ? <div className="error-box visible" role="alert">{error}</div> : null}
           <div className="field"><label htmlFor="username">Gebruikersnaam</label><div className="input-icon"><Icon name="user" /><input id="username" name="username" autoComplete="username" autoCapitalize="none" required /></div></div>

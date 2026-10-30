@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ReactNode, useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router';
+import { Outlet, useSearchParams } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth, User } from '../lib/auth';
-import { ROLE, shortDate, stamp } from '../lib/format';
-import { Badge, Empty, ErrorBox, Icon, Loading, Modal, Orb, PageTitle, formValues, useToast } from '../lib/ui';
+import { ROLE, stamp } from '../lib/format';
+import { Badge, Empty, ErrorBox, Icon, Loading, Modal, Orb, PageTitle, Tabs, formValues, useToast } from '../lib/ui';
+import { AdminPanel } from './Work';
 import { PasswordDialog } from '../shell/PasswordDialog';
 import { FormDialog } from '../production/common';
 import { ConnectionBadge, Connection, useConnections, useUsers } from './shared';
@@ -214,7 +215,6 @@ export function SettingsPage() {
   const [auto, setAuto] = useState(false);
   const [busy, setBusy] = useState(false);
   const q = useQuery({ queryKey: ['settings'], queryFn: () => api<Settings>('/settings') });
-  const audit = useQuery({ queryKey: ['audit'], queryFn: () => api<{ audit: { id: number; created: number; actor: string; action: string; entity: string }[] }>('/audit') });
   const [key, setKey] = useState(0);
   useEffect(() => setKey((k) => k + 1), [q.data]);
   if (q.isPending) return <Loading />;
@@ -238,10 +238,6 @@ export function SettingsPage() {
         <button onClick={() => setAuto(true)}>Automatisering instellen</button></section>
       <section className="card card-pad section-gap"><h2>Beveiliging</h2><p className="helper">Wachtwoorden worden gehasht opgeslagen. Inlogsessies verlopen na 12 uur. De server is alleen bereikbaar via het Moonshine-tailnet.</p>
         <button onClick={() => setPassword(true)}><Icon name="lock" /> Wachtwoord wijzigen</button></section>
-      <section className="card section-gap"><div className="card-head"><h2>Activiteitenlog</h2></div>
-        {audit.data?.audit.length ? <div className="table-wrap"><table><thead><tr><th>Datum</th><th>Gebruiker</th><th>Handeling</th></tr></thead><tbody>
-          {audit.data.audit.slice(0, 50).map((a) => <tr key={a.id}><td>{shortDate(a.created)}</td><td>{a.actor}</td><td>{a.action}</td></tr>)}</tbody></table></div>
-          : <Empty title="Nog geen activiteit" sub="Je handelingen verschijnen hier." icon="clock" />}</section>
     </div>
     <PasswordDialog open={password} onClose={() => setPassword(false)} />
     {auto ? <ConfigDialog provider="automation" onClose={() => setAuto(false)} /> : null}
@@ -286,5 +282,38 @@ export function KeysPage() {
       await save(edit![0], v); toast('Sleutel opgeslagen.'); setEdit(null);
     }}><div className="field"><label htmlFor="key-value">Nieuwe waarde</label><input id="key-value" name="value" type="password" autoComplete="new-password" required /></div>
       <p className="helper">Na opslaan test je de koppeling opnieuw onder Koppelingen.</p></FormDialog>
+  </>;
+}
+
+/* --- Admin-omgeving -------------------------------------------------------------------- */
+
+export function AdminLayout() {
+  return <>
+    <Tabs items={[{ to: '/beheer', label: 'Overzicht' }, { to: '/beheer/koppelingen', label: 'Koppelingen' }, { to: '/beheer/sleutels', label: 'Sleutels' },
+      { to: '/beheer/gebruikers', label: 'Gebruikers' }, { to: '/beheer/activiteit', label: 'Activiteit' }, { to: '/beheer/instellingen', label: 'Instellingen' }]} />
+    <Outlet />
+  </>;
+}
+
+export function AdminHome() {
+  const q = useQuery({ queryKey: ['dashboard'], queryFn: () => api<any>('/dashboard') });
+  if (q.isPending) return <Loading />;
+  if (q.error) return <ErrorBox error={q.error} />;
+  return <><PageTitle eyebrow="Admin" title="Beheer" sub="Koppelingen, sleutels, gebruikers en de gezondheid van het systeem. Alleen voor beheerders." />{q.data.admin ? <AdminPanel d={q.data} /> : null}</>;
+}
+
+export function ActivityPage() {
+  const [actor, setActor] = useState('');
+  const q = useQuery({ queryKey: ['audit'], queryFn: () => api<{ audit: { id: number; created: number; actor: string; action: string; entity: string; detail: string }[] }>('/audit'), refetchInterval: 30000 });
+  if (q.isPending) return <Loading />;
+  if (q.error) return <ErrorBox error={q.error} />;
+  const actors = [...new Set(q.data.audit.map((a) => a.actor))].sort();
+  const rows = q.data.audit.filter((a) => !actor || a.actor === actor);
+  return <>
+    <PageTitle eyebrow="Admin" title="Activiteit" sub="Wie wat wanneer deed: logins, wijzigingen, boekingen en verzendingen." />
+    <div className="toolbar"><label htmlFor="act-actor">Gebruiker</label><select id="act-actor" className="vat-select" value={actor} onChange={(e) => setActor(e.target.value)}><option value="">Iedereen</option>{actors.map((a) => <option key={a}>{a}</option>)}</select></div>
+    <section className="card">{rows.length ? <div className="table-wrap"><table><thead><tr><th>Moment</th><th>Gebruiker</th><th>Handeling</th><th>Details</th></tr></thead><tbody>
+      {rows.map((a) => <tr key={a.id}><td>{stamp(a.created)}</td><td>{a.actor}</td><td>{a.action}</td><td className="helper">{[a.entity, a.detail].filter(Boolean).join(' · ')}</td></tr>)}
+    </tbody></table></div> : <Empty title="Nog geen activiteit" sub="Handelingen verschijnen hier." icon="clock" />}</section>
   </>;
 }

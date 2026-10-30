@@ -118,3 +118,5 @@ LOGGING = {
     'root': {'handlers': ['console'], 'level': 'INFO'},
     'loggers': {'django.request': {'level': 'ERROR'}},
 }
+
+CSRF_FAILURE_VIEW = 'config.urls.csrf_failure'

@@ -15,7 +15,7 @@ export function sections(role: string): [string, Item[]][] {
     ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/taken', 'Taken', 'tasks']]],
     ['Productie', [['/evenementen', 'Evenementen', 'calendar'], ['/artiesten', 'Artiesten', 'user'], ['/label', 'Label', 'music']]],
     ['Financiën', [['/facturen', 'Facturen', 'invoice'], ['/odoo', 'Odoo-administratie', 'bank'], ['/bank', 'Bank & pin', 'wallet'], ['/btw', 'Btw-overzicht', 'tax'], ['/documenten', 'Documenten', 'folder']]],
-    ['Beheer', [['/koppelingen', 'Koppelingen', 'plug'], ['/gebruikers', 'Gebruikers', 'users'], ['/sleutels', 'Sleutels', 'lock'], ['/instellingen', 'Instellingen', 'settings']]],
+    ['Beheer', [['/beheer', 'Admin', 'settings']]],
   ];
   return all.filter(([name]) => !(name === 'Financiën' && role === 'production') && !(name === 'Beheer' && role !== 'admin'));
 }
@@ -71,7 +71,7 @@ export function Layout() {
                   <div className="profile-options" role="group" aria-label="Accountopties">
                     <button onClick={() => { setProfile(false); setPassword(true); }}><Icon name="lock" /> Wachtwoord wijzigen</button>
                     <button onClick={() => { setProfile(false); setInstall(true); }}><Icon name="download" /> Installeer als app</button>
-                    {user.role === 'admin' ? <button onClick={() => navigate('/instellingen')}><Icon name="settings" /> Werkplekinstellingen</button> : null}
+                    {user.role === 'admin' ? <button onClick={() => navigate('/beheer/instellingen')}><Icon name="settings" /> Werkplekinstellingen</button> : null}
                   </div>
                   <div className="profile-signout"><button onClick={logout}><Icon name="logout" /> Uitloggen</button></div>
                 </div>
