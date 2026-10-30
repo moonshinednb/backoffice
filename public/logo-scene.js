@@ -4,8 +4,9 @@
    Design constraints (see REVIEW history):
    - No continuous loop. Frames are drawn for the intro push-in and while the
      pointer parallax eases; the rest of the time nothing renders.
-   - No postprocessing chain. The red halo is an additive shell around the
-     planet, ACES tone mapping does the rest.
+   - One post pass only: a depth-of-field gather that keeps the logo and
+     foreground sharp and softens everything behind it. It runs only when a
+     frame is drawn, and doubles as the tone-mapping/output step.
    - dispose() must force context loss. Browsers cap live WebGL contexts at
      roughly 8-16 and silently drop the oldest.
    - The page never waits on this scene: the stage shows a CSS approximation
@@ -107,9 +108,9 @@ const planetFragment = /* glsl */`
     float key = max(dot(n, uKey), 0.0);
     vec3 color = albedo * (0.35 + 1.3 * key);
     // Back light from upper right: wide atmospheric wash plus a thin limb.
-    float side = smoothstep(0.35, 1.0, dot(normalize(n.xy + 1e-4), uRimSide));
+    float side = smoothstep(0.2, 1.0, dot(normalize(n.xy + 1e-4), uRimSide));
     float limb = 1.0 - ndv;
-    color += uRimColor * (pow(limb, 6.0) * 0.35 + pow(limb, 22.0) * 4.0) * side * uRim;
+    color += uRimColor * (pow(limb, 4.0) * 0.6 + pow(limb, 22.0) * 4.5) * side * uRim;
     color = mix(uHaze, color, smoothstep(uHorizon, uHorizon + uFade, vHeight));
     gl_FragColor = vec4(color, 1.0);
     #include <tonemapping_fragment>
@@ -130,10 +131,10 @@ const haloFragment = /* glsl */`
   void main() {
     vec3 n = normalize(vNormalView);
     float t = clamp(-dot(n, normalize(vViewDir)) / uInner, 0.0, 1.0);
-    float side = smoothstep(0.3, 1.0, dot(normalize(n.xy + 1e-4), uRimSide));
-    float glow = pow(t, 5.0) * side * uRim;
+    float side = smoothstep(0.05, 1.0, dot(normalize(n.xy + 1e-4), uRimSide));
+    float glow = (pow(t, 3.0) * 0.22 + pow(t, 8.0) * 0.9) * side * uRim;
     glow *= smoothstep(uHorizon, uHorizon + uFade, vHeight);
-    gl_FragColor = vec4(uRimColor * glow * 0.45, 1.0);
+    gl_FragColor = vec4(uRimColor * glow * 0.6, 1.0);
     #include <tonemapping_fragment>
     #include <colorspace_fragment>
   }`;
@@ -221,7 +222,7 @@ async function start(canvas) {
     wallCanvas.width = 4; wallCanvas.height = 256;
     const wallCtx = wallCanvas.getContext('2d');
     const wall = wallCtx.createLinearGradient(0, 0, 0, 256);
-    wall.addColorStop(0, '#fff'); wall.addColorStop(0.3, '#c8c8c8'); wall.addColorStop(0.46, '#707070'); wall.addColorStop(0.52, '#2c2c2c'); wall.addColorStop(0.62, '#3c3c3c'); wall.addColorStop(0.82, '#4a4a4a'); wall.addColorStop(1, '#0c0c0c');
+    wall.addColorStop(0, '#f2f2f2'); wall.addColorStop(0.3, '#bcbcbc'); wall.addColorStop(0.46, '#7a7a7a'); wall.addColorStop(0.53, '#4a4a4a'); wall.addColorStop(0.64, '#545454'); wall.addColorStop(0.84, '#5a5a5a'); wall.addColorStop(1, '#141414');
     wallCtx.fillStyle = wall; wallCtx.fillRect(0, 0, 4, 256);
     const wallMap = keep(new THREE.CanvasTexture(wallCanvas));
     wallMap.colorSpace = THREE.SRGBColorSpace;
@@ -236,7 +237,7 @@ async function start(canvas) {
     panel(2.2, 7, [-7, 2.5, 2], 2.4);
     // PMREM samples from the origin, so this wall sits at eye level there: the
     // flat front caps reflect its top-bright to bottom-dark sweep.
-    panel(26, 14, [0, 0.3, 10], 3.4, '#ffffff', wallMap);
+    panel(26, 14, [0, 0.3, 10], 2.5, '#ffffff', wallMap);
     panel(12, 2.2, [0, 8, 3.5], 18);
     panel(1.8, 7, [-8.5, 1.5, 4], 12);
     panel(10, 8, [-10, 0, -2], 0.5, '#ffffff', wallMap);
@@ -459,13 +460,71 @@ async function start(canvas) {
     planet.position.copy(planetCenter);
     planet.rotation.set(0.4, -0.8, 0.1);
     scene.add(planet);
-    const haloScale = 1.1;
+    const haloScale = 1.13;
     planetUniforms.uInner.value = Math.sqrt(1 - 1 / (haloScale * haloScale));
     const halo = new THREE.Mesh(keep(new THREE.SphereGeometry(radius * haloScale, 96, 64)), keep(new THREE.ShaderMaterial({ uniforms: planetUniforms, vertexShader: planetVertex, fragmentShader: haloFragment, side: THREE.BackSide, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, fog: false })));
     halo.position.copy(planetCenter);
     scene.add(halo);
     planetUniforms.uHorizon.value = planetCenter.y + radius * 0.06;
     planetUniforms.uFade.value = radius * 0.5;
+
+    /* Depth of field. The scene renders linear HDR into a multisampled
+       target with depth; one fullscreen gather pass blurs by distance behind
+       the logo, then tone maps. Sharp samples never spread into the blur, so
+       the logo keeps a clean edge against the soft planet. */
+    const frameTarget = keep(new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, samples: light ? 0 : 4, depthTexture: new THREE.DepthTexture(1, 1) }));
+    const dof = keep(new THREE.ShaderMaterial({
+      defines: { TAPS: light ? 16 : 36 },
+      uniforms: {
+        tColor: { value: frameTarget.texture },
+        tDepth: { value: frameTarget.depthTexture },
+        uNear: { value: camera.near },
+        uFar: { value: camera.far },
+        uFocus: { value: logoDepth + 1.2 },
+        uRange: { value: 15 },
+        uMaxBlur: { value: (light ? 5 : 7) * pixelRatio },
+        uTexel: { value: new THREE.Vector2(1, 1) },
+      },
+      vertexShader: `varying vec2 vUv; void main() { vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`,
+      fragmentShader: `
+        uniform sampler2D tColor;
+        uniform sampler2D tDepth;
+        uniform float uNear, uFar, uFocus, uRange, uMaxBlur;
+        uniform vec2 uTexel;
+        varying vec2 vUv;
+        float blurAt(vec2 uv) {
+          float z = texture2D(tDepth, uv).x * 2.0 - 1.0;
+          float dist = 2.0 * uNear * uFar / (uFar + uNear - z * (uFar - uNear));
+          return smoothstep(uFocus, uFocus + uRange, dist) * uMaxBlur;
+        }
+        void main() {
+          float radius = blurAt(vUv);
+          vec3 color = texture2D(tColor, vUv).rgb;
+          if (radius > 0.6) {
+            float spin = fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) * 6.2831853;
+            vec3 sum = color;
+            float total = 1.0;
+            for (int i = 0; i < TAPS; i++) {
+              float fi = float(i) + 0.5;
+              float r = sqrt(fi / float(TAPS)) * radius;
+              float a = fi * 2.39996323 + spin;
+              vec2 uv = vUv + vec2(cos(a), sin(a)) * r * uTexel;
+              float w = clamp(blurAt(uv) - r + 1.0, 0.0, 1.0);
+              sum += texture2D(tColor, uv).rgb * w;
+              total += w;
+            }
+            color = sum / total;
+          }
+          gl_FragColor = vec4(color, 1.0);
+          #include <tonemapping_fragment>
+          #include <colorspace_fragment>
+        }`,
+      depthTest: false,
+      depthWrite: false,
+    }));
+    const post = new THREE.Scene();
+    const postCamera = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+    post.add(new THREE.Mesh(keep(new THREE.PlaneGeometry(2, 2)), dof));
 
     // Frame: logo ~35% of the width at 34% from the left on desktop; centred
     // in the upper part of the stage on phones.
@@ -493,6 +552,8 @@ async function start(canvas) {
         width = w; height = h;
         renderer.setSize(w, h, false);
         frameCamera(w, h);
+        frameTarget.setSize(Math.round(w * pixelRatio), Math.round(h * pixelRatio));
+        dof.uniforms.uTexel.value.set(1 / (w * pixelRatio), 1 / (h * pixelRatio));
       }
       if (!introStart) introStart = now;
       const t = INTRO ? Math.min(1, (now - introStart) / INTRO) : 1;
@@ -505,7 +566,10 @@ async function start(canvas) {
       camera.lookAt(target);
       renderer.toneMappingExposure = 0.55 + 0.5 * ease(Math.min(1, t * 1.6));
       planetUniforms.uRim.value = 0.35 + 0.65 * ease(Math.min(1, Math.max(0, t * 1.4 - 0.15)));
+      renderer.setRenderTarget(frameTarget);
       renderer.render(scene, camera);
+      renderer.setRenderTarget(null);
+      renderer.render(post, postCamera);
       if (!stage.classList.contains('scene-ready')) stage.classList.add('scene-ready');
       if (t < 1 || Math.abs(mx - px) + Math.abs(my - py) > 0.0008) request();
     };
@@ -519,6 +583,7 @@ async function start(canvas) {
     // Compile shaders before the first visible frame so the push-in does not
     // start with a stall.
     renderer.compile(scene, camera);
+    renderer.compile(post, postCamera);
     request();
   } catch (error) {
     dispose();

@@ -47,7 +47,7 @@ function demoState(){const now=Date.now()/1000;const docs=[['Voltage Agency','VA
 function renderLogin(error=''){
   $('#app').innerHTML=`<main class="studio-login">
     <section class="brand-stage" aria-label="Moonshine">
-      <div class="stage-top"><span>MOONSHINE<sup>®</sup></span></div>
+      <div class="stage-top"><span>MOONSHINE</span></div>
       <div class="sculpture-view"><img class="scene-fallback" src="/assets/moonshine-logo.svg" alt="Moonshine"><canvas class="logo-scene" role="img" aria-label="Moonshine-logo in chroom op een ruwe grijze ondergrond"></canvas></div>
       <div class="stage-bottom"><h1>Premium <span>Backoffice.</span></h1><p>Manage your team, content, documents and more.<br>All in one place.</p><div class="stage-progress" aria-hidden="true"><i></i></div></div>
     </section>

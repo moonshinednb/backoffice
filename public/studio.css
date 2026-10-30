@@ -112,7 +112,7 @@ dialog{background:#17191d;border-color:#43474f;border-radius:10px}.dialog-head,.
    ground haze) so there is never a flat logo or an empty black screen. The
    flat SVG only appears when WebGL is unavailable. */
 .brand-stage{background:#040405}
-.sculpture-view{background:radial-gradient(ellipse 120% 60% at 34% 100%,#1a1a1c 0,#0c0c0d 45%,transparent 70%),radial-gradient(circle at 41.5% 70%,transparent 0 30.6vw,#ff183418 30.8vw,#ff183406 32vw,transparent 33.5vw),radial-gradient(circle at 41.5% 70%,#141416 0,#0e0e10 22vw,#09090a 30.7vw,transparent 30.8vw),#040405}
+.sculpture-view{background:radial-gradient(ellipse 120% 60% at 34% 100%,#1a1a1c 0,#0c0c0d 45%,transparent 70%),radial-gradient(circle at 41.5% 70%,transparent 0 30.6vw,#ff183428 30.8vw,#ff18340c 33vw,transparent 36vw),radial-gradient(circle at 41.5% 70%,#141416 0,#0e0e10 22vw,#09090a 30.7vw,transparent 30.8vw),#040405}
 .sculpture-view::after{background:linear-gradient(0deg,#04040599 0,#04040540 14%,transparent 30%),linear-gradient(90deg,#04040555 0,transparent 20%,transparent 62%,#04040533)}
 .logo-scene{opacity:0;transition:opacity 1.1s ease-out}.scene-ready .logo-scene{opacity:1}
 .scene-fallback{display:none}.scene-failed .scene-fallback{display:block}
