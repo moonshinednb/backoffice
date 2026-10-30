@@ -11,17 +11,13 @@ Rapporteer kort en in het Nederlands. Raak `/opt/mo` niet aan en gebruik geen su
 - Backup: dagelijks om 03:17 via crontab met `deploy/docker-backup.sh`, naar `~/apps/backoffice-backups` (30 dagen bewaard). Log: `~/apps/backoffice-backup.log`.
 
 ## Verbinden vanuit een cloud-sessie
-Tailscale en ssh moeten in elke nieuwe container opnieuw worden opgezet:
+Gebruik de scripts in `deploy/`; die zetten Tailscale op (als dat nodig is) en herstellen de verbinding zelf als hij wegvalt:
 ```sh
-apt-get install -y -qq openssh-client
-mkdir -p ~/ts && cd ~/ts && curl -sSL https://pkgs.tailscale.com/stable/tailscale_1.90.6_amd64.tgz | tar xz --strip-components=1
-nohup ./tailscaled --tun=userspace-networking --socks5-server=localhost:1055 --state=$HOME/ts/state --socket=$HOME/ts/sock >ts.log 2>&1 &
-sleep 3; ./tailscale --socket=$HOME/ts/sock up --authkey=$TS_AUTHKEY --hostname=claude-deploy
+sh deploy/connect.sh watch     # eenmalig per sessie: verbinden + bewaker die elke 30 s controleert
+sh deploy/ssh.sh '<commando>'  # ssh naar de server, herstelt zo nodig eerst de verbinding
+sh deploy/deploy.sh            # backup, code kopiëren, herbouwen, controleren (200 + containers)
 ```
-Daarna ssh via de SOCKS-proxy:
-```sh
-ssh -o StrictHostKeyChecking=accept-new -o ProxyCommand="nc -X 5 -x localhost:1055 %h %p" clawd@100.111.153.38
-```
+`TS_AUTHKEY` moet een **herbruikbare** sleutel zijn (een eenmalige is na één sessie ongeldig). Na de eerste keer inloggen blijft de status in `~/ts/state` bewaard.
 
 ## Code
 Lees eerst `ARCHITECTURE.md` (projectkaart: modules, modellen, endpoints, routes, afspraken) in plaats van de hele code. Werk die kaart bij als de structuur verandert.
@@ -30,12 +26,7 @@ Lees eerst `ARCHITECTURE.md` (projectkaart: modules, modellen, endpoints, routes
 1. Wijzig de code hier en test: `cd backend && python manage.py test` en `cd frontend && npm run build`.
    Stack: Django 5.2 + Django Ninja (`backend/`), React + Vite + TS (`frontend/`), PostgreSQL en een aparte worker (`manage.py run_worker`) in docker compose.
 2. Commit en push naar de sessie-branch.
-3. Deploy: maak eerst een backup, kopieer dan de code en herbouw. `.env` en de data blijven staan:
-```sh
-SSH="ssh -o ProxyCommand='nc -X 5 -x localhost:1055 %h %p' clawd@100.111.153.38"
-eval $SSH '~/apps/backoffice/deploy/docker-backup.sh'
-git archive HEAD | eval $SSH "'tar x -C ~/apps/backoffice && cd ~/apps/backoffice && docker compose up -d --build'"
-```
+3. Deploy: `sh deploy/deploy.sh` (maakt eerst een backup; `.env` en de data blijven staan).
 4. Controleer of `curl http://100.111.153.38:8096/` een 200 geeft (vanaf de server).
 
 ## graphify
