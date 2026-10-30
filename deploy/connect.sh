@@ -31,7 +31,7 @@ fi
 i=0
 while [ $i -lt 30 ]; do
   if ssh -o BatchMode=yes -o ConnectTimeout=5 -o StrictHostKeyChecking=accept-new \
-       -o ProxyCommand="nc -X 5 -x localhost:1055 %h %p" clawd@100.111.153.38 true 2>/dev/null; then
+       -o ProxyCommand="nc -X 5 -x localhost:1055 %h %p" clawd@100.111.153.38 true </dev/null 2>/dev/null; then
     echo "verbonden"; break
   fi
   sleep 2; i=$((i+1))
