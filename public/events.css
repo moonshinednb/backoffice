@@ -399,3 +399,14 @@ button.danger:hover { background: #3a1b21; }
 
 .install-steps { margin: 14px 0 16px; padding-left: 20px; display: grid; gap: 8px; font-size: .86rem; line-height: 1.5; }
 .install-steps li::marker { color: var(--muted); }
+
+/* --- Orbs ----------------------------------------------------------------
+   <moon-orb> (orbs.js) replaces the spinner for loading and marks live
+   status: documents being read, a live night, uploads and sends. */
+moon-orb { display: inline-block; flex: none; vertical-align: middle; line-height: 0; }
+moon-orb canvas { display: block; }
+.loading moon-orb, .empty moon-orb { display: block; width: max-content; margin: 0 auto 14px; }
+.status-orb { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+button > moon-orb, .small-btn > moon-orb { margin: -6px 0; }
+.small-btn.busy { opacity: .8; }
+.automation-orb { margin-right: 4px; }

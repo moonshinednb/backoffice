@@ -152,12 +152,13 @@ def get(ident):
     return event
 
 
-def listing():
+def listing(only=None):
     """All events, newest first, with advancing progress per event. The
-    client splits upcoming and past by date."""
+    client splits upcoming and past by date. `only` filters the rows (and
+    the progress work) to events for which it returns True."""
     from advancing import event_progress
-    progress = event_progress()
-    rows = _rows()
+    rows = [r for r in _rows() if only is None or only(r)]
+    progress = event_progress([r['id'] for r in rows] if only else None)
     for row in rows:
         row['progress'] = progress.get(row['id'], {'artists': 0, 'complete': 0})
     return rows
@@ -208,12 +209,16 @@ def upsert_slots(ident, rows):
         c.execute('BEGIN IMMEDIATE')
         if not c.execute('SELECT id FROM events WHERE id=?', (ident,)).fetchone():
             raise ValueError('Onbekend evenement.')
+        # Keep the timetable links (artists, stage) of slots that come back
+        # with their id; this legacy call does not know about them.
+        kept = {r['id']: (r['artist_ids'], r['stage']) for r in c.execute('SELECT id,artist_ids,stage FROM event_slots WHERE event_id=?', (ident,))}
         c.execute('DELETE FROM event_slots WHERE event_id=?', (ident,))
         for item in clean:
+            artist_ids, stage = kept.get(item['id'], ('[]', ''))
             c.execute(
-                'INSERT INTO event_slots(id,event_id,start,end,act,note,locked,done,sort) VALUES(?,?,?,?,?,?,?,?,?)',
+                'INSERT INTO event_slots(id,event_id,start,end,act,note,locked,done,sort,artist_ids,stage) VALUES(?,?,?,?,?,?,?,?,?,?,?)',
                 (item['id'], ident, item.get('start', ''), item.get('end', ''), item.get('act', ''),
-                 item.get('note', ''), item.get('locked', 0), item.get('done', 0), item['sort']))
+                 item.get('note', ''), item.get('locked', 0), item.get('done', 0), item['sort'], artist_ids, stage))
     _touch(ident)
     return get(ident)
 

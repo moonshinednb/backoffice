@@ -88,7 +88,7 @@ def init():
         CREATE TABLE IF NOT EXISTS sends(id TEXT PRIMARY KEY, event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE, recipients TEXT NOT NULL, subject TEXT NOT NULL, items TEXT NOT NULL DEFAULT '[]', attachments TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL, error TEXT NOT NULL DEFAULT '', actor TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
         CREATE INDEX IF NOT EXISTS idx_sends_event ON sends(event_id);
         ''')
-        for table,column,ddl in (('events','venue_contact',"TEXT NOT NULL DEFAULT ''"),('events','venue_email',"TEXT NOT NULL DEFAULT ''"),('events','venue_phone',"TEXT NOT NULL DEFAULT ''"),('events','checklist_seeded','INTEGER NOT NULL DEFAULT 0'),('event_slots','artist_ids',"TEXT NOT NULL DEFAULT '[]'"),('event_slots','stage',"TEXT NOT NULL DEFAULT ''")):
+        for table,column,ddl in (('events','venue_contact',"TEXT NOT NULL DEFAULT ''"),('events','venue_email',"TEXT NOT NULL DEFAULT ''"),('events','venue_phone',"TEXT NOT NULL DEFAULT ''"),('events','checklist_seeded','INTEGER NOT NULL DEFAULT 0'),('event_slots','artist_ids',"TEXT NOT NULL DEFAULT '[]'"),('event_slots','stage',"TEXT NOT NULL DEFAULT ''"),('assets','retry_at','REAL NOT NULL DEFAULT 0')):
             if column not in {r['name'] for r in c.execute(f'PRAGMA table_info({table})')}:c.execute(f'ALTER TABLE {table} ADD COLUMN {column} {ddl}')
         columns={r['name'] for r in c.execute('PRAGMA table_info(transactions)')}
         if 'payout_id' not in columns:c.execute("ALTER TABLE transactions ADD COLUMN payout_id TEXT NOT NULL DEFAULT ''")

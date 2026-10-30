@@ -181,7 +181,7 @@ class Handler(BaseHTTPRequestHandler):
                 releases=[dict(r) for r in c.execute('SELECT * FROM releases ORDER BY release_date DESC,created DESC LIMIT 200')]
             from datetime import date as _date
             today=_date.today().isoformat()
-            upcoming=sorted((e for e in events_module.listing() if not e['date'] or e['date']>=today),key=lambda e:e['date'] or '9999')[:4]
+            upcoming=sorted(events_module.listing(lambda e:not e['date'] or e['date']>=today),key=lambda e:e['date'] or '9999')[:4]
             upcoming=[{k:e.get(k) for k in ('id','name','date','venue','status','progress')} for e in upcoming]
             cfg=settings();sv=secret_values()
             connections=self.connections(cfg,sv)

@@ -6,10 +6,11 @@
    Pages, styles and scripts are network-first, so a deploy is visible on the
    next load; the cache is only a fallback when offline. Vendored libraries
    and fonts never change in place and are served cache-first. */
-const VERSION = 'moonshine-shell-v1';
+const VERSION = 'moonshine-shell-v2';
 const SHELL = [
   '/', '/style.css', '/luxury.css', '/studio.css', '/events.css', '/app.js', '/events.js', '/pwa.js',
-  '/logo-scene.js', '/logo-geometry.js', '/vendor/motion.js', '/fonts/manrope-latin.woff2',
+  '/logo-scene.js', '/logo-geometry.js', '/orbs.js', '/vendor/motion.js', '/vendor/thinking-orbs-0.3.2/engine.es.js',
+  '/vendor/thinking-orbs-0.3.2/index-B8WsUNf5.js', '/fonts/manrope-latin.woff2',
   '/assets/moonshine-logo.svg', '/assets/icons/icon-192.png', '/manifest.webmanifest',
 ];
 

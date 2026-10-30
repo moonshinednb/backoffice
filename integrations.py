@@ -555,7 +555,14 @@ def send_mail(sender,to,cc,subject,html,attachments):
         raise
     try:
         graph(base+'/send',b'','POST')
-    except HttpError:raise
+    except HttpError as e:
+        # A 5xx can arrive after Outlook already queued the message: treat
+        # it as unknown. A 4xx is a clear refusal; remove the draft.
+        if e.code>=500:
+            raise UncertainSend('Outlook gaf een serverfout tijdens het verzenden. Kijk in Verzonden items voordat je opnieuw verstuurt.') from None
+        try:graph(base,None,'DELETE')
+        except Exception:pass
+        raise
     except RuntimeError:
         raise UncertainSend('Outlook reageerde niet op het verzenden. Kijk in Verzonden items voordat je opnieuw verstuurt.') from None
     return 'accepted'

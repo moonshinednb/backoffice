@@ -24,6 +24,7 @@ from store import db, uid, encode, audit, settings, safe_error, DATA
 ASSETS = DATA / 'assets'
 MAX_ASSET = 20 * 1024 * 1024
 MAX_MAIL = 30 * 1024 * 1024
+RETRY_SECONDS = 15 * 60
 
 ARTIST_FIELDS = {
     'name': 120, 'full_name': 200, 'passport': 60, 'date_of_birth': 10, 'nationality': 60,
@@ -58,9 +59,9 @@ ASSET_KINDS = {
     'stage_plot': 'Stage plot', 'guestlist': 'Gastenlijst', 'production': 'Productieplanning', 'other': 'Overig',
 }
 DRIVE_FOLDERS = {
-    'tech_rider': 'Riders', 'hospitality_rider': 'Riders', 'rider': 'Riders', 'epk': 'EPK', 'logo': 'Logos',
+    'tech_rider': 'Technical rider', 'hospitality_rider': 'Hospitality rider', 'rider': 'Riders', 'epk': 'EPK', 'logo': 'Logos',
     'press_photo': 'Persfotos', 'press_video': 'Persvideos', 'bio': 'Bio', 'visual': 'Visuals',
-    'invoice': 'Facturen', 'contract': 'Contracten', 'stage_plot': 'Productie', 'guestlist': 'Gastenlijst',
+    'invoice': 'Facturen', 'contract': 'Contracten', 'stage_plot': 'Stage plot', 'guestlist': 'Gastenlijst',
     'production': 'Productie', 'other': 'Overig',
 }
 FILE_TYPES = {
@@ -166,6 +167,9 @@ def money(value):
             text = text.replace('.', '').replace(',', '.')
         elif ',' in text:
             text = text.replace(',', '.')
+        elif re.fullmatch(r'\d{1,3}(\.\d{3})+', text):
+            # Dutch thousands separator without decimals: 1.500 is 1500.
+            text = text.replace('.', '')
     try:
         amount = Decimal(text)
     except InvalidOperation:
@@ -503,7 +507,8 @@ def advancing(event_id):
         rows.append({**booking, 'artist': _summary(artist), 'missing': missing, 'complete': not missing,
                      'acts': [a['id'] for a in acts if booking['artist_id'] in a['artist_ids']]})
     active = [r for r in rows if r['status'] != 'cancelled']
-    names = {b['artist_id']: artists.get(b['artist_id'], {}).get('name', '') for b in bookings}
+    # A cancelled artist no longer appears in the timetable or venue mail.
+    names = {b['artist_id']: artists.get(b['artist_id'], {}).get('name', '') for b in bookings if b['status'] != 'cancelled'}
     for act in acts:
         act['artists'] = [names.get(a, '') for a in act['artist_ids'] if a in names]
     return {
@@ -517,11 +522,19 @@ def advancing(event_id):
     }
 
 
-def event_progress():
-    """Per-event advancing progress for the events list, in a few queries."""
+def event_progress(event_ids=None):
+    """Per-event advancing progress, in a few queries. Pass event_ids to
+    limit the work (the dashboard only needs the next few events)."""
     with db() as c:
         bookings = [_booking_row(r) for r in c.execute("SELECT * FROM bookings WHERE status!='cancelled'")]
-        artists = {r['id']: dict(r) for r in c.execute('SELECT * FROM artists')}
+        if event_ids is not None:
+            wanted = set(event_ids)
+            bookings = [b for b in bookings if b['event_id'] in wanted]
+        needed = sorted({b['artist_id'] for b in bookings})
+        artists = {}
+        for start in range(0, len(needed), 400):
+            chunk = needed[start:start + 400]
+            artists.update({r['id']: dict(r) for r in c.execute(f'SELECT * FROM artists WHERE id IN ({",".join("?" * len(chunk))})', chunk)})
         acts_by_event = {}
         for event_id in {b['event_id'] for b in bookings}:
             acts_by_event[event_id] = _acts(c, event_id)
@@ -934,12 +947,16 @@ def sync_asset(ident):
         item_id, web_url = drive_upload(asset_drive_path(asset), asset_content(asset), asset['mime'])
     except Exception as e:
         message = safe_error(e) if isinstance(e, (ValueError, RuntimeError)) else 'Controleer de OneDrive-koppeling.'
+        # Transient failures are retried by the worker after a pause.
         with db() as c:
-            c.execute("UPDATE assets SET sync_status='error',error=? WHERE id=?", (message[:500], ident))
+            c.execute("UPDATE assets SET sync_status='error',error=?,retry_at=? WHERE id=? AND sha=?",
+                      (message[:500], time.time() + RETRY_SECONDS, ident, asset['sha']))
         raise
+    # Only mark the version we uploaded: a newer upload during the transfer
+    # stays 'local' and goes out on the next run.
     with db() as c:
-        c.execute("UPDATE assets SET sync_status='synced',onedrive_id=?,onedrive_url=?,error='' WHERE id=?",
-                  (item_id, web_url, ident))
+        c.execute("UPDATE assets SET sync_status='synced',onedrive_id=?,onedrive_url=?,error='' WHERE id=? AND sha=?",
+                  (item_id, web_url, ident, asset['sha']))
     return asset_get(ident)
 
 
@@ -947,7 +964,8 @@ def sync_pending(limit=3):
     if not settings().get('production_sync'):
         return 0
     with db() as c:
-        ids = [r['id'] for r in c.execute("SELECT id FROM assets WHERE has_file=1 AND sync_status='local' ORDER BY created LIMIT ?", (limit,))]
+        ids = [r['id'] for r in c.execute("SELECT id FROM assets WHERE has_file=1 AND (sync_status='local' OR (sync_status='error' AND retry_at<?)) "
+                                          'ORDER BY created LIMIT ?', (time.time(), limit))]
     done = 0
     for ident in ids:
         try:
@@ -1130,8 +1148,8 @@ def build_pack(event_id, payload, with_content=True):
     attachments, links, warnings = [], [], []
 
     def add_generated(name, producer):
-        content = producer() if with_content else None
-        if with_content and content is None:
+        content = producer()
+        if content is None:
             return
         attachments.append({'name': name, 'mime': 'application/pdf', 'source': 'generated', 'content': content,
                             'size': len(content) if content else 0})
@@ -1183,8 +1201,11 @@ def build_pack(event_id, payload, with_content=True):
     add_assets([allowed[i] for i in extra if isinstance(i, str) and i in allowed])
 
     total = sum(a['size'] for a in attachments)
-    if with_content and total > MAX_MAIL:
-        raise ValueError(f'De bijlagen zijn samen {_format_size(total)}. Verstuur in delen (maximaal 30 MB per mail) of deel grote bestanden als link.')
+    if total > MAX_MAIL:
+        message = f'De bijlagen zijn samen {_format_size(total)}. Verstuur in delen (maximaal 30 MB per mail) of deel grote bestanden als link.'
+        if with_content:
+            raise ValueError(message)
+        warnings.insert(0, message)
     incomplete = [b['artist']['name'] for b in active if not b['complete']]
     if incomplete:
         warnings.append('Advancing nog niet compleet voor: ' + ', '.join(incomplete) + '.')
@@ -1230,7 +1251,9 @@ def _mail_html(message, timetable_data, attachments, links):
 
 
 def preview(event_id, payload):
-    pack = build_pack(event_id, payload, with_content=True)
+    # Uploaded files are listed from their stored size, not read from disk;
+    # generated PDFs are rendered because their size is only known then.
+    pack = build_pack(event_id, payload, with_content=False)
     return {k: v for k, v in pack.items() if k != 'attachments'} | {
         'attachments': [{'name': a['name'], 'size': a['size'], 'source': a['source']} for a in pack['attachments']],
         'sender': settings().get('advancing_sender', ''),

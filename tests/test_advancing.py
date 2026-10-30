@@ -101,8 +101,16 @@ class AdvancingCoreTests(unittest.TestCase):
         advancing.booking_update(booking, {'status': 'cancelled'}, 'test')
         self.assertEqual(advancing.booking_detail(booking)['missing'], [], 'Cancelled bookings do not count')
 
+    def test_legacy_running_order_keeps_timetable_links(self):
+        booking = advancing.booking_add(self.eid, {'name': unique('Legacy')}, 'test')
+        artist = advancing.booking_detail(booking)['artist']['id']
+        act = advancing.act_create(self.eid, {'artist_ids': [artist], 'start': '22:00', 'stage': 'Main'}, 'test')
+        events.upsert_slots(self.eid, [{'id': act, 'act': 'Hernoemd', 'start': '22:30'}])
+        kept = advancing.advancing(self.eid)['acts'][0]
+        self.assertEqual((kept['artist_ids'], kept['stage'], kept['start']), ([artist], 'Main', '22:30'))
+
     def test_money_accepts_dutch_and_plain_input(self):
-        for raw, cents in (('1.250,50', 125050), ('12,5', 1250), (12.5, 1250), ('€ 99', 9900), ('', 0), (None, 0)):
+        for raw, cents in (('1.500', 150000), ('1.250.000', 125000000), ('1.250,50', 125050), ('12,5', 1250), (12.5, 1250), ('€ 99', 9900), ('', 0), (None, 0)):
             self.assertEqual(advancing.money(raw), cents, raw)
         for bad in ('abc', '-5', 'NaN', True):
             with self.assertRaises(ValueError):
@@ -278,8 +286,20 @@ class SendPackTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             advancing.preview(self.eid, {'to': 'geen-adres'})
         with mock.patch.object(advancing, 'MAX_MAIL', 100):
-            with self.assertRaises(ValueError):
-                advancing.preview(self.eid, {})
+            pack = advancing.preview(self.eid, {})
+            self.assertIn('30 MB', pack['warnings'][0], 'The preview lists the pack and warns')
+            set_setting('advancing_sender', 'events@moonshine.example')
+            with mock.patch('integrations.send_mail') as send_mail, self.assertRaises(ValueError):
+                advancing.send(self.eid, {}, 'test')
+            send_mail.assert_not_called()
+
+    def test_cancelled_artist_leaves_the_timetable(self):
+        other = advancing.booking_add(self.eid, {'name': unique('Afgezegd')}, 'test')
+        other_artist = advancing.booking_detail(other)['artist']['id']
+        advancing.act_create(self.eid, {'name': 'Duo', 'artist_ids': [self.artist_id, other_artist], 'start': '01:00'}, 'test')
+        advancing.booking_update(other, {'status': 'cancelled'}, 'test')
+        duo = next(a for a in advancing.advancing(self.eid)['acts'] if a['name'] == 'Duo')
+        self.assertNotIn(advancing.artist_get(other_artist)['name'], duo['artists'])
 
 
 class GraphAdapterTests(unittest.TestCase):
@@ -354,6 +374,58 @@ class GraphAdapterTests(unittest.TestCase):
         with mock.patch.object(integrations, 'graph', side_effect=graph):
             with self.assertRaises(integrations.UncertainSend):
                 integrations.send_mail('events@moonshine.example', ['a@b.example'], [], 'S', '', [])
+
+    def test_server_error_on_send_is_uncertain_and_refusal_deletes_draft(self):
+        calls = []
+
+        def graph_with(code):
+            def graph(path, payload=None, method=None, raw=False):
+                calls.append((method, path))
+                if path.endswith('/messages'):
+                    return {'id': 'm5'}
+                if path.endswith('/send'):
+                    raise integrations.HttpError(code)
+                return {}
+            return graph
+        with mock.patch.object(integrations, 'graph', side_effect=graph_with(504)):
+            with self.assertRaises(integrations.UncertainSend):
+                integrations.send_mail('e@m.example', ['a@b.example'], [], 'S', '', [])
+        self.assertNotIn('DELETE', [m for m, _ in calls])
+        calls.clear()
+        with mock.patch.object(integrations, 'graph', side_effect=graph_with(400)):
+            with self.assertRaises(integrations.HttpError):
+                integrations.send_mail('e@m.example', ['a@b.example'], [], 'S', '', [])
+        self.assertIn(('DELETE', '/users/e%40m.example/messages/m5'), calls)
+
+    def test_sync_keeps_a_newer_version_local_and_retries_errors(self):
+        artist = advancing.artist_create({'name': unique('Versie')}, 'test')
+        asset = advancing.asset_add_file('artist', artist, 'tech_rider', 'rider.pdf', b'%PDF v1', 'test')
+
+        def upload_while_replaced(path, content, mime):
+            advancing.asset_add_file('artist', artist, 'tech_rider', 'rider.pdf', b'%PDF v2', 'test')
+            return 'id', 'https://onedrive.example/id'
+        with mock.patch('integrations.drive_upload', side_effect=upload_while_replaced):
+            advancing.sync_asset(asset)
+        self.assertEqual(advancing.asset_get(asset)['sync_status'], 'local', 'Version 2 still has to go out')
+        set_setting('production_sync', True)
+        with mock.patch('integrations.drive_upload', side_effect=RuntimeError('Externe dienst is niet bereikbaar.')):
+            with self.assertRaises(RuntimeError):
+                advancing.sync_asset(asset)
+        self.assertEqual(advancing.asset_get(asset)['sync_status'], 'error')
+        with mock.patch('integrations.drive_upload', return_value=('id', 'u')):
+            advancing.sync_pending(500)
+        self.assertEqual(advancing.asset_get(asset)['sync_status'], 'error', 'Not retried before the pause is over')
+        with db() as c:
+            c.execute('UPDATE assets SET retry_at=0 WHERE id=?', (asset,))
+        with mock.patch('integrations.drive_upload', return_value=('id', 'u')):
+            advancing.sync_pending(500)
+        self.assertEqual(advancing.asset_get(asset)['sync_status'], 'synced', 'Retried after the pause')
+
+    def test_rider_kinds_get_their_own_onedrive_folder(self):
+        artist = advancing.artist_create({'name': unique('Twee riders')}, 'test')
+        tech = advancing.asset_get(advancing.asset_add_file('artist', artist, 'tech_rider', 'Rider.pdf', b'%PDF', 'test'))
+        hosp = advancing.asset_get(advancing.asset_add_file('artist', artist, 'hospitality_rider', 'Rider.pdf', b'%PDF', 'test'))
+        self.assertNotEqual(advancing.asset_drive_path(tech), advancing.asset_drive_path(hosp))
 
     def test_drive_upload_creates_missing_folders(self):
         set_setting('production_sync', True)
@@ -549,6 +621,12 @@ class AdvancingApiTests(unittest.TestCase):
             self.assertEqual(response.headers['Cache-Control'], 'no-cache')
             source = response.read().decode()
         self.assertIn("url.pathname.startsWith('/api/')", source, 'API responses must never be cached')
+        for path in ('/orbs.js', '/vendor/thinking-orbs-0.3.2/engine.es.js', '/vendor/thinking-orbs-0.3.2/index-B8WsUNf5.js'):
+            with urllib.request.urlopen(self.base + path) as response:
+                self.assertIn('javascript', response.headers['Content-Type'])
+            self.assertIn(path, source, 'The orbs are part of the offline shell')
+        with urllib.request.urlopen(self.base + '/vendor/thinking-orbs-0.3.2/engine.es.js') as response:
+            self.assertIn('immutable', response.headers['Cache-Control'])
 
 
 if __name__ == '__main__':

@@ -1,6 +1,6 @@
 # Moonshine Backoffice
 
-Private backoffice for Ubuntu and Tailscale. Python 3.10+; no runtime package installation. Motion 14.0.0 and Three.js 0.180.0 are vendored locally. The login scene extrudes the supplied Moonshine SVG into actual WebGL geometry with PBR metal, gradient studio reflections, procedural concrete, shadows and pointer parallax. A local postprocessing pipeline adds depth of field, restrained highlight bloom and ACES tone mapping. Rendering happens on demand. Reduced motion disables parallax; unavailable WebGL falls back to the original SVG.
+Private backoffice for Ubuntu and Tailscale. Python 3.10+; no runtime package installation. Motion 14.0.0, Three.js 0.180.0 and the framework-free engine of thinking-orbs 0.3.2 (MIT, Jakub Antalik) are vendored locally. `<moon-orb>` (`public/orbs.js`) draws its dotted orbs for loading and live status. The login scene extrudes the supplied Moonshine SVG into actual WebGL geometry with PBR metal, gradient studio reflections, procedural concrete, shadows and pointer parallax. A local postprocessing pipeline adds depth of field, restrained highlight bloom and ACES tone mapping. Rendering happens on demand. Reduced motion disables parallax; unavailable WebGL falls back to the original SVG.
 
 ## Run and test
 

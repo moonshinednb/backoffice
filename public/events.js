@@ -92,7 +92,10 @@
   }
 
   const badge = (text, color = '') => `<span class="badge ${color}">${esc(text)}</span>`;
-  const statusBadge = (s) => badge(...(STATUS[s] || [s || 'Onbekend', '']));
+  // A live night pulses; every other status is a plain badge.
+  const statusBadge = (s) => (s === 'live'
+    ? `<span class="status-orb"><moon-orb state="listening" size="20" tone="accent" label="Live"></moon-orb>${badge('Live', 'purple')}</span>`
+    : badge(...(STATUS[s] || [s || 'Onbekend', ''])));
   const backLink = (href, label) => `<a class="back-link" href="#${href}">${ico('back')} ${esc(label)}</a>`;
   const header = (eyebrow, name, sub, actions = '') =>
     `<header class="page-title"><div><p class="eyebrow">${esc(eyebrow)}</p><h1>${esc(name)}</h1>${sub ? `<p>${sub}</p>` : ''}</div><div class="row-actions">${actions}</div></header>`;
@@ -158,7 +161,7 @@
       host.innerHTML = header('Productie', 'Evenementen', '') + `<div class="notice">${ico('info')} Evenementen, artiesten en advancing werken alleen met een echte login. De voorbeeldweergave toont de financiën.</div>`;
       return true;
     }
-    const slow = setTimeout(() => { if (S.raw === raw) host.innerHTML = '<div class="empty"><div class="spinner"></div>Laden…</div>'; }, 180);
+    const slow = setTimeout(() => { if (S.raw === raw) host.innerHTML = '<div class="empty orb-loading"><moon-orb state="working" size="32"></moon-orb>Laden…</div>'; }, 180);
     try {
       await load(S.route);
       clearTimeout(slow);
@@ -637,7 +640,7 @@
 
   async function sendDialog() {
     const o = S.overview;
-    window.__modal('Advancing versturen', '<div class="empty"><div class="spinner"></div>Pakket samenstellen…</div>');
+    window.__modal('Advancing versturen', '<div class="empty orb-loading"><moon-orb state="composing" size="32"></moon-orb>Pakket samenstellen…</div>');
     let pv;
     try {
       pv = await api(`/events/${o.event.id}/send-preview`, { method: 'POST', body: {} });
@@ -802,7 +805,7 @@
     },
     async 'send-form'(form) {
       const button = document.querySelector('#dialog button[type=submit]');
-      if (button) { button.disabled = true; button.textContent = 'Versturen…'; }
+      if (button) { button.disabled = true; button.innerHTML = '<moon-orb state="composing" size="20"></moon-orb> Versturen…'; }
       try {
         const response = await api(`/events/${S.overview.event.id}/send`, { method: 'POST', body: sendPayload(form) });
         const { result, ...overview } = response;
@@ -1028,7 +1031,8 @@
       body.append('owner_id', t.dataset.ownerId);
       body.append('kind', t.dataset.upload);
       body.append('file', file);
-      t.closest('label')?.classList.add('busy');
+      const label = t.closest('label');
+      if (label) { label.classList.add('busy'); label.insertAdjacentHTML('afterbegin', '<moon-orb state="weaving" size="20" label="Uploaden"></moon-orb>'); }
       try {
         await autosave();
         await api('/assets', { method: 'POST', body });
@@ -1036,7 +1040,8 @@
         await reload();
       } catch (error) {
         toast(error.message, true);
-        t.closest('label')?.classList.remove('busy');
+        label?.classList.remove('busy');
+        label?.querySelector('moon-orb')?.remove();
         t.value = '';
       }
     }
