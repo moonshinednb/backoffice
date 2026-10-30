@@ -306,6 +306,8 @@ const D: Record<string, string> = {
   'Vlucht: ja of nee': 'Flight: yes or no',
   'Vlucht: tickets geboekt': 'Flight: tickets booked',
   'in de wachtrij ·': 'queued ·', 'mislukt': 'failed', 'pogingen': 'attempts', 'facturen ·': 'invoices ·', 'open taken': 'open tasks', 'naar': 'to',
+  'Alles, plus de admin-omgeving: koppelingen, sleutels, gebruikers, activiteit en instellingen.': 'Everything, plus the admin area: integrations, keys, users, activity and settings.',
+  'Kan overal in en alles gebruiken: planning, productie, financiën en analyse. Alleen de admin-omgeving is afgeschermd. Nieuwe accounts en gereset wachtwoorden zijn tijdelijk: bij de eerste login kiest iemand een eigen wachtwoord.': 'Can use the whole workspace: planning, production, finance and analysis. Only the admin area is restricted. New accounts and reset passwords are temporary: people choose their own at first login.',
   // Server messages
   'Geen verbinding met de server. Controleer of Tailscale aan staat.': 'No connection to the server. Check that Tailscale is on.',
   'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.': 'Your session expired or the page is outdated. Refresh the page and try again.',

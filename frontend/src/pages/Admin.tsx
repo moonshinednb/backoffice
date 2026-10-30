@@ -164,7 +164,7 @@ export function ConfigDialog({ provider, onClose }: { provider: string; onClose:
 
 /* --- Gebruikers ------------------------------------------------------------------- */
 
-const ROLES: [string, string][] = [['finance', 'Finance'], ['production', 'Productie'], ['viewer', 'Alleen lezen'], ['admin', 'Beheerder']];
+const ROLES: [string, string][] = [['staff', 'Team'], ['admin', 'Beheerder']];
 
 export function UsersPage() {
   const { user: me } = useAuth();
@@ -183,8 +183,8 @@ export function UsersPage() {
         <td>{x.id !== me?.id ? <button className="small" onClick={() => setDialog(x)}>Beheren</button> : 'Jij'}</td></tr>)}
     </tbody></table></div></section>
     <div className="panel-grid section-gap">
-      <section className="card card-pad"><h2>Beheerder</h2><p className="helper">Beheert gebruikers, koppelingen en instellingen, ziet het beheeroverzicht op het dashboard en kan facturen boeken en banktransacties afletteren.</p></section>
-      <section className="card card-pad"><h2>Finance, productie & alleen lezen</h2><p className="helper">Finance verwerkt facturen, bank en taken en ziet ook productie. Productie werkt aan evenementen, artiesten en label. Alleen lezen kan alles bekijken. Nieuwe accounts en gereset wachtwoorden zijn tijdelijk: bij de eerste login kiest iemand een eigen wachtwoord.</p></section>
+      <section className="card card-pad"><h2>Beheerder</h2><p className="helper">Alles, plus de admin-omgeving: koppelingen, sleutels, gebruikers, activiteit en instellingen.</p></section>
+      <section className="card card-pad"><h2>Team</h2><p className="helper">Kan overal in en alles gebruiken: planning, productie, financiën en analyse. Alleen de admin-omgeving is afgeschermd. Nieuwe accounts en gereset wachtwoorden zijn tijdelijk: bij de eerste login kiest iemand een eigen wachtwoord.</p></section>
     </div>
     <FormDialog id="user-form" title={u ? 'Gebruiker beheren' : 'Gebruiker toevoegen'} open={dialog !== undefined} onClose={() => setDialog(undefined)} label={u ? 'Opslaan' : 'Gebruiker toevoegen'} submit={async (form) => {
       const v = formValues(form);
@@ -198,7 +198,7 @@ export function UsersPage() {
         <div className="field"><label htmlFor="u-name">Naam</label><input id="u-name" name="name" defaultValue={u?.name} required /></div>
         {u ? null : <div className="field"><label htmlFor="u-username">Gebruikersnaam</label><input id="u-username" name="username" required pattern="[a-zA-Z0-9._\-]{3,40}" /></div>}
         <div className="field"><label htmlFor="u-password">{u ? 'Tijdelijk wachtwoord (optioneel)' : 'Tijdelijk wachtwoord'}</label><input id="u-password" name="password" type="password" minLength={8} required={!u} autoComplete="new-password" /></div>
-        <div className="field"><label htmlFor="u-role">Rol</label><select id="u-role" name="role" defaultValue={u?.role || 'finance'}>{ROLES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+        <div className="field"><label htmlFor="u-role">Rol</label><select id="u-role" name="role" defaultValue={u?.role || 'staff'}>{ROLES.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
       </div>
       {u ? <label><input type="checkbox" name="active" defaultChecked={u.active} /> Gebruiker heeft toegang</label> : null}
       <p className="helper">Het wachtwoord wordt alleen als hash opgeslagen. De gebruiker kiest bij de volgende login een eigen wachtwoord.</p>

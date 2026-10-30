@@ -20,7 +20,7 @@ export function sections(role: string): [string, Item[]][] {
     ['Financiën', [['/facturen', 'Facturen', 'invoice'], ['/odoo', 'Odoo-administratie', 'bank'], ['/bank', 'Bank & pin', 'wallet'], ['/btw', 'Btw-overzicht', 'tax'], ['/documenten', 'Documenten', 'folder']]],
     ['Beheer', [['/beheer', 'Admin', 'settings']]],
   ];
-  return all.filter(([name]) => !(name === 'Financiën' && role === 'production') && !(name === 'Beheer' && role !== 'admin'));
+  return all.filter(([name]) => !(name === 'Beheer' && role !== 'admin'));
 }
 
 export function Layout() {

@@ -12,15 +12,13 @@ def uid():
 class User(AbstractUser):
     """A team member. `role` decides what they may see and change:
 
-    admin       everything, including users, settings and connections
-    finance     finance and production
-    production  events, artists, advancing and label; no finance
-    viewer      read-only everywhere they can see; passport/birth date masked
+    admin       everything, including the admin area (users, keys, integrations)
+    staff       the whole workspace, everything except the admin area
     """
     password = models.CharField('password', max_length=256)  # legacy scrypt hashes are longer than 128
-    ROLES = [('admin', 'Beheerder'), ('finance', 'Finance'), ('production', 'Productie'), ('viewer', 'Alleen lezen')]
+    ROLES = [('admin', 'Beheerder'), ('staff', 'Team')]
     id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
-    role = models.CharField(max_length=20, choices=ROLES, default='viewer')
+    role = models.CharField(max_length=20, choices=ROLES, default='staff')
     must_change_password = models.BooleanField(default=False)
     language = models.CharField(max_length=2, choices=[('en', 'English'), ('nl', 'Nederlands')], default='en')
     job_title = models.CharField(max_length=100, blank=True, default='')
@@ -33,20 +31,20 @@ class User(AbstractUser):
 
     @property
     def can_write(self):
-        return self.role != 'viewer'
+        return True
 
     @property
     def can_finance(self):
-        return self.role in ('admin', 'finance', 'viewer')
+        return True
 
     @property
     def can_production(self):
-        return self.role in ('admin', 'finance', 'production', 'viewer')
+        return True
 
     @property
     def private(self):
         """May see passport numbers and dates of birth."""
-        return self.role != 'viewer'
+        return True
 
 
 class Setting(models.Model):

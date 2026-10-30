@@ -53,7 +53,7 @@ class Command(BaseCommand):
         counts = {}
         with transaction.atomic():
             for u in rows('users'):
-                User.objects.create(id=u['id'], username=u['username'].lower(), first_name=u['name'], role=u['role'], is_active=bool(u['active']),
+                User.objects.create(id=u['id'], username=u['username'].lower(), first_name=u['name'], role='admin' if u['role'] == 'admin' else 'staff', is_active=bool(u['active']),
                                     password='legacy_scrypt$' + u['password_hash'], must_change_password=u['role'] != 'admin',
                                     is_staff=u['role'] == 'admin', is_superuser=u['role'] == 'admin', date_joined=when(u['created']))
             for s in rows('settings'):

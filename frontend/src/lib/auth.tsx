@@ -2,7 +2,7 @@ import { createContext, ReactNode, useCallback, useContext, useEffect, useState 
 import { api, setCsrf } from './api';
 import { setLang } from './i18n';
 
-export type User = { id: string; username: string; name: string; role: 'admin' | 'finance' | 'production' | 'viewer'; active: boolean; must_change_password: boolean; language: 'en' | 'nl'; job_title: string; phone: string; email: string; avatar: string };
+export type User = { id: string; username: string; name: string; role: 'admin' | 'staff'; active: boolean; must_change_password: boolean; language: 'en' | 'nl'; job_title: string; phone: string; email: string; avatar: string };
 
 type Auth = {
   user: User | null;
@@ -16,8 +16,8 @@ const AuthContext = createContext<Auth>(null as unknown as Auth);
 export const useAuth = () => useContext(AuthContext);
 
 export const can = {
-  write: (u: User | null) => !!u && u.role !== 'viewer',
-  finance: (u: User | null) => !!u && u.role !== 'production',
+  write: (u: User | null) => !!u,
+  finance: (u: User | null) => !!u,
   admin: (u: User | null) => u?.role === 'admin',
 };
 

@@ -40,7 +40,7 @@ export function DashboardPage() {
   return <>
     <PageTitle title={`Goedendag, ${user?.name.split(' ')[0]}`} sub="Evenementen, label en financiën op één plek."
       actions={finance ? <><a className="button ghost" href="/api/export"><Icon name="download" /> Exporteren</a><button className="primary" onClick={() => upload()}><Icon name="plus" /> Nieuwe factuur</button></> : null} />
-    {user?.role !== 'finance' || d.upcoming_events.length ? <section className="card dash-events"><div className="card-head"><div><h2>Komende evenementen</h2><p>Advancing per evenement</p></div><Link className="text-link" to="/evenementen">Alle evenementen</Link></div>
+    {true ? <section className="card dash-events"><div className="card-head"><div><h2>Komende evenementen</h2><p>Advancing per evenement</p></div><Link className="text-link" to="/evenementen">Alle evenementen</Link></div>
       {d.upcoming_events.length ? <div className="dash-event-list">{d.upcoming_events.map((e) => {
         const p = e.progress || { artists: 0, complete: 0 };
         return <Link key={e.id} className="dash-event" to={`/evenementen/${e.id}`}>

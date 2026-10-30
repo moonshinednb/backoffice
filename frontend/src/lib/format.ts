@@ -10,4 +10,4 @@ export const monthShort = (v: string) => asDate(v).toLocaleDateString(locale(), 
 export const dayNumber = (v: string) => asDate(v).getDate();
 export const stamp = (t?: number) => (t ? new Date(t * 1000).toLocaleString(locale(), { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 export const size = (n: number) => (n >= 1048576 ? (n / 1048576).toFixed(1).replace('.', ',') + ' MB' : Math.max(1, Math.round((n || 0) / 1024)) + ' kB');
-export const ROLE: Record<string, string> = { admin: 'Beheerder', finance: 'Finance', production: 'Productie', viewer: 'Alleen lezen' };
+export const ROLE: Record<string, string> = { admin: 'Beheerder', staff: 'Team' };

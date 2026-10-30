@@ -7,7 +7,7 @@ class ApiTests(TestCase):
     def setUp(self):
         self.admin = User.objects.create(username='peppy', first_name='Peppy', role='admin', is_staff=True, is_superuser=True)
         self.admin.set_password('admin-pass-1'); self.admin.save()
-        self.bram = User.objects.create(username='bram', first_name='Bram', role='finance', must_change_password=True)
+        self.bram = User.objects.create(username='bram', first_name='Bram', role='staff', must_change_password=True)
         self.bram.set_password('tijdelijk1'); self.bram.save()
 
     def login(self, username, password):
@@ -43,9 +43,9 @@ class ApiTests(TestCase):
     def test_only_admin_manages_users(self):
         self.bram.must_change_password = False; self.bram.save()
         c, _ = self.login('bram', 'tijdelijk1')
-        self.assertEqual(self.send(c, 'post', '/api/users', {'username': 'anne', 'password': 'welkom123', 'role': 'finance'}).status_code, 403)
+        self.assertEqual(self.send(c, 'post', '/api/users', {'username': 'anne', 'password': 'welkom123', 'role': 'staff'}).status_code, 403)
         a, _ = self.login('peppy', 'admin-pass-1')
-        r = self.send(a, 'post', '/api/users', {'username': 'anne', 'name': 'Anne', 'password': 'welkom123', 'role': 'finance'})
+        r = self.send(a, 'post', '/api/users', {'username': 'anne', 'name': 'Anne', 'password': 'welkom123', 'role': 'staff'})
         self.assertEqual(r.status_code, 200)
         self.assertTrue(r.json()['must_change_password'])
         self.assertIn('admin', a.get('/api/dashboard').json())
