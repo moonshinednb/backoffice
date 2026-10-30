@@ -23,6 +23,9 @@ Daarna ssh via de SOCKS-proxy:
 ssh -o StrictHostKeyChecking=accept-new -o ProxyCommand="nc -X 5 -x localhost:1055 %h %p" clawd@100.111.153.38
 ```
 
+## Code
+Lees eerst `ARCHITECTURE.md` (projectkaart: modules, modellen, endpoints, routes, afspraken) in plaats van de hele code. Werk die kaart bij als de structuur verandert.
+
 ## Werkwijze bij wijzigingen
 1. Wijzig de code hier en test: `cd backend && python manage.py test` en `cd frontend && npm run build`.
    Stack: Django 5.2 + Django Ninja (`backend/`), React + Vite + TS (`frontend/`), PostgreSQL en een aparte worker (`manage.py run_worker`) in docker compose.
