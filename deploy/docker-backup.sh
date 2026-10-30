@@ -13,7 +13,7 @@ if docker ps --format '{{.Names}}' | grep -qx moonshine-db; then
 fi
 cd "$DATA_DIR"
 set --
-for f in moonshine.sqlite3 files assets secrets.json django-secret.key; do [ -e "$f" ] && set -- "$@" "$f"; done
+for f in moonshine.sqlite3 files assets avatars secrets.json django-secret.key; do [ -e "$f" ] && set -- "$@" "$f"; done
 tar czf "$TARGET/backoffice-$STAMP.tar.gz" "$@" -C "$WORK" .
 find "$TARGET" -name 'backoffice-*.tar.gz' -mtime +"$KEEP_DAYS" -delete
 echo "Backup gereed: $TARGET/backoffice-$STAMP.tar.gz"
