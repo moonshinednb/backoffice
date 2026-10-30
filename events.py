@@ -109,10 +109,16 @@ def create(payload):
 
 def update(ident, payload):
     fields, values = [], []
-    for key in ('name', 'date', 'venue', 'doors', 'status'):
+    for key in ('name', 'date', 'venue', 'doors', 'status', 'venue_contact', 'venue_phone'):
         if key in payload:
             fields.append(f'{key}=?')
-            values.append(str(payload.get(key) or '').strip())
+            values.append(str(payload.get(key) or '').strip()[:300])
+    if 'name' in payload and not str(payload.get('name') or '').strip():
+        raise ValueError('Geef het evenement een naam.')
+    if 'venue_email' in payload:
+        from advancing import _recipients
+        fields.append('venue_email=?')
+        values.append(', '.join(_recipients(payload.get('venue_email'))))
     if 'capacity' in payload:
         fields.append('capacity=?')
         values.append(max(0, int(payload.get('capacity') or 0)))
@@ -147,11 +153,23 @@ def get(ident):
 
 
 def listing():
+    """All events, newest first, with advancing progress per event. The
+    client splits upcoming and past by date."""
+    from advancing import event_progress
+    progress = event_progress()
+    rows = _rows()
+    for row in rows:
+        row['progress'] = progress.get(row['id'], {'artists': 0, 'complete': 0})
+    return rows
+
+
+def _rows():
     with db() as c:
         return [dict(r) for r in c.execute(
             'SELECT e.*,'
             ' (SELECT COUNT(*) FROM event_slots s WHERE s.event_id=e.id) AS slot_count,'
             ' (SELECT COUNT(*) FROM event_artists a WHERE a.event_id=e.id) AS artist_count,'
+            ' (SELECT COUNT(*) FROM bookings b WHERE b.event_id=e.id AND b.status!=\'cancelled\') AS booking_count,'
             ' (SELECT COUNT(*) FROM event_documents d WHERE d.event_id=e.id) AS document_count'
             ' FROM events e ORDER BY e.date DESC, e.created DESC')]
 
@@ -159,6 +177,9 @@ def listing():
 def remove(ident):
     """Local delete. The OneDrive folder is left alone on purpose: it may
     hold contracts and signed riders that are not recoverable anywhere else."""
+    from advancing import remove_event_files
+    get(ident)
+    remove_event_files(ident)
     with db() as c:
         c.execute('BEGIN IMMEDIATE')
         cur = c.execute('DELETE FROM events WHERE id=?', (ident,))

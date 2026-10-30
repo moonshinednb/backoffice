@@ -6,6 +6,16 @@ from decimal import Decimal, ROUND_HALF_UP
 
 LOCK=threading.RLock()
 
+class HttpError(RuntimeError):
+    """An HTTP error status from a provider. The message never includes the
+    response body; `code` lets callers tell a 404 or 409 from a failure."""
+    def __init__(self,code):
+        super().__init__(f'Externe dienst gaf HTTP {code}; controleer rechten en configuratie.')
+        self.code=code
+
+class UncertainSend(RuntimeError):
+    """The send call got no answer: Outlook may or may not have sent it."""
+
 class NoCredentialRedirect(urllib.request.HTTPRedirectHandler):
     def redirect_request(self,req,fp,code,msg,headers,newurl):
         raise RuntimeError('De externe dienst verwijst door. Configureer de definitieve HTTPS-URL.')
@@ -28,7 +38,7 @@ def http(url, payload=None, headers=None, method=None, raw=False):
             data=response.read();return data if raw else (json.loads(data) if data else {})
     except urllib.error.HTTPError as e:
         # Never surface response bodies that could include secrets.
-        raise RuntimeError(f'Externe dienst gaf HTTP {e.code}; controleer rechten en configuratie.') from None
+        raise HttpError(e.code) from None
     except (urllib.error.URLError,TimeoutError):raise RuntimeError('Externe dienst is niet bereikbaar.') from None
 
 def graph_token():
@@ -500,6 +510,93 @@ def pull_event(ident):
                 drifted.append(field)
     return {'exists':True,'folder':folder_name,'files':sorted(files),'remote':remote,'drifted':drifted}
 
+# --------------------------------------------------------------------------
+# Advancing: Outlook mail with attachments and OneDrive file storage.
+# --------------------------------------------------------------------------
+
+DRIVE_CHUNK=320*1024*10   # OneDrive wants multiples of 320 KiB
+MAIL_CHUNK=3*1024*1024    # Outlook attachment ranges must stay under 4 MB
+_FOLDERS=set()
+
+def _upload_chunks(upload_url,content,chunk):
+    """PUT one byte range at a time to a pre-authenticated upload URL. No
+    Authorization header: the URL itself carries the grant."""
+    total=len(content);result={}
+    for start in range(0,total,chunk):
+        end=min(start+chunk,total)-1
+        result=http(upload_url,content[start:end+1],{'Content-Range':f'bytes {start}-{end}/{total}','Content-Type':'application/octet-stream'},'PUT')
+    return result
+
+def send_mail(sender,to,cc,subject,html,attachments):
+    """Create a draft, attach, send. Files under 3 MB are attached inline,
+    larger ones through an upload session (Outlook allows up to 150 MB).
+    Needs Mail.ReadWrite and Mail.Send for the sender mailbox. A failure
+    before sending deletes the draft; no answer on the send call itself is
+    reported as uncertain and must not be retried blindly."""
+    box='/users/'+urllib.parse.quote(sender,safe='')
+    message={'subject':subject,'body':{'contentType':'HTML','content':html},
+             'toRecipients':[{'emailAddress':{'address':a}} for a in to],
+             'ccRecipients':[{'emailAddress':{'address':a}} for a in cc]}
+    draft=graph(box+'/messages',message,'POST')
+    if not draft.get('id'):raise RuntimeError('Outlook gaf geen concept terug.')
+    base=box+'/messages/'+urllib.parse.quote(draft['id'],safe='')
+    try:
+        for item in attachments:
+            content=item['content']
+            if len(content)<3*1024*1024:
+                graph(base+'/attachments',{'@odata.type':'#microsoft.graph.fileAttachment','name':item['name'],'contentType':item['mime'],'contentBytes':base64.b64encode(content).decode()},'POST')
+            else:
+                session=graph(base+'/attachments/createUploadSession',{'AttachmentItem':{'attachmentType':'file','name':item['name'],'size':len(content),'contentType':item['mime']}},'POST')
+                if not session.get('uploadUrl'):raise RuntimeError('Outlook gaf geen uploadadres voor een bijlage.')
+                _upload_chunks(session['uploadUrl'],content,MAIL_CHUNK)
+    except Exception:
+        try:graph(base,None,'DELETE')
+        except Exception:pass
+        raise
+    try:
+        graph(base+'/send',b'','POST')
+    except HttpError:raise
+    except RuntimeError:
+        raise UncertainSend('Outlook reageerde niet op het verzenden. Kijk in Verzonden items voordat je opnieuw verstuurt.') from None
+    return 'accepted'
+
+def _production_drive():
+    cfg=settings()
+    if not cfg.get('production_sync'):raise ValueError('Zet OneDrive-opslag voor productie aan bij Koppelingen → Advancing.')
+    return 'https://graph.microsoft.com/v1.0'+_drive_path(cfg)
+
+def _ensure_folder(path):
+    """Create each missing folder level once; known paths are cached."""
+    path=path.strip('/')
+    if not path or path in _FOLDERS:return
+    parent,_,name=path.rpartition('/')
+    _ensure_folder(parent)
+    drive=_production_drive()
+    try:
+        http(drive+'/root:/'+urllib.parse.quote(path,safe='/'),None,_drive_token())
+    except HttpError as e:
+        if e.code!=404:raise
+        url=drive+('/root:/'+urllib.parse.quote(parent,safe='/')+':/children' if parent else '/root/children')
+        try:http(url,{'name':name,'folder':{},'@microsoft.graph.conflictBehavior':'fail'},_drive_token(),'POST')
+        except HttpError as conflict:
+            if conflict.code!=409:raise
+    _FOLDERS.add(path)
+
+def drive_upload(path,content,mime):
+    """Store a file at an exact path in the production drive; replaces an
+    existing file with the same name. Returns (item id, web URL)."""
+    drive=_production_drive()
+    parent=path.rpartition('/')[0]
+    _ensure_folder(parent)
+    target=drive+'/root:/'+urllib.parse.quote(path,safe='/')+':'
+    if len(content)<=4*1024*1024:
+        item=http(target+'/content',content,{**_drive_token(),'Content-Type':mime or 'application/octet-stream'},'PUT')
+    else:
+        session=http(target+'/createUploadSession',{'item':{'@microsoft.graph.conflictBehavior':'replace'}},_drive_token(),'POST')
+        if not session.get('uploadUrl'):raise RuntimeError('OneDrive gaf geen uploadadres.')
+        item=_upload_chunks(session['uploadUrl'],content,DRIVE_CHUNK)
+    return str(item.get('id','')),str(item.get('webUrl',''))
+
 def sync_todo():
     cfg=settings()
     if not cfg.get('todo_enabled'):return
@@ -699,6 +796,15 @@ def test_connection(provider):
         try:me=opensign_http('/getuser',None,'GET')
         except Exception:me=opensign_http('/credits',None,'GET')
         return {'message':'OpenSign geverifieerd','data':me if isinstance(me,dict) else {}}
+    if provider=='advancing':
+        sender=cfg.get('advancing_sender','')
+        if not sender:raise ValueError('Vul het verzendadres voor advancing in.')
+        graph('/users/'+urllib.parse.quote(sender,safe='')+'/mailFolders/drafts?$select=id')
+        message='Verzendmailbox '+sender+' bereikbaar'
+        if cfg.get('production_sync'):
+            _ensure_folder((cfg.get('production_folder') or 'Moonshine/Productie').strip('/'))
+            message+=' · OneDrive-map bereikbaar'
+        return {'message':message}
     if provider in ('releases','contracts'):
         return {'message':'Module actief (lokaal, geen externe test nodig)'}
     raise ValueError('Voor ING en SumUp: importeer een export of sluit de beveiligde bank-webhook aan. Directe API-koppeling vereist jouw providergegevens.')
@@ -735,6 +841,10 @@ def worker(stop):
                         url=archive_onedrive(doc);doc['details']['onedrive_url']=url
                         with db() as c:c.execute('UPDATE documents SET details=? WHERE id=?',(encode(doc['details']),doc['id']))
                     except Exception as e:audit('worker','OneDrive-archief vraagt controle',doc['id'],str(e) if isinstance(e,(ValueError,RuntimeError)) else 'Controleer configuratie')
+            try:
+                import advancing
+                advancing.sync_pending(3)
+            except Exception as e:audit('worker','OneDrive-opslag vraagt controle',detail=str(e) if isinstance(e,(ValueError,RuntimeError)) else 'Controleer configuratie')
             try:
                 if settings().get('promo_sending'):send_promo_batch(5)
             except Exception as e:audit('worker','Promo-wachtrij vraagt controle',detail=str(e) if isinstance(e,(ValueError,RuntimeError)) else 'Controleer configuratie')

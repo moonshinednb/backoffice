@@ -7,6 +7,7 @@ ROOT = Path(__file__).resolve().parent
 DATA = Path(os.environ.get('MOONSHINE_DATA', str(ROOT / 'data'))).resolve()
 DATA.mkdir(parents=True, exist_ok=True)
 (DATA / 'files').mkdir(exist_ok=True)
+(DATA / 'assets').mkdir(exist_ok=True)
 
 @contextmanager
 def db():
@@ -25,9 +26,10 @@ def db():
 def init():
     if os.name!='nt':
         DATA.chmod(0o700)
-        (DATA/'files').chmod(0o700)
-        for path in (DATA/'files').iterdir():
-            if path.is_file():path.chmod(0o600)
+        for folder in ('files','assets'):
+            (DATA/folder).chmod(0o700)
+            for path in (DATA/folder).iterdir():
+                if path.is_file():path.chmod(0o600)
     with db() as c:
         c.execute('PRAGMA journal_mode=WAL')
         c.executescript('''
@@ -70,6 +72,24 @@ def init():
         CREATE INDEX IF NOT EXISTS idx_contracts_status ON contracts(status);
         CREATE INDEX IF NOT EXISTS idx_releases_date ON releases(release_date);
         ''')
+        # Advancing: a reusable artist roster, bookings of artists on events,
+        # files (riders, EPK, promo), the venue checklist and the send log.
+        c.executescript('''
+        CREATE TABLE IF NOT EXISTS artists(id TEXT PRIMARY KEY, name TEXT NOT NULL, full_name TEXT NOT NULL DEFAULT '', passport TEXT NOT NULL DEFAULT '', date_of_birth TEXT NOT NULL DEFAULT '', nationality TEXT NOT NULL DEFAULT '', email TEXT NOT NULL DEFAULT '', phone TEXT NOT NULL DEFAULT '', instagram TEXT NOT NULL DEFAULT '', agency TEXT NOT NULL DEFAULT '', agent TEXT NOT NULL DEFAULT '', agent_email TEXT NOT NULL DEFAULT '', agent_phone TEXT NOT NULL DEFAULT '', rider_url TEXT NOT NULL DEFAULT '', epk_url TEXT NOT NULL DEFAULT '', bio TEXT NOT NULL DEFAULT '', tech_rider TEXT NOT NULL DEFAULT '', hospitality_rider TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', created REAL NOT NULL, updated REAL NOT NULL);
+        CREATE UNIQUE INDEX IF NOT EXISTS idx_artists_name ON artists(name COLLATE NOCASE);
+        CREATE TABLE IF NOT EXISTS bookings(id TEXT PRIMARY KEY, event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE, artist_id TEXT NOT NULL REFERENCES artists(id), status TEXT NOT NULL DEFAULT 'confirmed', fee INTEGER NOT NULL DEFAULT 0, flight TEXT NOT NULL DEFAULT '', grounds TEXT NOT NULL DEFAULT '', hotel TEXT NOT NULL DEFAULT '', flight_info TEXT NOT NULL DEFAULT '{}', ground_info TEXT NOT NULL DEFAULT '{}', hotel_info TEXT NOT NULL DEFAULT '{}', notes TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0, created REAL NOT NULL, updated REAL NOT NULL, UNIQUE(event_id,artist_id));
+        CREATE INDEX IF NOT EXISTS idx_bookings_event ON bookings(event_id);
+        CREATE INDEX IF NOT EXISTS idx_bookings_artist ON bookings(artist_id);
+        CREATE TABLE IF NOT EXISTS assets(id TEXT PRIMARY KEY, owner_type TEXT NOT NULL CHECK(owner_type IN ('artist','booking','event')), owner_id TEXT NOT NULL, kind TEXT NOT NULL, name TEXT NOT NULL, mime TEXT NOT NULL DEFAULT '', size INTEGER NOT NULL DEFAULT 0, sha TEXT NOT NULL DEFAULT '', url TEXT NOT NULL DEFAULT '', has_file INTEGER NOT NULL DEFAULT 0, onedrive_id TEXT NOT NULL DEFAULT '', onedrive_url TEXT NOT NULL DEFAULT '', sync_status TEXT NOT NULL DEFAULT 'local', error TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_assets_owner ON assets(owner_type,owner_id);
+        CREATE INDEX IF NOT EXISTS idx_assets_sync ON assets(sync_status);
+        CREATE TABLE IF NOT EXISTS checklist(id TEXT PRIMARY KEY, event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE, key TEXT NOT NULL DEFAULT '', label TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'todo', sent_at REAL NOT NULL DEFAULT 0, sent_to TEXT NOT NULL DEFAULT '', notes TEXT NOT NULL DEFAULT '', sort INTEGER NOT NULL DEFAULT 0, created REAL NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_checklist_event ON checklist(event_id);
+        CREATE TABLE IF NOT EXISTS sends(id TEXT PRIMARY KEY, event_id TEXT NOT NULL REFERENCES events(id) ON DELETE CASCADE, recipients TEXT NOT NULL, subject TEXT NOT NULL, items TEXT NOT NULL DEFAULT '[]', attachments TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL, error TEXT NOT NULL DEFAULT '', actor TEXT NOT NULL DEFAULT '', created REAL NOT NULL);
+        CREATE INDEX IF NOT EXISTS idx_sends_event ON sends(event_id);
+        ''')
+        for table,column,ddl in (('events','venue_contact',"TEXT NOT NULL DEFAULT ''"),('events','venue_email',"TEXT NOT NULL DEFAULT ''"),('events','venue_phone',"TEXT NOT NULL DEFAULT ''"),('events','checklist_seeded','INTEGER NOT NULL DEFAULT 0'),('event_slots','artist_ids',"TEXT NOT NULL DEFAULT '[]'"),('event_slots','stage',"TEXT NOT NULL DEFAULT ''")):
+            if column not in {r['name'] for r in c.execute(f'PRAGMA table_info({table})')}:c.execute(f'ALTER TABLE {table} ADD COLUMN {column} {ddl}')
         columns={r['name'] for r in c.execute('PRAGMA table_info(transactions)')}
         if 'payout_id' not in columns:c.execute("ALTER TABLE transactions ADD COLUMN payout_id TEXT NOT NULL DEFAULT ''")
         if 'statement_id' not in columns:c.execute('ALTER TABLE transactions ADD COLUMN statement_id INTEGER')

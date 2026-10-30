@@ -26,13 +26,16 @@ from store import db, init, uid, encode, hash_password, check_password, audit, s
 from accounting import cents, validate_invoice, suggest_matches, vat_report
 from integrations import LOCK, worker, process_document, post_document, unlink_document, test_connection, Odoo, secure_url, push_event, pull_event
 import events as events_module
+import advancing
 
 SETTING_KEYS={'finance_email','company_name','odoo_url','odoo_database','odoo_username','odoo_expense_account','odoo_purchase_journal','odoo_bank_journal','odoo_bank_account','odoo_tax_map','odoo_sales_journal','odoo_sales_account','odoo_sumup_clearing_account','odoo_fee_account','odoo_output_tax_map','auto_post','auto_match','auto_sumup','anthropic_model','microsoft_client_id','microsoft_tenant','mail_enabled','onedrive_enabled','onedrive_drive_id','onedrive_folder','todo_enabled','todo_list_id'}
 SETTING_KEYS.update({'bank_mode','odoo_bank_feed'})
 SETTING_KEYS.update({'calendar_enabled','calendar_id','promo_sender','promo_sending','labelgrid_label_id','opensign_base','opensign_template_id'})
+SETTING_KEYS.update({'advancing_sender','production_folder','production_sync'})
 SECRET_KEYS={'odoo_api_key','anthropic_api_key','microsoft_client_secret','microsoft_access_token','microsoft_refresh_token','bank_webhook_secret','mail_webhook_secret'}
 SECRET_KEYS.update({'labelgrid_api_key','opensign_api_key','opensign_webhook_secret'})
 MAX_BODY=22*1024*1024
+mimetypes.add_type('application/manifest+json','.webmanifest')
 
 class ApiError(Exception):
     def __init__(self,message,status=400):self.message=message;self.status=status
@@ -92,7 +95,7 @@ class Handler(BaseHTTPRequestHandler):
         if self.headers.get('Transfer-Encoding'):raise ApiError('Ongeldige verzoekcodering.',400)
         try:n=int(self.headers.get('Content-Length','0'))
         except ValueError:raise ApiError('Ongeldige bestandsgrootte.')
-        if n<0 or n>MAX_BODY:raise ApiError('Bestand is te groot. Maximaal 15 MB per factuur.',413)
+        if n<0 or n>MAX_BODY:raise ApiError('Bestand is te groot. Maximaal 20 MB per bestand.',413)
         if urllib.parse.urlsplit(self.path).path in ('/api/login','/api/password','/api/users') and n>16384:raise ApiError('Te veel invoer.',413)
         return self.rfile.read(n)
     def session(self,write=False,role=None):
@@ -176,9 +179,13 @@ class Handler(BaseHTTPRequestHandler):
                 statements=[dict(r) for r in c.execute('SELECT id,invoice_number,period,status,currency,gross_usd,fee_usd,total_due_usd,created FROM label_statements ORDER BY created DESC LIMIT 100')]
                 contracts=[dict(r) for r in c.execute('SELECT * FROM contracts ORDER BY created DESC LIMIT 100')]
                 releases=[dict(r) for r in c.execute('SELECT * FROM releases ORDER BY release_date DESC,created DESC LIMIT 200')]
+            from datetime import date as _date
+            today=_date.today().isoformat()
+            upcoming=sorted((e for e in events_module.listing() if not e['date'] or e['date']>=today),key=lambda e:e['date'] or '9999')[:4]
+            upcoming=[{k:e.get(k) for k in ('id','name','date','venue','status','progress')} for e in upcoming]
             cfg=settings();sv=secret_values()
             connections=self.connections(cfg,sv)
-            return self.send(data={'documents':docs,'tasks':tasks,'transactions':transactions,'users':users,'audit':history,'matches':suggest_matches(transactions,match_pool),'connections':connections,'company':cfg.get('company_name','Moonshine'),'finance_email':cfg.get('finance_email','finance@moonshinednb.nl'),'paging':{'documents':{'limit':limit,'offset':offset,'total':total_documents}},'calendar':calendar,'promo_campaigns':campaigns,'promo_counts':promo_counts,'label_statements':statements,'contracts':contracts,'releases':releases})
+            return self.send(data={'documents':docs,'tasks':tasks,'transactions':transactions,'users':users,'audit':history,'matches':suggest_matches(transactions,match_pool),'connections':connections,'company':cfg.get('company_name','Moonshine'),'finance_email':cfg.get('finance_email','finance@moonshinednb.nl'),'paging':{'documents':{'limit':limit,'offset':offset,'total':total_documents}},'calendar':calendar,'promo_campaigns':campaigns,'promo_counts':promo_counts,'label_statements':statements,'contracts':contracts,'releases':releases,'upcoming_events':upcoming})
         if path=='/api/odoo/overview' and method=='GET':
             from integrations import odoo_overview
             return self.send(data=odoo_overview())
@@ -191,7 +198,9 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(cfg,dict) or not isinstance(sv,dict):raise ApiError('Ongeldige instellingen.')
                 if any(k not in SETTING_KEYS for k in cfg) or any(k not in SECRET_KEYS for k in sv):raise ApiError('Onbekende instelling.')
                 if cfg.get('odoo_url'):secure_url(cfg['odoo_url'])
-                for k in ('auto_post','auto_match','auto_sumup','mail_enabled','onedrive_enabled','todo_enabled','odoo_bank_feed','calendar_enabled','promo_sending'):
+                if cfg.get('advancing_sender'):advancing._email(cfg['advancing_sender'],'Verzendadres advancing')
+                if 'production_folder' in cfg:cfg['production_folder']='/'.join(advancing.safe_name(p,'') for p in str(cfg['production_folder']).split('/') if advancing.safe_name(p,''))[:300]
+                for k in ('auto_post','auto_match','auto_sumup','mail_enabled','onedrive_enabled','todo_enabled','odoo_bank_feed','calendar_enabled','promo_sending','production_sync'):
                     if k in cfg and type(cfg[k]) is not bool:raise ApiError('Ongeldige schakelaarinstelling.')
                 if any(v is not None and (not isinstance(v,str) or len(v)>16384) for v in sv.values()):raise ApiError('Ongeldige sleutel.')
                 for key in ('odoo_tax_map','odoo_output_tax_map'):
@@ -523,7 +532,87 @@ class Handler(BaseHTTPRequestHandler):
                     lines.append('- '+artist.get('name','')+(('  fee €%.2f' % (artist.get('fee',0)/100)) if artist.get('fee') else '')+(('  contact: '+artist.get('contact','')) if artist.get('contact') else ''))
                 lines+=['','NOTITIES']+['- '+n for n in payload.get('notes',[])]
                 return self.send(body='\n'.join(lines).encode('utf-8'),mime='text/plain; charset=utf-8',headers={'Content-Disposition':'attachment; filename="itinerary-'+ident+'.txt"'})
+        if path.startswith(('/api/artists','/api/bookings','/api/acts','/api/checklist','/api/assets')) or re.fullmatch('/api/events/[a-f0-9]{24}/(overview|bookings|acts|checklist|send|send-preview|advancing\\.pdf)',path):
+            return self.advancing_route(path,method,query,user,actor)
         raise ApiError('Niet gevonden.',404)
+
+    def advancing_route(self,path,method,query,user,actor):
+        """Artists, bookings, timetable, venue checklist, files and the
+        advancing mail. Viewers read with passport and date of birth masked."""
+        private=user['role']!='viewer'
+        if path=='/api/artists' and method=='GET':return self.send(data={'artists':advancing.artist_list()})
+        if path=='/api/artists' and method=='POST':return self.send(data=advancing.artist_get(advancing.artist_create(self.json_body(),actor),private))
+        match=re.fullmatch('/api/artists/([a-f0-9]{24})(/rider\\.pdf)?',path)
+        if match:
+            ident,pdf=match.groups()
+            if pdf and method=='GET':
+                kind='hospitality' if (query.get('kind') or ['tech'])[0]=='hospitality' else 'tech'
+                artist=advancing.artist_get(ident,True)
+                name=('Hospitality rider' if kind=='hospitality' else 'Technical rider')+' - '+advancing.safe_name(artist['name'])+'.pdf'
+                return self.send(body=advancing.rider_pdf(artist,kind),mime='application/pdf',headers={'Content-Disposition':"attachment; filename*=UTF-8''"+urllib.parse.quote(name)})
+            if method=='GET':return self.send(data=advancing.artist_get(ident,private))
+            if method=='PATCH':advancing.artist_update(ident,self.json_body(),actor);return self.send(data=advancing.artist_get(ident,private))
+            if method=='DELETE':advancing.artist_delete(ident,actor);return self.send(data={'ok':True})
+        match=re.fullmatch('/api/events/([a-f0-9]{24})/(overview|bookings|acts|checklist|send|send-preview|advancing\\.pdf)',path)
+        if match:
+            ident,action=match.groups()
+            if action=='overview' and method=='GET':return self.send(data=advancing.advancing(ident))
+            if action=='advancing.pdf' and method=='GET':
+                data=advancing.advancing(ident)
+                name='Advancing - '+advancing.safe_name(data['event']['name'])+'.pdf'
+                return self.send(body=advancing.advancing_pdf(data,{'timetable','contacts','travel','hotel'}),mime='application/pdf',headers={'Content-Disposition':"attachment; filename*=UTF-8''"+urllib.parse.quote(name)})
+            if action=='bookings' and method=='POST':
+                booking=advancing.booking_add(ident,self.json_body(),actor)
+                return self.send(data={'booking_id':booking,**advancing.advancing(ident)})
+            if action=='acts' and method=='POST':advancing.act_create(ident,self.json_body(),actor);return self.send(data=advancing.advancing(ident))
+            if action=='checklist' and method=='POST':advancing.checklist_add(ident,self.json_body().get('label',''),actor);return self.send(data=advancing.advancing(ident))
+            if action=='send-preview' and method=='POST':return self.send(data=advancing.preview(ident,self.json_body()))
+            if action=='send' and method=='POST':
+                result=advancing.send(ident,self.json_body(),actor)
+                return self.send(data={'result':result,**advancing.advancing(ident)})
+        match=re.fullmatch('/api/bookings/([a-f0-9]{24})',path)
+        if match:
+            ident=match[1]
+            if method=='GET':return self.send(data=advancing.booking_detail(ident,private))
+            if method=='PATCH':advancing.booking_update(ident,self.json_body(),actor);return self.send(data=advancing.booking_detail(ident,private))
+            if method=='DELETE':return self.send(data={'ok':True,'event_id':advancing.booking_remove(ident,actor)})
+        match=re.fullmatch('/api/acts/([a-f0-9]{24})',path)
+        if match and method in ('PATCH','DELETE'):
+            event_id=advancing.act_update(match[1],self.json_body(),actor) if method=='PATCH' else advancing.act_delete(match[1],actor)
+            return self.send(data=advancing.advancing(event_id))
+        match=re.fullmatch('/api/checklist/([a-f0-9]{24})',path)
+        if match and method in ('PATCH','DELETE'):
+            event_id=advancing.checklist_update(match[1],self.json_body(),actor) if method=='PATCH' else advancing.checklist_delete(match[1],actor)
+            return self.send(data=advancing.advancing(event_id))
+        if path=='/api/assets' and method=='POST':return self.asset_upload(actor)
+        match=re.fullmatch('/api/assets/([a-f0-9]{24})(?:/(file|sync))?',path)
+        if match:
+            ident,action=match.groups()
+            if action=='file' and method=='GET':
+                asset=advancing.asset_get(ident)
+                return self.send(body=advancing.asset_content(asset),mime=asset['mime'] or 'application/octet-stream',headers={'Content-Disposition':"attachment; filename*=UTF-8''"+urllib.parse.quote(asset['name'])})
+            if action=='sync' and method=='POST':return self.send(data=advancing.sync_asset(ident))
+            if not action and method=='DELETE':advancing.asset_delete(ident,actor);return self.send(data={'ok':True})
+        raise ApiError('Niet gevonden.',404)
+
+    def asset_upload(self,actor):
+        """Multipart with owner_type, owner_id, kind and one file, or JSON
+        with owner_type, owner_id, kind, name and url for a link."""
+        ct=self.headers.get('Content-Type','')
+        if ct.startswith('application/json'):
+            d=self.json_body()
+            ident=advancing.asset_add_link(str(d.get('owner_type','')),str(d.get('owner_id','')),str(d.get('kind','')),d.get('name',''),d.get('url',''),actor)
+            return self.send(data=advancing.asset_get(ident))
+        if not ct.startswith('multipart/form-data;'):raise ApiError('Kies een bestand.')
+        message=BytesParser(policy=default).parsebytes(('Content-Type: '+ct+'\r\nMIME-Version: 1.0\r\n\r\n').encode()+self.read_body())
+        fields,files={},[]
+        for part in message.iter_parts():
+            name=part.get_param('name',header='content-disposition')
+            if part.get_filename():files.append((part.get_filename(),part.get_payload(decode=True) or b''))
+            elif name:fields[name]=(part.get_payload(decode=True) or b'').decode('utf-8','replace')[:200]
+        if len(files)!=1:raise ApiError('Kies één bestand per keer.')
+        ident=advancing.asset_add_file(fields.get('owner_type',''),fields.get('owner_id',''),fields.get('kind',''),files[0][0],files[0][1],actor)
+        return self.send(data=advancing.asset_get(ident))
 
     def login(self):
         self.check_origin();d=self.json_body();ip=self.client_address[0];now=time.time()
@@ -657,7 +746,7 @@ class Handler(BaseHTTPRequestHandler):
         raise ApiError('Niet gevonden.',404)
     @staticmethod
     def connections(cfg,sv):
-        providers=[('odoo','Odoo',bool(cfg.get('odoo_url') and cfg.get('odoo_database') and sv.get('odoo_api_key'))),('claude','Claude',bool(cfg.get('anthropic_model') and sv.get('anthropic_api_key'))),('microsoft','Outlook',bool(sv.get('microsoft_refresh_token') or sv.get('microsoft_access_token') or sv.get('microsoft_client_secret'))),('onedrive','OneDrive',bool(cfg.get('onedrive_drive_id'))),('todo','Microsoft To Do',bool(cfg.get('todo_list_id'))),('ing','ING',bool(cfg.get('odoo_bank_feed') and cfg.get('odoo_bank_journal'))),('sumup','SumUp',bool(cfg.get('odoo_sumup_clearing_account'))),('calendar','Agenda',bool(cfg.get('calendar_enabled') and cfg.get('calendar_id'))),('promo','Promo-mail',bool(cfg.get('promo_sender') or cfg.get('finance_email'))),('labelgrid','LabelGrid',bool(sv.get('labelgrid_api_key'))),('opensign','OpenSign',bool(sv.get('opensign_api_key'))),('releases','Releases',True),('contracts','Contracten',bool(sv.get('opensign_api_key')))]
+        providers=[('odoo','Odoo',bool(cfg.get('odoo_url') and cfg.get('odoo_database') and sv.get('odoo_api_key'))),('claude','Claude',bool(cfg.get('anthropic_model') and sv.get('anthropic_api_key'))),('microsoft','Outlook',bool(sv.get('microsoft_refresh_token') or sv.get('microsoft_access_token') or sv.get('microsoft_client_secret'))),('advancing','Advancing',bool(cfg.get('advancing_sender') and (sv.get('microsoft_refresh_token') or sv.get('microsoft_access_token') or sv.get('microsoft_client_secret')))),('onedrive','OneDrive',bool(cfg.get('onedrive_drive_id'))),('todo','Microsoft To Do',bool(cfg.get('todo_list_id'))),('ing','ING',bool(cfg.get('odoo_bank_feed') and cfg.get('odoo_bank_journal'))),('sumup','SumUp',bool(cfg.get('odoo_sumup_clearing_account'))),('calendar','Agenda',bool(cfg.get('calendar_enabled') and cfg.get('calendar_id'))),('promo','Promo-mail',bool(cfg.get('promo_sender') or cfg.get('finance_email'))),('labelgrid','LabelGrid',bool(sv.get('labelgrid_api_key'))),('opensign','OpenSign',bool(sv.get('opensign_api_key'))),('releases','Releases',True),('contracts','Contracten',bool(sv.get('opensign_api_key')))]
         checks=cfg.get('connection_checks',{})
         return [{'id':k,'name':name,'status':'verified' if checks.get(k,{}).get('ok') and configured else 'configured' if configured else 'not_connected','checked':checks.get(k,{}).get('checked'),'mode':'CSV / webhook' if k in ('ing','sumup') else ('Lokaal' if k in ('releases',) else None)} for k,name,configured in providers]
 

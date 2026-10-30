@@ -78,6 +78,23 @@ The webhook accepts POST `/api/webhooks/bank`, `Authorization: Bearer <server-si
 
 For SumUp posting, set a sales journal, revenue account, fee account, reconcile-enabled receivable clearing account and sales-tax mapping. Sales and the one ING settlement must share `payout_id`. The flow checks gross minus fees equals the settlement exactly, creates sales invoices using the configured Odoo taxes, posts fees separately, creates the bank transfer against the clearing account, and reconciles the group. It supports positive EUR sales at 9% or 21%; refunds, split settlements and mixed-rate individual transactions require additional handling. Automatic settlement is off until configured and tested with the actual Odoo ledger.
 
+## Production: events, artists and advancing
+
+Navigation is grouped as Werkplek, Productie (Evenementen, Artiesten, Label), Financiën and Beheer. Events list upcoming and past nights. Per event:
+
+- **Advancing**: every booked artist with a violet tick when complete or an amber warning with what is missing (full name, contact, act and set time, technical rider, bio, press photo, flight/ground/hotel yes-no and details; passport and date of birth only when Moonshine or the venue books travel).
+- **Artist page**: personal and agency details, fee, flight/ground/hotel with their own detail pages, acts, booking notes and content (invoices, logos, press photos/videos, bio, visuals, riders).
+- **Timetable**: acts with set times; one act can hold several artists (B2B). Times after midnight sort after the evening.
+- **Venue**: a checklist of what the venue needs, files for the venue, and **Advancing versturen**: one mail through Outlook with a generated advancing sheet (PDF), technical and hospitality riders (PDF from the rider editor plus uploaded rider files), promo files and links. Items become *verstuurd* only when Outlook accepted the message.
+
+Artists are a reusable roster: riders, EPK and promo content are entered once. Passport and date of birth are masked for viewers and never included in venue mail. PDFs are generated without dependencies (`pdfgen.py`).
+
+Files are stored locally under `data/assets` and copied to OneDrive (`<production folder>/Artiesten/<artist>/…` and `/Evenementen/<date> <event>/…`) when **Koppelingen → Advancing** has OneDrive storage enabled. Sending needs an advancing sender mailbox with `Mail.Send` and `Mail.ReadWrite` (attachments go through a draft; files over 3 MB use an upload session). OneDrive needs `Files.ReadWrite.All` or `Sites.Selected` on the configured drive; folders are created as needed. Restrict application permissions to the intended mailbox and site.
+
+## Installable app (PWA)
+
+`manifest.webmanifest`, `sw.js` and icons make the backoffice installable on phones and desktops. The service worker caches only the app shell; `/api` is network-only, so no financial or artist data is stored on a device. Service workers and Android installation require HTTPS: enable HTTPS certificates in the Tailscale admin console and serve the app through `tailscale serve` (tailnet-only). On plain HTTP, iOS can still add it to the home screen.
+
 ## VAT boundaries
 
 This is a provisional worksheet, not a filed tax return. It includes local posted invoices and classified sales, not the complete Odoo ledger. It omits unsupported tax rubrics and credits, and therefore cannot certify a ready-to-file return. Compare with Odoo's complete statutory report before filing. EU and non-EU reverse-charge services are split between 4b and 4a; only confirmed reverse charge is counted. A UK agency is not an EU supplier. The 9% performer rate depends on the actual artistic service, not the word DJ in a supplier name.
