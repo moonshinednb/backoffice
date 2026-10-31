@@ -79,6 +79,8 @@ const router = createBrowserRouter([{
     { path: 'events/:id/notes', element: <EventPage tab="notes" /> },
     { path: 'events/:id/content', element: <EventPage tab="content" /> },
     { path: 'events/:id/files', element: <EventPage tab="files" /> },
+    { path: 'events/:id/crew', element: <EventPage tab="crew" /> },
+    { path: 'events/:id/guests', element: <EventPage tab="guests" /> },
     { path: 'events/:id/details', element: <EventPage tab="info" /> },
     { path: 'events/:id/artist/:booking', element: <BookingPage /> },
     { path: 'events/:id/artist/:booking/flight', element: <BookingPage sub="flight" /> },

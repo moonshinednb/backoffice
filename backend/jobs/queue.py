@@ -34,6 +34,7 @@ def handlers():
         'drive_booking': lambda p: __import__('production.drive', fromlist=['x']).sync_booking(p['id']),
         'drive_release': lambda p: __import__('production.drive', fromlist=['x']).sync_release(p['id']),
         'drive_voyage': lambda p: __import__('production.drive', fromlist=['x']).sync_voyage(p['id']),
+        'event_lists': lambda p: __import__('production.people', fromlist=['x']).write_drive(p['event_id']),
         'promo_send': lambda p: __import__('promo.services', fromlist=['send_batch']).send_batch(p['campaign_id']),
     }
 

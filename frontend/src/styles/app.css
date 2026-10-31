@@ -304,3 +304,21 @@ button.wide { width: 100%; }
 .my-steps-more { padding: 0 18px 14px; margin: 0; }
 @media (max-width: 1100px) { .steps-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .steps-board, .roles-form { grid-template-columns: 1fr; } }
+/* Crew list and guest list */
+.people { padding: 0; }
+.people-bar { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 14px 18px; border-bottom: 1px solid #241d1f; }
+.people-totals { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; } .people-totals span { opacity: .6; font-size: .84rem; }
+.people-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.people-find { display: flex; align-items: center; gap: 8px; padding: 10px 18px 0; } .people-find svg { width: 15px; opacity: .5; } .people-find input { max-width: 320px; padding: 6px 10px; font-size: .84rem; }
+.people-table { font-size: .84rem; } .people-table th { font-size: .72rem; }
+.people-table td { padding: 2px 6px; height: 34px; } .people-table td.num, .people-table th.num { width: 46px; text-align: center; opacity: .8; }
+.people-table .cell { width: 100%; background: transparent; border: 1px solid transparent; border-radius: 6px; padding: 4px 7px; font-size: .84rem; color: inherit; min-height: 0; height: 28px; }
+.people-table .cell:hover:not(:disabled) { border-color: #ffffff1a; } .people-table .cell:focus { border-color: #ec4860; background: #ffffff08; outline: none; }
+.people-table td.num .cell { text-align: center; padding: 4px 2px; }
+.people-table .muted-cell { opacity: .5; font-size: .76rem; white-space: nowrap; }
+.toggle-pill { padding: 2px 10px; border-radius: 999px; font-size: .74rem; background: #ffffff0a; border: 1px solid #ffffff1a; min-height: 0; }
+.toggle-pill.on { background: #3a2329; border-color: #ec4860; color: #ffb3bf; }
+.people-add { display: grid; gap: 6px; padding: 12px 18px 16px; border-top: 1px solid #241d1f; }
+.people-add.crew { grid-template-columns: 2fr 1.4fr 1.6fr 90px auto; } .people-add.guests { grid-template-columns: 2fr 110px 120px 2fr auto; }
+.people-add input, .people-add select { font-size: .84rem; padding: 7px 9px; }
+@media (max-width: 760px) { .people-add.crew, .people-add.guests { grid-template-columns: 1fr 1fr; } .people-add button { grid-column: 1 / -1; } }

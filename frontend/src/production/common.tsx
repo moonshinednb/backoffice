@@ -197,12 +197,14 @@ export function ContactBlock({ a, prefix = '' }: { a: Record<string, any>; prefi
   </>;
 }
 
-/** Full name and passport: only asked for when Moonshine or the venue books
-    travel or a room in the artist's name. */
-export function TravelId({ a, prefix = '', needed }: { a: Record<string, any>; prefix?: string; needed: boolean }) {
+/** Full name and date of birth: only asked for when Moonshine or the venue
+    books travel or a room in the artist's name (the date of birth for a
+    flight). Passport/ID is always optional. */
+export function TravelId({ a, prefix = '', needed, flight = false }: { a: Record<string, any>; prefix?: string; needed: boolean; flight?: boolean }) {
   const body = <>
     <Field name={prefix + 'full_name'} label={needed ? 'Volledige naam (zoals in paspoort) *' : 'Volledige naam (zoals in paspoort)'} value={a.full_name} autoComplete="off" />
-    <Field name={prefix + 'passport'} label={needed ? 'Paspoort / ID *' : 'Paspoort / ID'} value={a.passport} autoComplete="off" readOnly={a.masked} />
+    <Field name={prefix + 'date_of_birth'} label={flight ? 'Geboortedatum *' : 'Geboortedatum'} value={a.date_of_birth} type={a.masked ? 'text' : 'date'} autoComplete="off" readOnly={a.masked} />
+    <Field name={prefix + 'passport'} label="Paspoort / ID (optioneel)" value={a.passport} autoComplete="off" readOnly={a.masked} />
     <p className="field-hint">Gaat nooit mee in de mail naar de venue.</p>
   </>;
   return needed ? <><h2 className="sub">Reisgegevens</h2><p className="field-hint">Nodig omdat Moonshine of de venue de reis of het hotel boekt.</p>{body}</>

@@ -85,7 +85,7 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
         <section className="card card-pad">
           <h2>Artiest</h2>
           <ContactBlock a={a} prefix="a_" />
-          <TravelId a={a} prefix="a_" needed={needsId} />
+          <TravelId a={a} prefix="a_" needed={needsId} flight={b.flight === 'yes' && ['moonshine', 'venue'].includes(b.flight_info.booked_by)} />
         </section>
         <section className="card card-pad">
           <h2>Boeking</h2>

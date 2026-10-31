@@ -19,6 +19,7 @@ class Event(models.Model):
     steps_seeded = models.BooleanField(default=False, help_text='Team checklist created')
     drive_id = models.CharField(max_length=200, blank=True, default='', help_text='OneDrive folder of this event')
     drive_url = models.CharField(max_length=1000, blank=True, default='')
+    lists_url = models.CharField(max_length=1000, blank=True, default='', help_text='Crew- and guestlist Excel on OneDrive')
     created = models.DateTimeField(auto_now_add=True)
     updated = models.DateTimeField(auto_now=True)
 
@@ -153,6 +154,37 @@ class EventStep(models.Model):
     done_by = models.CharField(max_length=150, blank=True, default='')
     done_at = models.DateTimeField(null=True, blank=True)
     task_id = models.CharField(max_length=24, blank=True, default='')
+    sort = models.IntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort', 'created']
+
+
+class CrewMember(models.Model):
+    """Crew list (backstage entrance), as in the team's Excel: name, role, act, cars."""
+    id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='crew')
+    name = models.CharField(max_length=200)
+    role = models.CharField(max_length=120, blank=True, default='')
+    act = models.CharField(max_length=200, blank=True, default='')
+    cars = models.IntegerField(default=0)
+    sort = models.IntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort', 'created']
+
+
+class Guest(models.Model):
+    """Guest list (frontstage entrance): name, +1s, backstage, relation."""
+    id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='guests')
+    name = models.CharField(max_length=200)
+    plus = models.IntegerField(default=0)
+    backstage = models.BooleanField(default=False)
+    relation = models.CharField(max_length=200, blank=True, default='')
+    added_by = models.CharField(max_length=150, blank=True, default='')
     sort = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
 

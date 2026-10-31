@@ -17,10 +17,18 @@ class MissingTests(TestCase):
         missing = R.missing_items(BOOKING, {'id': 'a', 'contact_via': 'self', 'phone': '+316'}, [], {})
         self.assertFalse(any('agent' in m or 'artiest' in m for m in missing))
 
-    def test_passport_only_when_we_book(self):
+    def test_masked_private_value_is_ignored(self):
+        out = R._artist_payload({'name': 'X', 'passport': '••••', 'date_of_birth': '••••'}, partial=True)
+        self.assertEqual(out, {'name': 'X'})
+
+    def test_date_of_birth_when_we_book_the_flight(self):
         booking = {**BOOKING, 'flight': 'yes', 'flight_info': {'booked_by': 'moonshine'}}
         missing = R.missing_items(booking, {'id': 'a', 'contact_via': 'self', 'email': 'x@y.nl'}, [], {})
-        self.assertIn('Paspoort/ID (voor reis/hotel)', missing)
+        self.assertIn('Geboortedatum (voor de vlucht)', missing)
+        self.assertFalse(any('paspoort' in m.lower() for m in missing))  # passport/ID is optional
+        hotel_only = {**BOOKING, 'hotel': 'yes', 'hotel_info': {'booked_by': 'moonshine'}}
+        missing = R.missing_items(hotel_only, {'id': 'a', 'contact_via': 'self', 'email': 'x@y.nl'}, [], {})
+        self.assertIn('Volledige naam (voor reis/hotel)', missing)
         self.assertFalse(any('geboortedatum' in m.lower() for m in missing))
 
 

@@ -401,6 +401,95 @@ def event_files(request, event_id: str):
     return {'enabled': True, **files}
 
 
+# --- Crew list and guest list per event -----------------------------------------
+
+@router.get('/events/{event_id}/people')
+def event_people(request, event_id: str):
+    require(request, 'production')
+    from . import people
+    return _steps_call(people.overview, event_id)
+
+
+@router.post('/events/{event_id}/crew')
+def crew_add(request, event_id: str):
+    require(request, 'production', write=True)
+    from . import people
+    return _steps_call(people.crew_save, event_id, body(request), actor(request))
+
+
+@router.patch('/crew/{ident}')
+def crew_update(request, ident: str):
+    require(request, 'production', write=True)
+    from . import people
+    return _steps_call(people.crew_save, None, body(request), actor(request), ident)
+
+
+@router.delete('/crew/{ident}')
+def crew_delete(request, ident: str):
+    require(request, 'production', write=True)
+    from . import people
+    from .models import CrewMember
+    _steps_call(people.remove, CrewMember, ident, actor(request))
+    return {'ok': True}
+
+
+@router.post('/events/{event_id}/guests')
+def guest_add(request, event_id: str):
+    require(request, 'production', write=True)
+    from . import people
+    return _steps_call(people.guest_save, event_id, body(request), actor(request))
+
+
+@router.patch('/guests/{ident}')
+def guest_update(request, ident: str):
+    require(request, 'production', write=True)
+    from . import people
+    return _steps_call(people.guest_save, None, body(request), actor(request), ident)
+
+
+@router.delete('/guests/{ident}')
+def guest_delete(request, ident: str):
+    require(request, 'production', write=True)
+    from . import people
+    from .models import Guest
+    _steps_call(people.remove, Guest, ident, actor(request))
+    return {'ok': True}
+
+
+@router.post('/events/{event_id}/crew/copy')
+def crew_copy(request, event_id: str):
+    """Core crew from the previous event (or the template on OneDrive)."""
+    require(request, 'production', write=True)
+    from . import people
+    try:
+        return people.copy_crew(event_id, actor(request))
+    except (ValueError, RuntimeError) as e:
+        raise HttpError(400, str(e))
+
+
+@router.post('/events/{event_id}/people/import')
+def people_import(request, event_id: str):
+    require(request, 'production', write=True)
+    from . import people
+    try:
+        return people.import_drive(event_id, actor(request), force=bool(body(request).get('force')))
+    except (ValueError, RuntimeError) as e:
+        raise HttpError(400, str(e))
+
+
+@router.get('/events/{event_id}/people.xlsx')
+def people_xlsx(request, event_id: str):
+    require(request, 'production')
+    from . import people
+    from .models import Event
+    e = Event.objects.filter(id=event_id).first()
+    if not e:
+        raise HttpError(404, 'Evenement niet gevonden.')
+    response = HttpResponse(people.export_xlsx(e), content_type=people.XLSX)
+    response['Content-Disposition'] = f'attachment; filename="{people.file_name(e)}"'
+    return response
+
+
 # --- Team checklist per event -------------------------------------------------
 
 def _steps_call(fn, *args):

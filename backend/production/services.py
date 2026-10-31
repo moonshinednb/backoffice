@@ -705,10 +705,10 @@ def build_pack(event_id, payload, with_content=True):
     index = asset_index(list(artists), [b['id'] for b in active], event_id)
     attachments, links, warnings = [], [], []
 
-    def add_generated(name, producer):
+    def add_generated(name, producer, mime='application/pdf'):
         content = producer()
         if content is not None:
-            attachments.append({'name': name, 'mime': 'application/pdf', 'source': 'generated', 'content': content, 'size': len(content)})
+            attachments.append({'name': name, 'mime': mime, 'source': 'generated', 'content': content, 'size': len(content)})
 
     def add_assets(rows):
         for asset in rows:
@@ -723,6 +723,11 @@ def build_pack(event_id, payload, with_content=True):
     sheet_keys = keys & {'timetable', 'contacts', 'travel', 'hotel'}
     if sheet_keys:
         add_generated(f"Advancing - {R.safe_name(event['name'])}.pdf", lambda: R.advancing_pdf(data, sheet_keys))
+    if 'guestlist' in keys:
+        from . import people
+        ev = Event.objects.get(id=event_id)
+        if ev.crew.exists() or ev.guests.exists():
+            add_generated(people.file_name(ev), lambda: people.export_xlsx(ev), people.XLSX)
     for b in active:
         artist = artists.get(b['artist_id'], {})
         own = index.get(('artist', artist.get('id')), [])

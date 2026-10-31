@@ -253,8 +253,8 @@ def safe_name(name, fallback='Naamloos'):
 def _artist_payload(payload, partial):
     out = {}
     for key, limit in ARTIST_FIELDS.items():
-        if key not in payload:
-            continue
+        if key not in payload or (key in PRIVATE_FIELDS and payload[key] == '••••'):
+            continue  # a masked value coming back unchanged is not a new value
         raw = payload[key]
         if key in ('email', 'agent_email'):
             out[key] = _email(raw, LABELS[key])
@@ -335,13 +335,15 @@ def missing_items(booking, artist, acts, assets):
     elif booking['hotel'] == 'yes' and not (hotel.get('name') and hotel.get('check_in') and hotel.get('check_out')):
         missing.append('Hotel: naam, check-in en check-out')
 
-    # Full name and passport only matter when we or the venue book travel or
-    # a room in the artist's name.
+    # The full name only matters when we or the venue book travel or a room in
+    # the artist's name; booking a flight also needs the date of birth.
+    # Passport/ID stays optional.
     if needs_id(booking):
         if not artist.get('full_name'):
             missing.append('Volledige naam (voor reis/hotel)')
-        if not artist.get('passport'):
-            missing.append('Paspoort/ID (voor reis/hotel)')
+        flight_by_us = booking.get('flight') == 'yes' and (booking.get('flight_info') or {}).get('booked_by') in ('moonshine', 'venue')
+        if flight_by_us and not artist.get('date_of_birth'):
+            missing.append('Geboortedatum (voor de vlucht)')
     return missing
 
 
