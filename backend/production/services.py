@@ -628,31 +628,37 @@ def asset_delete(ident, actor):
     audit(actor, 'Bestand verwijderd', ident, asset['name'])
 
 
-def _drive_root():
-    return (settings().get('production_folder') or 'Moonshine/Productie').strip('/')
-
-
-def _event_folder(event):
-    return R.safe_name(f"{(event.get('date') or '').strip()} {event.get('name') or ''}".strip(), 'Evenement')
-
-
 def asset_drive_path(asset):
-    root = _drive_root()
-    folder = R.DRIVE_FOLDERS.get(asset['kind'], 'Overig')
+    """Where an uploaded file lives on OneDrive: in the event's own tree
+    (EPK material in 02 EPKs/<artist>, riders together in 03 Riders), our own
+    artists in Artists/<name>, other artists' standard files in 2. Events/_Artiesten."""
+    from . import drive
+    name = R.safe_name(asset['name'], 'Bestand')
+    kind = asset['kind']
     if asset['owner_type'] == 'artist':
         artist = Artist.objects.filter(id=asset['owner_id']).first()
-        base = f"{root}/Artiesten/{R.safe_name(artist.name if artist else '', 'Artiest')}"
-    elif asset['owner_type'] == 'booking':
+        if not artist:
+            raise ValueError('Artiest bestaat niet meer.')
+        root = drive.conf('drive_artists_folder') if artist.in_roster else f"{drive.conf('drive_events_folder')}/_Artiesten"
+        return f"{root}/{R.safe_name(artist.name, 'Artiest')}/{R.DRIVE_FOLDERS.get(kind, 'Overig')}/{name}"
+    artist = ''
+    if asset['owner_type'] == 'booking':
         b = Booking.objects.filter(id=asset['owner_id']).select_related('event', 'artist').first()
         if not b:
             raise ValueError('Boeking bestaat niet meer.')
-        base = f"{root}/Evenementen/{_event_folder(event_dict(b.event))}/Artiesten/{R.safe_name(b.artist.name, 'Artiest')}"
+        event, artist = b.event, R.safe_name(b.artist.name, 'Artiest')
     else:
-        e = Event.objects.filter(id=asset['owner_id']).first()
-        if not e:
+        event = Event.objects.filter(id=asset['owner_id']).first()
+        if not event:
             raise ValueError('Evenement bestaat niet meer.')
-        base = f"{root}/Evenementen/{_event_folder(event_dict(e))}"
-    return f"{base}/{folder}/{R.safe_name(asset['name'], 'Bestand')}"
+    base = drive.event_base(event)
+    key = drive.asset_section(kind)
+    if key == 'riders':
+        label = name if not artist or artist.lower() in name.lower() else f'{artist} - {name}'
+        return f"{base}/{drive.section('riders')}/{label}"
+    if key == 'epks' and artist:
+        return f"{base}/{drive.section('epks')}/{artist}/{name}"
+    return f"{base}/{drive.section(key)}/{name}"
 
 
 def sync_asset(ident):
@@ -810,13 +816,14 @@ def send(event_id, payload, actor):
 def archive_sent(event_id, send_id):
     """Keep the generated documents of a sent mail in the event folder."""
     from integrations.graph import drive_upload
+    from . import drive
     record = Send.objects.get(id=send_id)
-    event = event_dict(Event.objects.get(id=event_id))
+    base = drive.event_base(Event.objects.get(id=event_id))
     pack = build_pack(event_id, {'items': [i['id'] for i in advancing(event_id)['checklist'] if i['label'] in record.items]}, with_content=True)
     stamp = time.strftime('%Y-%m-%d %H.%M', time.localtime(record.created.timestamp()))
     for a in pack['attachments']:
         if a['source'] == 'generated':
-            drive_upload(f"{_drive_root()}/Evenementen/{_event_folder(event)}/Verzonden/{stamp} {R.safe_name(a['name'])}", a['content'], a['mime'])
+            drive_upload(f"{base}/{drive.section('productie')}/Verzonden/{stamp} {R.safe_name(a['name'])}", a['content'], a['mime'])
 
 
 # --- Releases ----------------------------------------------------------------

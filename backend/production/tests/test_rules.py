@@ -77,6 +77,26 @@ class DriveTreeTests(ApiTests):
             drive.sync_event(old['id'])
             self.assertEqual(made, ['2. Events/2025-09-26'])
 
+    def test_upload_lands_in_event_tree(self):
+        from unittest import mock
+        from core.services import set_setting
+        from production import services as S
+        from production.models import Artist, Booking, Event
+        set_setting('onedrive_drive_id', 'drive-1')
+        e = Event.objects.create(name='Moonshine 20/11', date='2030-11-20', drive_id='ev')
+        b = Booking.objects.create(event=e, artist=Artist.objects.create(name='Dwonji'))
+        ours = Artist.objects.create(name='PEPPY', in_roster=True)
+        guest = Artist.objects.create(name='Kanine')
+        where = {'id': 'ev', 'name': '2030-11-20', 'parentReference': {'path': '/drives/d/root:/2.%20Events'}}
+        with mock.patch('integrations.graph.drive_item', return_value=where):
+            p = lambda kind, owner_type, owner_id, name='x.pdf': S.asset_drive_path({'kind': kind, 'owner_type': owner_type, 'owner_id': owner_id, 'name': name})
+            self.assertEqual(p('tech_rider', 'booking', b.id, 'Tech Rider 2026.pdf'), '2. Events/2030-11-20/03 Riders/Dwonji - Tech Rider 2026.pdf')
+            self.assertEqual(p('rider', 'booking', b.id, 'Dwonji rider.pdf'), '2. Events/2030-11-20/03 Riders/Dwonji rider.pdf')
+            self.assertEqual(p('press_photo', 'booking', b.id, 'press.jpg'), '2. Events/2030-11-20/02 EPKs/Dwonji/press.jpg')
+            self.assertEqual(p('guestlist', 'event', e.id, 'guests.xlsx'), '2. Events/2030-11-20/06 Productie/guests.xlsx')
+            self.assertEqual(p('epk', 'artist', ours.id, 'epk.pdf'), 'Artists/PEPPY/EPK/epk.pdf')
+            self.assertEqual(p('rider', 'artist', guest.id, 'rider.pdf'), '2. Events/_Artiesten/Kanine/Riders/rider.pdf')
+
     def test_folder_names(self):
         from production import drive
         from production.models import Event

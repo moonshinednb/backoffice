@@ -13,6 +13,7 @@ DEFAULTS = {
     'drive_events_folder': '2. Events',
     'drive_releases_folder': '4. Releases',
     'drive_past_events_folder': '2. Events/_Past Events',
+    'drive_artists_folder': 'Artists',
     'drive_voyages_folder': '2. Events/_Voyages',
     'drive_voyage_tree': ['Contract', 'Travel', 'Promo', 'Finance'],
     # One folder with all riders (they go to the venue in one go) and one with
@@ -41,6 +42,15 @@ def event_folder_name(e):
     if not e.date:
         return f'[TBC] {name}'
     return e.date if generic else f'{e.date} {name}'
+
+
+ASSET_SECTIONS = {'tech_rider': 'riders', 'hospitality_rider': 'riders', 'rider': 'riders', 'stage_plot': 'riders',
+                  'epk': 'epks', 'logo': 'epks', 'press_photo': 'epks', 'press_video': 'epks', 'bio': 'epks', 'visual': 'epks',
+                  'invoice': 'finance', 'contract': 'finance', 'guestlist': 'productie', 'production': 'productie'}
+
+
+def asset_section(kind):
+    return ASSET_SECTIONS.get(kind, 'productie')
 
 
 def section(key):
@@ -104,13 +114,7 @@ def sync_booking(booking_id):
         return
     if not b.event.drive_id:
         return sync_event(b.event_id)
-    from integrations.graph import drive_item
-    event = drive_item(b.event.drive_id)
-    if not event:
-        return
-    # The event folder may have moved (e.g. to _Past Events): build from where it is now.
-    parent = _parent_path(event)
-    base = f"{parent}/{event['name']}" if parent else event['name']
+    base = event_base(b.event)
     name = R.safe_name(b.artist.name, 'Artiest')
     return _place(b, f"{base}/{section('epks')}/{name}", conf('drive_artist_tree'), name)
 
@@ -141,6 +145,22 @@ def queue(kind, ident):
 
 def is_upcoming(e):
     return not e.date or e.date >= date.today().isoformat()
+
+
+def event_base(e):
+    """Path of the event folder as it is now (it may sit in _Past Events);
+    creates the folder tree first when the event has none yet."""
+    from integrations.graph import drive_item
+    if not enabled():
+        raise ValueError('Stel eerst OneDrive in bij Koppelingen.')
+    if not e.drive_id:
+        sync_event(e.id)
+        e.refresh_from_db()
+    item = drive_item(e.drive_id) if e.drive_id else None
+    if not item:
+        return f"{conf('drive_events_folder')}/{event_folder_name(e)}"
+    parent = _parent_path(item)
+    return f"{parent}/{item['name']}" if parent else item['name']
 
 
 def _parent_path(item):

@@ -240,7 +240,8 @@ def artist_photo(request, ident: str, file: File[UploadedFile]):
         raise HttpError(400, 'Gebruik een JPG-, PNG- of WebP-afbeelding.')
     ext = 'png' if content.startswith(b'\x89PNG') else 'webp' if content[8:12] == b'WEBP' else 'jpg'
     try:
-        a.photo_id, _ = drive_upload(f"Artists/{R.safe_name(a.name, 'Artiest')}/Profielfoto.{ext}", content, f'image/{"jpeg" if ext == "jpg" else ext}')
+        from .drive import conf
+        a.photo_id, _ = drive_upload(f"{conf('drive_artists_folder')}/{R.safe_name(a.name, 'Artiest')}/Profielfoto.{ext}", content, f'image/{"jpeg" if ext == "jpg" else ext}')
     except (ValueError, RuntimeError) as e:
         raise HttpError(400, str(e))
     a.save(update_fields=['photo_id'])

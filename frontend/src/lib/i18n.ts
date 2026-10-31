@@ -739,10 +739,12 @@ const D: Record<string, string> = {
   'Eventmap openen': 'Open event folder', 'Overig in de eventmap': 'Other items in the event folder', 'Map bestaat nog niet.': 'Folder does not exist yet.', 'Nog leeg.': 'Still empty.',
   'De bestanden staan op OneDrive in de eventmap; deel ze gewoon met een SharePoint-link.': 'The files live on OneDrive in the event folder; share them with a SharePoint link.',
   'Nog geen OneDrive-map': 'No OneDrive folder yet', 'Maak de standaardmappen aan; daarna zie je hier per onderdeel wat er op OneDrive staat.': 'Create the standard folders; then you see per section what is on OneDrive.',
-  'Costing/begroting en facturen': 'Costing/budget and invoices', 'Persmateriaal van de line-up, voor de content': 'Press material of the line-up, for content',
+  'Costing en begroting; loopt via Luxor, los van onze eigen boekhouding': 'Costing and budget; handled by Luxor, separate from our own accounting', 'Persmateriaal van de line-up, voor de content': 'Press material of the line-up, for content',
   'Alle riders samen, in één keer naar de venue': 'All riders together, sent to the venue in one go', 'Posters, banners, line-up en artist announcements': 'Posters, banners, line-up and artist announcements',
   'Reels/TikToks, countdown, giveaway en timetable': 'Reels/TikToks, countdown, giveaway and timetable', 'Technical rider, crew- en gastenlijst, advancing, briefings en moodboard': 'Technical rider, crew and guest list, advancing, briefings and moodboard',
   'Foto’s, aftermovie, footage, set-opnames en evaluatie': 'Photos, aftermovie, footage, set recordings and evaluation',
+  'Geüploade riders, EPK’s en promobestanden in de eventmap op OneDrive zetten': 'Put uploaded riders, EPKs and promo files in the event folder on OneDrive',
+  'Map voor onze eigen artiesten (EPK-overzicht)': 'Folder for our own artists (EPK overview)',
   // Server messages
   'Geen verbinding met de server. Controleer of Tailscale aan staat.': 'No connection to the server. Check that Tailscale is on.',
   'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.': 'Your session expired or the page is outdated. Refresh the page and try again.',

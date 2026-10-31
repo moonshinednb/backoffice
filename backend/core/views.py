@@ -21,7 +21,7 @@ SETTING_KEYS = {
     'odoo_fee_account', 'odoo_output_tax_map', 'auto_post', 'auto_match', 'auto_sumup', 'anthropic_model', 'ai_provider', 'ai_model', 'ai_base_url', 'microsoft_client_id',
     'microsoft_tenant', 'mail_enabled', 'onedrive_enabled', 'onedrive_drive_id', 'onedrive_folder', 'todo_enabled', 'todo_list_id',
     'bank_mode', 'odoo_bank_feed', 'labelgrid_label_id', 'opensign_base', 'opensign_template_id', 'advancing_sender',
-    'production_folder', 'production_sync', 'resend_from', 'public_url', 'promo_senders', 'drive_events_folder', 'drive_past_events_folder', 'drive_releases_folder',
+    'production_folder', 'production_sync', 'resend_from', 'public_url', 'promo_senders', 'drive_events_folder', 'drive_past_events_folder', 'drive_artists_folder', 'drive_releases_folder',
     'drive_event_tree', 'drive_artist_tree', 'drive_release_tree', 'drive_voyages_folder', 'drive_voyage_tree', 'meetings_folder', 'meetings_template', 'calendar_enabled', 'calendar_mailbox', 'calendar_push',
 }
 SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'ai_api_key', 'sumup_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token', 'microsoft_todo_refresh_token',
@@ -260,7 +260,7 @@ def save_settings(request):
             if not isinstance(v, list) or len(v) > 40 or any(not isinstance(x, str) or not x.strip() or len(x) > 200 or '..' in x or x.strip().startswith('/') for x in v):
                 raise HttpError(400, 'Mappenlijst: één map per regel, geen lege regels.')
             cfg[key] = [x.strip().strip('/') for x in v]
-    for key in ('drive_events_folder', 'drive_past_events_folder', 'drive_releases_folder', 'drive_voyages_folder'):
+    for key in ('drive_events_folder', 'drive_past_events_folder', 'drive_artists_folder', 'drive_releases_folder', 'drive_voyages_folder'):
         if key in cfg and (not isinstance(cfg[key], str) or '..' in cfg[key] or len(cfg[key]) > 200):
             raise HttpError(400, 'Ongeldige hoofdmap.')
     if cfg.get('ai_provider') not in (None, '', 'anthropic', 'gemini', 'openai'):

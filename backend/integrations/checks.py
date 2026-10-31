@@ -41,7 +41,7 @@ def test_connection(provider):
         graph('/users/' + urllib.parse.quote(sender, safe='') + '/mailFolders/drafts?$select=id')
         message = 'Verzendmailbox ' + sender + ' bereikbaar'
         if cfg.get('production_sync'):
-            _ensure_folder((cfg.get('production_folder') or 'Moonshine/Productie').strip('/'))
+            _ensure_folder((cfg.get('drive_events_folder') or '2. Events').strip('/'))
             message += ' · OneDrive-map bereikbaar'
         return {'message': message}
     if provider == 'todo':

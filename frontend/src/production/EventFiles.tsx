@@ -8,7 +8,7 @@ type Section = { name: string; url: string; exists: boolean; items: Item[]; coun
 type Files = { enabled: boolean; url: string; sections: Section[]; other: Item[] };
 
 const HINT: Record<string, string> = {
-  finance: 'Costing/begroting en facturen',
+  finance: 'Costing en begroting; loopt via Luxor, los van onze eigen boekhouding',
   epks: 'Persmateriaal van de line-up, voor de content',
   riders: 'Alle riders samen, in één keer naar de venue',
   artwork: 'Posters, banners, line-up en artist announcements',
