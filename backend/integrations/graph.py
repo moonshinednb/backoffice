@@ -37,9 +37,8 @@ def graph_token(delegated=False):
                 raise ValueError('Microsoft To Do heeft een eenmalige inlog nodig (refresh-token ontbreekt).')
             if s.get('microsoft_todo_access_token') and s.get('microsoft_todo_expires', 0) > time.time() + 90:
                 return s['microsoft_todo_access_token']
-            body = {'client_id': client, 'grant_type': 'refresh_token', 'refresh_token': refresh, 'scope': 'https://graph.microsoft.com/.default offline_access'}
-            if s.get('microsoft_client_secret'):
-                body['client_secret'] = s['microsoft_client_secret']
+            # The device-code login makes the app a public client: no client secret here.
+            body = {'client_id': client, 'grant_type': 'refresh_token', 'refresh_token': refresh, 'scope': 'Tasks.ReadWrite offline_access'}
             r = _token_request(body)
             s['microsoft_todo_access_token'] = r['access_token']
             s['microsoft_todo_expires'] = time.time() + r.get('expires_in', 3600)

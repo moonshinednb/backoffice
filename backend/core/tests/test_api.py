@@ -135,6 +135,7 @@ class MicrosoftTokenTests(ApiTests):
             self.assertEqual(graph.graph_token(), 'at-client_credentials')
             self.assertEqual(graph.graph_token(delegated=True), 'at-refresh_token')
         self.assertEqual(bodies[1]['refresh_token'], ['todo-refresh'])
+        self.assertNotIn('client_secret', bodies[1])
 
 
 class KeyTestTests(ApiTests):
