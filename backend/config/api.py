@@ -17,6 +17,7 @@ from core.notify import router as notify_router
 from promo.views import router as promo_router
 from production.voyages import router as voyage_router
 from feedback.views import router as feedback_router
+from meetings.views import router as meetings_router
 
 api = NinjaAPI(title='Moonshine Backoffice', version='2.0', auth=django_auth, urls_namespace='api')
 
@@ -55,6 +56,7 @@ api.add_router('/', notify_router)
 api.add_router('/', promo_router)
 api.add_router('/', voyage_router)
 api.add_router('/', feedback_router)
+api.add_router('/', meetings_router)
 api.add_router('/', finance_router)
 api.add_router('/', production_router)
 api.add_router('/webhooks', webhook_router)

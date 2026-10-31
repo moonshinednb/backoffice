@@ -17,7 +17,7 @@ const FINANCE = ['/invoices', '/odoo', '/bank', '/vat', '/documents'];
 
 export function sections(role: string): [string, Item[]][] {
   const all: [string, Item[]][] = [
-    ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/tasks', 'Taken', 'tasks']]],
+    ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/tasks', 'Taken', 'tasks'], ['/meetings', 'Meetings', 'users']]],
     ['Productie', [['/events', 'Evenementen', 'calendar'], ['/voyages', 'Voyages', 'plane'], ['/label', 'Label', 'music']]],
     ['Financiën', [['/invoices', 'Financiën', 'wallet']]],
     ['Beheer', [['/admin', 'Admin', 'settings']]],

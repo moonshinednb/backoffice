@@ -24,6 +24,7 @@ Lees dit eerst; dan hoef je niet de hele code door. Houd het bij als er iets str
 | `production/rules.py` | pure regels: validatie, `missing_items` (advancing compleet?), `contact_via`, `needs_id`, pdf's |
 | `production/voyages.py` | Voyages: outbound shows (Voyage + VoyageNote contactlog), OneDrive-map `2. Events/_Voyages/…` |
 | `feedback/` | Track feedback: Track, Review (per persoon productie/compositie 1–10, oordeel, feedback), TrackLog; audio op OneDrive `3. Scouting/Demo's/<artiest>/` + stream-redirect; import `manage.py import_track_feedback` (TRACK FEEDBACK.xlsx + Feedback Files/<n>.docx + Track options + V2) |
+| `meetings/` | Meeting (tekst van de Word-notulen op OneDrive `1. Vergaderingen/<jaar>/<maand>/…`) + Action (actiepunt per persoon); AI-extractie via `integrations/claude.complete_json` met fallback; nieuw = sjabloon kopiëren naar OneDrive; worker leest recente notulen elke 30 min; import `manage.py import_meetings` |
 | `promo/` | Contact, Template, Campaign, Recipient; import Excel (openpyxl), verzenden via Graph `send_mail` in worker-job `promo_send` |
 | `integrations/` | http.py (veilige HTTPS), graph.py (Microsoft), odoo.py, claude.py (AI-factuurlezer met aanbieder-keuze: Claude, Gemini, OpenAI-compatibel; instellingen `ai_*`), providers.py (LabelGrid, OpenSign, To Do), resend.py, checks.py (verbinding testen) |
 | `jobs/` | Job/Schedule, queue.py (handlers + periodic) |

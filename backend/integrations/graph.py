@@ -207,6 +207,45 @@ def download_path(path):
         return response.read()
 
 
+def download_item(item_id):
+    item = drive_item(item_id)
+    url = (item or {}).get('@microsoft.graph.downloadUrl')
+    if not url:
+        raise ValueError('Bestand niet gevonden op OneDrive.')
+    secure_url(url)
+    with urllib.request.urlopen(url, timeout=120) as response:
+        return item, response.read()
+
+
+def drive_children(path):
+    """Items directly inside a folder (by path), or [] when it does not exist."""
+    try:
+        return http(_drive_base() + '/root:/' + urllib.parse.quote(path.strip('/'), safe='/') + ':/children?$top=200', None, _drive_token()).get('value', [])
+    except HttpError as e:
+        if e.code == 404:
+            return []
+        raise
+
+
+def copy_item(path, folder, name):
+    """Copy a file into a folder under a new name; wait until it exists."""
+    import time as _t
+    source = http(_drive_base() + '/root:/' + urllib.parse.quote(path.strip('/'), safe='/'), None, _drive_token())
+    target = ensure_path(folder)
+    drive_id = settings().get('onedrive_drive_id', '')
+    http(_drive_base() + '/items/' + urllib.parse.quote(source['id'], safe='') + '/copy',
+         {'parentReference': {'driveId': drive_id, 'id': target['id']}, 'name': name}, {**_drive_token(), 'Content-Type': 'application/json'}, 'POST')
+    for _ in range(20):
+        _t.sleep(1)
+        try:
+            item = http(_drive_base() + '/root:/' + urllib.parse.quote(f"{folder.strip('/')}/{name}", safe='/'), None, _drive_token())
+            return {'id': item['id'], 'webUrl': item.get('webUrl', '')}
+        except HttpError as e:
+            if e.code != 404:
+                raise
+    raise RuntimeError('OneDrive is nog bezig met kopiëren; probeer het zo opnieuw.')
+
+
 def rename_item(item_id, name):
     item = http(_drive_base() + '/items/' + urllib.parse.quote(item_id, safe=''), {'name': name},
                 {**_drive_token(), 'Content-Type': 'application/json'}, 'PATCH')

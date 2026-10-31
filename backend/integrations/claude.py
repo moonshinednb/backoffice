@@ -91,3 +91,27 @@ def models():
         raise ValueError('Vul het API-adres van de aanbieder in.')
     secure_url(base)
     return [m.get('id') for m in http(base + '/models', headers={'Authorization': 'Bearer ' + key}).get('data', [])][:100]
+
+
+def complete(prompt, max_tokens=3000):
+    """Plain text completion with the configured AI provider (no documents)."""
+    provider, key, model, base = config()
+    if not key or not model:
+        raise ValueError('De AI-koppeling is nog niet ingesteld.')
+    if provider == 'anthropic':
+        r = http('https://api.anthropic.com/v1/messages', {'model': model, 'max_tokens': max_tokens, 'messages': [{'role': 'user', 'content': prompt}]},
+                 {'x-api-key': key, 'anthropic-version': '2023-06-01'})
+        return ''.join(x.get('text', '') for x in r.get('content', []) if x.get('type') == 'text')
+    if provider == 'gemini':
+        r = http('https://generativelanguage.googleapis.com/v1beta/models/' + urllib.parse.quote(model, safe='') + ':generateContent',
+                 {'contents': [{'parts': [{'text': prompt}]}], 'generationConfig': {'responseMimeType': 'application/json', 'temperature': 0}}, {'x-goog-api-key': key})
+        return ''.join(p.get('text', '') for c in r.get('candidates', [])[:1] for p in c.get('content', {}).get('parts', []))
+    secure_url(base)
+    r = http(base + '/chat/completions', {'model': model, 'temperature': 0, 'max_tokens': max_tokens, 'messages': [{'role': 'user', 'content': prompt}]},
+             {'Authorization': 'Bearer ' + key})
+    return ((r.get('choices') or [{}])[0].get('message') or {}).get('content', '')
+
+
+def complete_json(prompt):
+    """Completion that must return a JSON object."""
+    return _text_to_dict(complete(prompt))

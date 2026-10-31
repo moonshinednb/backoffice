@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'jobs',
     'promo',
     'feedback',
+    'meetings',
 ]
 
 MIDDLEWARE = [

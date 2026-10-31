@@ -1,17 +1,17 @@
 # Graph Report - backoffice  (2026-10-31)
 
 ## Corpus Check
-- 144 files · ~82,169 words
+- 158 files · ~85,948 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 12 file(s) not represented in the graph (top: .css 6, (none) 3, .example 1)
 
 ## Summary
-- 1321 nodes · 4164 edges · 79 communities (45 shown, 34 thin omitted)
-- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 309 edges (avg confidence: 0.93)
+- 1406 nodes · 4457 edges · 90 communities (53 shown, 37 thin omitted)
+- Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 334 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `20e838f9`
+- Built from commit: `41bf67a1`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -30,12 +30,12 @@
 - Work.tsx
 - Accounting and Invoice Models
 - Notifications and API Tests
-- http
+- settings
 - Promo Mailing
 - Chat and Access Helpers
 - api
 - graph.py
-- Admin.tsx
+- format.ts
 - Odoo Integration
 - finance/views.py
 - TypeScript Config
@@ -52,7 +52,7 @@
 - JS Type Declarations
 - deploy.sh
 - promo/services.py
-- json
+- meetings/services.py
 - ssh.sh
 - Moonshine Backoffice
 - notify.py
@@ -65,27 +65,33 @@
 - Moonshine: OpenSign en promomailer
 - Functionele en beveiligingsreview
 - pwa.tsx
-- settings
-- reset.py
-- Release
-- User
+- core/services.py
+- HttpError
+- import_track_feedback.py
+- meetings/views.py
 - LegacyScryptHasher
-- Projectkaart Moonshine Backoffice
-- import_contacts
-- MissingTests
+- audit
+- Artist
+- test_api.py
 - test_feedback.py
+- Feedback.tsx
+- Release
+- Asset
+- feedback/services.py
+- Event
+- upload
 
 ## God Nodes (most connected - your core abstractions)
-1. `require()` - 108 edges
-2. `api()` - 89 edges
-3. `Icon()` - 79 edges
-4. `audit()` - 76 edges
-5. `body()` - 63 edges
-6. `actor()` - 58 edges
-7. `post()` - 56 edges
-8. `HttpError` - 56 edges
-9. `useToast()` - 47 edges
-10. `settings()` - 44 edges
+1. `require()` - 119 edges
+2. `api()` - 94 edges
+3. `Icon()` - 82 edges
+4. `audit()` - 81 edges
+5. `body()` - 67 edges
+6. `HttpError` - 64 edges
+7. `actor()` - 62 edges
+8. `post()` - 61 edges
+9. `useToast()` - 50 edges
+10. `settings()` - 48 edges
 
 ## Surprising Connections (you probably didn't know these)
 - `Afspraken` --references--> `connections()`  [INFERRED]
@@ -102,31 +108,31 @@
 ## Import Cycles
 - None detected.
 
-## Communities (79 total, 34 thin omitted)
+## Communities (90 total, 37 thin omitted)
 
 ### Community 0 - "production/services.py"
-Cohesion: 0.06
-Nodes (79): audit(), handlers(), next_catalog(), queue(), Act, Artist, Meta, Asset (+71 more)
+Cohesion: 0.19
+Nodes (25): Booking, Meta, act_dict(), advancing(), artist_dict(), artist_get(), artist_list(), asset_delete() (+17 more)
 
 ### Community 1 - "Frontend Auth Context"
-Cohesion: 0.10
-Nodes (35): Options, Auth, AuthContext, useAuth(), User, ROLE, size(), Icon() (+27 more)
+Cohesion: 0.06
+Nodes (49): Options, setCsrf(), Auth, AuthContext, AuthProvider(), useAuth(), User, ROLE (+41 more)
 
 ### Community 2 - "queue.py"
-Cohesion: 0.11
-Nodes (14): Stack, deadlines(), safe_error(), Command, Job, Meta, Schedule, claim_next() (+6 more)
+Cohesion: 0.10
+Nodes (15): Stack, deadlines(), safe_error(), sync_todo(), Command, Job, Meta, Schedule (+7 more)
 
 ### Community 3 - "PDF Writer"
-Cohesion: 0.06
-Nodes (37): Backend-apps, _Canvas, _char_width(), _clean(), _pdf_string(), render(), _serialize(), _table() (+29 more)
+Cohesion: 0.05
+Nodes (43): Afspraken, API (alle onder /api), Backend-apps, Frontend (frontend/src), Projectkaart Moonshine Backoffice, parse_date(), _Canvas, _char_width() (+35 more)
 
 ### Community 4 - "require"
-Cohesion: 0.17
-Nodes (23): require(), advancing_pdf(), artist(), artists(), asset_file(), booking(), contracts(), delete_act() (+15 more)
+Cohesion: 0.12
+Nodes (29): require(), labelgrid_pull(), LabelStatement, Meta, ReleaseStep, Meta, advancing_pdf(), artist() (+21 more)
 
 ### Community 5 - "Label.tsx"
-Cohesion: 0.10
-Nodes (33): Badge(), useAction(), avg(), DECISION, FeedbackList(), FeedbackTrack(), grade(), mark() (+25 more)
+Cohesion: 0.09
+Nodes (58): fullDate(), stamp(), today(), ErrorBox(), formValues(), Loading(), PageTitle(), useAction() (+50 more)
 
 ### Community 6 - "Frontend Dependencies"
 Cohesion: 0.06
@@ -134,114 +140,114 @@ Nodes (45): dependencies, react@^19.3.1, react-dom@^19.3.1, react-router@^7.18.5
 
 ### Community 7 - "core/models.py"
 Cohesion: 0.07
-Nodes (17): Migration, Migration, Migration, Migration, Migration, Migration, Migration, Migration (+9 more)
+Nodes (18): Migration, Migration, Migration, Migration, Migration, Migration, Migration, Migration (+10 more)
 
 ### Community 8 - "Artist Pages and Riders"
-Cohesion: 0.11
-Nodes (56): download(), euroInput(), stamp(), BackLink(), formValues(), useToast(), Artist, ArtistPage() (+48 more)
+Cohesion: 0.12
+Nodes (46): download(), euroInput(), size(), BackLink(), useToast(), Artist, ArtistPage(), Rider() (+38 more)
 
 ### Community 9 - "Docker Compose Setup"
 Cohesion: 0.05
 Nodes (45): build, container_name, depends_on, environment, ports, restart, user, volumes (+37 more)
 
 ### Community 10 - "core/views.py"
-Cohesion: 0.13
-Nodes (22): AuditLog, Meta, LoginAttempt, Task, Meta, assigned(), audit_log(), check_origin() (+14 more)
+Cohesion: 0.15
+Nodes (18): AuditLog, Meta, Task, Meta, audit_log(), connections(), create_task(), dashboard() (+10 more)
 
 ### Community 11 - "Work.tsx"
-Cohesion: 0.09
-Nodes (51): can, asDate(), dayNumber(), eur(), fullDate(), longDate(), monthShort(), shortDate() (+43 more)
+Cohesion: 0.10
+Nodes (49): saveBlob(), can, eur(), Icon(), PATHS, Badge(), Empty(), Orb() (+41 more)
 
 ### Community 12 - "Accounting and Invoice Models"
-Cohesion: 0.14
-Nodes (22): cents(), suggest_matches(), validate_invoice(), vat_report(), Document, Meta, Transaction, Meta (+14 more)
+Cohesion: 0.09
+Nodes (29): cents(), suggest_matches(), validate_invoice(), vat_report(), Document, Meta, ProcessedMessage, Transaction (+21 more)
 
 ### Community 13 - "Notifications and API Tests"
-Cohesion: 0.14
-Nodes (11): set_setting(), AiProviderTests, ApiTests, ChatProfileTests, KeyTestTests, MicrosoftTokenTests, ResetTests, ReleaseTests (+3 more)
+Cohesion: 0.13
+Nodes (9): AiProviderTests, ApiTests, ChatProfileTests, KeyTestTests, MeetingTests, ReleaseTests, VoyageTests, NotifyTests (+1 more)
 
-### Community 14 - "http"
-Cohesion: 0.20
-Nodes (13): test_connection(), _ensure_folder(), graph(), graph_pages(), http(), NoCredentialRedirect, labelgrid_http(), labelgrid_pull() (+5 more)
+### Community 14 - "settings"
+Cohesion: 0.18
+Nodes (12): secret_values(), settings(), get_settings(), test_connection(), NoCredentialRedirect, odoo_catalog(), labelgrid_http(), opensign_create() (+4 more)
 
 ### Community 15 - "Promo Mailing"
-Cohesion: 0.12
-Nodes (20): Contact, Meta, add_contact(), campaign(), _campaign(), campaigns(), contacts(), create_campaign() (+12 more)
+Cohesion: 0.13
+Nodes (17): Contact, Meta, campaign(), _campaign(), campaigns(), contacts(), delete_campaign(), delete_contact() (+9 more)
 
 ### Community 16 - "Chat and Access Helpers"
-Cohesion: 0.14
-Nodes (14): avatar(), delete_avatar(), messages(), _msg(), overview(), profile_dict(), send(), _thread() (+6 more)
+Cohesion: 0.11
+Nodes (13): avatar(), delete_avatar(), messages(), _msg(), overview(), profile_dict(), send(), _thread() (+5 more)
 
 ### Community 17 - "api"
-Cohesion: 0.15
-Nodes (18): api(), ApiError, ResetPassword(), submit(), test(), KeysPage(), save(), test() (+10 more)
+Cohesion: 0.13
+Nodes (24): api(), ApiError, ResetPassword(), submit(), test(), KeysPage(), save(), test() (+16 more)
 
 ### Community 18 - "graph.py"
-Cohesion: 0.20
-Nodes (8): download_path(), _drive_base(), drive_item(), _drive_token(), drive_upload(), ensure_path(), rename_item(), _upload_chunks()
+Cohesion: 0.14
+Nodes (18): save_secrets(), copy_item(), download_item(), download_path(), _drive_base(), drive_children(), drive_item(), _drive_token() (+10 more)
 
-### Community 19 - "Admin.tsx"
-Cohesion: 0.08
-Nodes (47): saveBlob(), today(), Empty(), ErrorBox(), Loading(), PageTitle(), Stat(), ToastProvider() (+39 more)
+### Community 19 - "format.ts"
+Cohesion: 0.39
+Nodes (10): asDate(), dayNumber(), longDate(), monthShort(), shortDate(), locale(), StatusBadge(), EventRow (+2 more)
 
 ### Community 21 - "finance/views.py"
-Cohesion: 0.15
-Nodes (14): classify(), _doc(), document_file(), documents(), export(), import_transactions(), match(), odoo_overview() (+6 more)
+Cohesion: 0.14
+Nodes (15): classify(), _doc(), document_file(), documents(), export(), import_transactions(), match(), odoo_overview() (+7 more)
 
 ### Community 22 - "TypeScript Config"
 Cohesion: 0.12
 Nodes (16): compilerOptions, allowJs, checkJs, isolatedModules, jsx, lib, module, moduleResolution (+8 more)
 
 ### Community 23 - "Django App Configs"
-Cohesion: 0.11
-Nodes (6): CoreConfig, FeedbackConfig, FinanceConfig, JobsConfig, ProductionConfig, PromoConfig
+Cohesion: 0.09
+Nodes (7): CoreConfig, FeedbackConfig, FinanceConfig, JobsConfig, MeetingsConfig, ProductionConfig, PromoConfig
 
 ### Community 24 - "voyages.py"
-Cohesion: 0.16
+Cohesion: 0.17
 Nodes (12): Voyage, Meta, VoyageNote, Meta, add_log(), _apply(), create(), delete() (+4 more)
 
 ### Community 25 - "body"
-Cohesion: 0.11
-Nodes (35): actor(), body(), mark_read(), change_password(), create_user(), save_settings(), test_connection(), comment() (+27 more)
+Cohesion: 0.19
+Nodes (26): actor(), body(), test_connection(), post(), add_act(), add_booking(), add_check(), add_link() (+18 more)
 
 ### Community 26 - "import_legacy.py"
-Cohesion: 0.11
-Nodes (9): Command, stamp(), js(), when(), Setting, ProcessedMessage, Migration, LabelStatement (+1 more)
+Cohesion: 0.14
+Nodes (11): Command, stamp(), js(), when(), Contract, Meta, EventNote, Meta (+3 more)
 
 ### Community 28 - "Frontend Translations"
-Cohesion: 0.23
-Nodes (11): setCsrf(), AuthProvider(), ATTRS, current, D, lang, P, setLang() (+3 more)
+Cohesion: 0.29
+Nodes (9): ATTRS, current, D, lang, P, setLang(), start(), t() (+1 more)
 
 ### Community 29 - "claude.py"
-Cohesion: 0.20
-Nodes (7): poll_mail(), _call(), config(), extract(), models(), _text_to_dict(), secure_url()
+Cohesion: 0.26
+Nodes (8): _call(), complete(), complete_json(), config(), extract(), models(), _text_to_dict(), secure_url()
 
 ### Community 51 - "promo/services.py"
-Cohesion: 0.12
-Nodes (24): send_mail(), UncertainSend, Campaign, Meta, Recipient, Meta, Template, Meta (+16 more)
+Cohesion: 0.14
+Nodes (22): Campaign, Meta, Recipient, Meta, Template, Meta, campaign_create(), campaign_dict() (+14 more)
 
-### Community 52 - "json"
-Cohesion: 0.31
-Nodes (9): secret_values(), bank(), opensign(), outlook(), import_csv(), insert_transactions(), transaction_values(), Contract (+1 more)
+### Community 52 - "meetings/services.py"
+Cohesion: 0.10
+Nodes (13): Command, Meeting, Meta, action_dict(), create(), extract(), heuristic(), meeting_dict() (+5 more)
 
 ### Community 54 - "Moonshine Backoffice"
 Cohesion: 0.15
 Nodes (12): Claude, Connection setup, Features that work without external accounts, ING and SumUp, Installable app (PWA), Moonshine Backoffice, Odoo, Outlook, OneDrive and Microsoft To Do (+4 more)
 
 ### Community 55 - "notify.py"
-Cohesion: 0.21
-Nodes (6): Notification, Meta, done(), involved(), notifications(), notify()
+Cohesion: 0.17
+Nodes (9): Notification, Meta, assigned(), done(), involved(), mark_read(), notifications(), notify() (+1 more)
 
 ### Community 56 - "api.py"
 Cohesion: 0.33
 Nodes (5): auth_error(), http_error(), runtime_error(), unexpected(), value_error()
 
 ### Community 59 - "feedback/views.py"
-Cohesion: 0.14
-Nodes (10): Track, Meta, TrackLog, Meta, delete(), detail(), stream(), _track() (+2 more)
+Cohesion: 0.12
+Nodes (10): comment(), create(), delete(), detail(), review(), stream(), _track(), tracks() (+2 more)
 
 ### Community 60 - "drive.py"
-Cohesion: 0.28
+Cohesion: 0.26
 Nodes (10): conf(), enabled(), event_folder_name(), _place(), release_folder_name(), sync_booking(), sync_event(), sync_release() (+2 more)
 
 ### Community 61 - "Moonshine Backoffice: werkafspraken voor Claude"
@@ -264,43 +270,75 @@ Nodes (5): Functionaliteit en grenzen, Functionele en beveiligingsreview, Operat
 Cohesion: 0.83
 Nodes (3): installSteps(), platform(), standalone()
 
-### Community 66 - "settings"
-Cohesion: 0.16
-Nodes (8): save_secrets(), settings(), get_settings(), graph_token(), _token_request(), odoo_catalog(), odoo_overview(), send_email()
-
-### Community 67 - "reset.py"
-Cohesion: 0.18
-Nodes (5): PasswordReset, digest(), forgot(), reset(), ingest()
-
-### Community 68 - "Release"
-Cohesion: 0.13
-Nodes (15): Command, docx_text(), num(), who(), Review, Meta, apply(), average() (+7 more)
-
-### Community 71 - "Projectkaart Moonshine Backoffice"
+### Community 66 - "core/services.py"
 Cohesion: 0.33
-Nodes (5): Afspraken, API (alle onder /api), Frontend (frontend/src), Projectkaart Moonshine Backoffice, LegacyRedirect()
+Nodes (3): Setting, uid(), set_setting()
+
+### Community 67 - "HttpError"
+Cohesion: 0.09
+Nodes (17): update_profile(), upload_avatar(), PasswordReset, digest(), forgot(), reset(), change_password(), check_origin() (+9 more)
+
+### Community 68 - "import_track_feedback.py"
+Cohesion: 0.16
+Nodes (9): Command, num(), who(), Review, Meta, Track, Meta, TrackLog (+1 more)
+
+### Community 69 - "meetings/views.py"
+Cohesion: 0.17
+Nodes (14): Action, Meta, add_action(), board(), create(), delete_action(), detail(), _err() (+6 more)
+
+### Community 71 - "audit"
+Cohesion: 0.15
+Nodes (15): audit(), send_mail(), UncertainSend, Act, ChecklistItem, Meta, act_create(), act_delete() (+7 more)
+
+### Community 72 - "Artist"
+Cohesion: 0.18
+Nodes (12): Artist, Meta, archive_sent(), artist_create(), artist_update(), asset_content(), asset_drive_path(), add_assets() (+4 more)
+
+### Community 74 - "test_api.py"
+Cohesion: 0.20
+Nodes (3): MicrosoftTokenTests, ResetTests, MissingTests
 
 ### Community 75 - "test_feedback.py"
-Cohesion: 0.20
-Nodes (5): docx(), fake(), FeedbackTests, options(), sheet()
+Cohesion: 0.22
+Nodes (6): docx(), fake(), FeedbackTests, options(), sheet(), docx_text()
+
+### Community 79 - "Feedback.tsx"
+Cohesion: 0.26
+Nodes (12): avg(), DECISION, FeedbackList(), FeedbackTrack(), upload(), grade(), mark(), Player() (+4 more)
+
+### Community 80 - "Release"
+Cohesion: 0.24
+Nodes (9): next_catalog(), Release, Meta, label_artists(), release_dict(), release_save(), seed_steps(), step_dict() (+1 more)
+
+### Community 81 - "Asset"
+Cohesion: 0.22
+Nodes (8): Asset, Meta, artist_delete(), asset_add_file(), asset_add_link(), event_remove(), _owner_exists(), queue_pending_syncs()
+
+### Community 82 - "feedback/services.py"
+Cohesion: 0.43
+Nodes (7): apply(), average(), display(), review_dict(), save_review(), score(), track_dict()
+
+### Community 83 - "Event"
+Cohesion: 0.36
+Nodes (7): queue(), Event, Meta, booking_add(), event_create(), event_update(), seed_checklist()
 
 ## Knowledge Gaps
-- **34 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **37 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `Projectkaart Moonshine Backoffice` connect `Projectkaart Moonshine Backoffice` to `queue.py`, `PDF Writer`?**
+- **Why does `Projectkaart Moonshine Backoffice` connect `PDF Writer` to `queue.py`?**
   _High betweenness centrality (0.312) - this node is a cross-community bridge._
-- **Should `production/services.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.06235069278547539 - nodes in this community are weakly interconnected._
-- **Why does `LegacyRedirect()` connect `Projectkaart Moonshine Backoffice` to `Admin.tsx`?**
-  _High betweenness centrality (0.310) - this node is a cross-community bridge._
 - **Should `Frontend Auth Context` be split into smaller, more focused modules?**
-  _Cohesion score 0.09713487071977638 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.061175666438824335 - nodes in this community are weakly interconnected._
+- **Why does `LegacyRedirect()` connect `PDF Writer` to `Frontend Auth Context`?**
+  _High betweenness centrality (0.304) - this node is a cross-community bridge._
 - **Should `queue.py` be split into smaller, more focused modules?**
-  _Cohesion score 0.1103448275862069 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.10080645161290322 - nodes in this community are weakly interconnected._
 - **Should `PDF Writer` be split into smaller, more focused modules?**
-  _Cohesion score 0.06448087431693988 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.05300207039337474 - nodes in this community are weakly interconnected._
+- **Should `require` be split into smaller, more focused modules?**
+  _Cohesion score 0.12312312312312312 - nodes in this community are weakly interconnected._
 - **Should `Label.tsx` be split into smaller, more focused modules?**
-  _Cohesion score 0.10121457489878542 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.08904428904428904 - nodes in this community are weakly interconnected._

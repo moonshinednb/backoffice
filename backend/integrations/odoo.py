@@ -14,13 +14,17 @@ from .http import http, secure_url
 
 class Odoo:
     def __init__(self):
-        self.cfg=settings();self.secret=secret_values();self.url=self.cfg.get('odoo_url','').rstrip('/');self.db=self.cfg.get('odoo_database','');self.key=self.secret.get('odoo_api_key','');self.user=self.cfg.get('odoo_username','')
-        secure_url(self.url)
+        self.cfg=settings();self.secret=secret_values();self.db=self.cfg.get('odoo_database') or '';self.key=self.secret.get('odoo_api_key') or '';self.user=self.cfg.get('odoo_username') or ''
+        self.url=self.cfg.get('odoo_url') or ''
+        self.url=self.url.rstrip('/')
         missing=[]
+        if not self.url.strip():missing.append('Odoo-URL (bijv. https://moonshine.odoo.com)')
         if not self.db.strip():missing.append('databasenaam')
         if not self.user.strip():missing.append('login')
         if not self.key.strip():missing.append('API-sleutel')
-        if missing:raise ValueError('Odoo: vul de volgende gegevens in: '+', '.join(missing)+'.')
+        if missing:raise ValueError('Odoo: vul bij Admin → Koppelingen → Odoo nog in: '+', '.join(missing)+'.')
+        try:secure_url(self.url)
+        except ValueError:raise ValueError('Odoo-URL moet met https:// beginnen, zonder gebruikersnaam of # erin.')
         self.uid=self.rpc('common','authenticate',[self.db,self.user,self.key,{}])
         if not self.uid:raise ValueError('Odoo-login mislukt.')
     def rpc(self,service,method,args):

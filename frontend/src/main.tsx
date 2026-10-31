@@ -17,6 +17,7 @@ import './shell/pwa';
 import { Login } from './login/Login';
 import { ResetPassword } from './login/Reset';
 import { DashboardPage, TasksPage } from './pages/Work';
+import { MeetingPage, MeetingsPage } from './pages/Meetings';
 import { BankPage, DocumentsPage, FinanceLayout, InvoicesPage, OdooPage, VatPage } from './pages/Finance';
 import { ActivityPage, AdminHome, AdminLayout, IntegrationsPage, KeysPage, SettingsPage, UsersPage } from './pages/Admin';
 import { Events } from './production/Events';
@@ -64,6 +65,8 @@ const router = createBrowserRouter([{
   children: [
     { index: true, element: <DashboardPage /> },
     { path: 'tasks', element: <TasksPage /> },
+    { path: 'meetings', element: <MeetingsPage /> },
+    { path: 'meetings/:id', element: <MeetingPage /> },
     { path: 'events', element: <Events /> },
     { path: 'events/past', element: <Events past /> },
     { path: 'events/:id', element: <EventPage /> },

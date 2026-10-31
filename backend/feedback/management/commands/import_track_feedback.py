@@ -19,13 +19,7 @@ def who(name):
     return NAMES.get(name.strip().lower(), name.strip())
 
 
-def docx_text(content):
-    z = zipfile.ZipFile(io.BytesIO(content))
-    x = z.read('word/document.xml').decode('utf8')
-    x = re.sub(r'</w:p>', '\n', x)
-    x = re.sub(r'<w:tab/>', '\t', x)
-    t = re.sub(r'<[^>]+>', '', x)
-    return re.sub(r'&amp;', '&', re.sub(r'&lt;', '<', re.sub(r'&gt;', '>', re.sub(r'&quot;', '"', t))))
+from integrations.office import docx_text  # noqa: E402
 
 
 def num(v):

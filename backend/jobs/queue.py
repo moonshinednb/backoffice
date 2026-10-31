@@ -75,6 +75,7 @@ def periodic():
     from integrations.providers import sync_todo
     from production.services import queue_pending_syncs
     from core.notify import deadlines
+    from meetings.services import refresh_recent as refresh_meetings
     cfg = settings()
     return {
         'Outlook-facturen': (60, finance.poll_mail, cfg.get('mail_enabled')),
@@ -83,6 +84,7 @@ def periodic():
         'Bestanden naar OneDrive': (30, queue_pending_syncs, cfg.get('production_sync')),
         'Automatisch afletteren': (300, finance.auto_match, cfg.get('auto_match')),
         'Deadline-meldingen': (3600, deadlines, True),
+        'Notulen lezen': (1800, refresh_meetings, bool(cfg.get('onedrive_drive_id'))),
     }
 
 
