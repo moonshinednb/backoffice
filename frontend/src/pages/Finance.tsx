@@ -1,10 +1,11 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
+import { Outlet } from 'react-router';
 import { Link, useSearchParams } from 'react-router';
 import { api, saveBlob } from '../lib/api';
 import { can, useAuth } from '../lib/auth';
 import { eur, shortDate, size } from '../lib/format';
-import { Badge, Empty, ErrorBox, Icon, Loading, Modal, PageTitle, Stat, useAction, useToast } from '../lib/ui';
+import { Badge, Empty, ErrorBox, Icon, Loading, Modal, PageTitle, Stat, Tabs, useAction, useToast } from '../lib/ui';
 import { FormDialog } from '../production/common';
 import { Doc, DocumentBadge, UploadZone, useDocuments, useUpload } from './shared';
 import { InvoiceTable } from './Work';
@@ -296,5 +297,14 @@ export function DocumentsPage() {
     {docs.length ? <div className="file-list">{docs.map((d) => <article key={d.id} className="card file-card"><Icon name="invoice" /><h3>{d.name}</h3><p>{size(d.size)} · {shortDate(d.created)} · {d.source}</p>
       <footer><DocumentBadge d={d} /><a className="icon-btn button" href={`/api/documents/${d.id}/file`} aria-label={`${d.name} downloaden`}><Icon name="download" /></a></footer>
       {d.details.onedrive_url ? <p className="helper">Ook gearchiveerd in OneDrive</p> : null}</article>)}</div> : <section className="card card-pad"><UploadZone /></section>}
+  </>;
+}
+
+/** Finance is one sidebar entry; its parts are tabs. */
+export function FinanceLayout() {
+  return <>
+    <Tabs items={[{ to: '/invoices', label: 'Facturen' }, { to: '/bank', label: 'Bank & pin' }, { to: '/vat', label: 'Btw-overzicht' },
+      { to: '/odoo', label: 'Odoo-administratie' }, { to: '/documents', label: 'Documenten' }]} />
+    <Outlet />
   </>;
 }

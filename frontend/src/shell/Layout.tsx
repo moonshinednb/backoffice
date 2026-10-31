@@ -13,12 +13,13 @@ import { PasswordDialog } from './PasswordDialog';
 import { installSteps } from './pwa';
 
 type Item = [path: string, label: string, icon: string];
+const FINANCE = ['/invoices', '/odoo', '/bank', '/vat', '/documents'];
 
 export function sections(role: string): [string, Item[]][] {
   const all: [string, Item[]][] = [
     ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/tasks', 'Taken', 'tasks']]],
-    ['Productie', [['/events', 'Evenementen', 'calendar'], ['/label', 'Label', 'music']]],
-    ['Financiën', [['/invoices', 'Facturen', 'invoice'], ['/odoo', 'Odoo-administratie', 'bank'], ['/bank', 'Bank & pin', 'wallet'], ['/vat', 'Btw-overzicht', 'tax'], ['/documents', 'Documenten', 'folder']]],
+    ['Productie', [['/events', 'Evenementen', 'calendar'], ['/voyages', 'Voyages', 'plane'], ['/label', 'Label', 'music']]],
+    ['Financiën', [['/invoices', 'Financiën', 'wallet']]],
     ['Beheer', [['/admin', 'Admin', 'settings']]],
   ];
   return all.filter(([name]) => !(name === 'Beheer' && role !== 'admin'));
@@ -51,7 +52,7 @@ export function Layout() {
             <div className="nav-label">{section}</div>
             <nav className="nav" aria-label={section}>
               {items.map(([path, label, icon]) => (
-                <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive || (path === '/events' && location.pathname.startsWith('/artists')) ? 'active' : '')}>
+                <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive || (path === '/events' && location.pathname.startsWith('/artists')) || (path === '/invoices' && FINANCE.some((f) => location.pathname.startsWith(f))) ? 'active' : '')}>
                   <Icon name={icon} />{label}{path === '/invoices' && review ? <span className="nav-count">{review}</span> : null}
                 </NavLink>
               ))}

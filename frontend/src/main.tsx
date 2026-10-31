@@ -17,13 +17,14 @@ import './shell/pwa';
 import { Login } from './login/Login';
 import { ResetPassword } from './login/Reset';
 import { DashboardPage, TasksPage } from './pages/Work';
-import { BankPage, DocumentsPage, InvoicesPage, OdooPage, VatPage } from './pages/Finance';
+import { BankPage, DocumentsPage, FinanceLayout, InvoicesPage, OdooPage, VatPage } from './pages/Finance';
 import { ActivityPage, AdminHome, AdminLayout, IntegrationsPage, KeysPage, SettingsPage, UsersPage } from './pages/Admin';
 import { Events } from './production/Events';
 import { EventPage } from './production/Event';
 import { BookingPage } from './production/Booking';
 import { ArtistPage, Artists } from './production/Artists';
 import { Label } from './production/Label';
+import { VoyagePage, VoyagesPage } from './production/Voyages';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 10000, refetchOnWindowFocus: true, retry: 1 } } });
 
@@ -81,6 +82,8 @@ const router = createBrowserRouter([{
     { path: 'artists/:id/hospitality', element: <ArtistPage tab="hospitality" /> },
     { path: 'artists/:id/files', element: <ArtistPage tab="files" /> },
     { path: 'artists/:id/shows', element: <ArtistPage tab="shows" /> },
+    { path: 'voyages', element: <VoyagesPage /> },
+    { path: 'voyages/:id', element: <VoyagePage /> },
     { path: 'label', element: <Label tab="releases" /> },
     { path: 'label/planning', element: <Label tab="planning" /> },
     { path: 'label/tasks', element: <Label tab="tasks" /> },
@@ -89,13 +92,13 @@ const router = createBrowserRouter([{
     { path: 'label/promo/contacts', element: <Label tab="promo-contacts" /> },
     { path: 'label/promo/:id', element: <Label tab="promo-campaign" /> },
     { path: 'label/statements', element: <Label tab="statements" /> },
-    { element: <Area area="finance" />, children: [
+    { element: <Area area="finance" />, children: [{ element: <FinanceLayout />, children: [
       { path: 'invoices', element: <InvoicesPage /> },
       { path: 'odoo', element: <OdooPage /> },
       { path: 'bank', element: <BankPage /> },
       { path: 'vat', element: <VatPage /> },
       { path: 'documents', element: <DocumentsPage /> },
-    ] },
+    ] }] },
     { element: <Area area="admin" />, children: [{ path: 'admin', element: <AdminLayout />, children: [
       { index: true, element: <AdminHome /> },
       { path: 'integrations', element: <IntegrationsPage /> },

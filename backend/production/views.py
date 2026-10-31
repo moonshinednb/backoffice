@@ -295,7 +295,7 @@ def drive_folders(request, kind: str, ident: str):
     from . import drive
     if not drive.enabled():
         raise HttpError(400, 'Stel eerst OneDrive in bij Koppelingen.')
-    fn = {'event': drive.sync_event, 'booking': drive.sync_booking, 'release': drive.sync_release}.get(kind)
+    fn = {'event': drive.sync_event, 'booking': drive.sync_booking, 'release': drive.sync_release, 'voyage': drive.sync_voyage}.get(kind)
     if not fn:
         raise HttpError(404, 'Onbekend soort map.')
     try:

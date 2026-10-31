@@ -73,3 +73,17 @@ class DriveTreeTests(ApiTests):
     def test_disabled_without_drive(self):
         from production import drive
         self.assertFalse(drive.enabled())
+
+
+class VoyageTests(ApiTests):
+    def test_voyage_flow(self):
+        c, _ = self.login('peppy', 'admin-pass-1')
+        self.assertEqual(self.send(c, 'post', '/api/voyages', {'event_name': 'X'}).status_code, 400)
+        v = self.send(c, 'post', '/api/voyages', {'performer': 'PEPPY', 'event_name': 'Hospitality on the Beach', 'city': 'Split', 'country': 'HR',
+                                                   'date': '2030-07-10', 'fee': '1.200', 'currency': 'eur', 'promoter_email': 'Promo@Event.com'}).json()
+        self.assertEqual(v['fee'], 120000); self.assertEqual(v['currency'], 'EUR'); self.assertEqual(v['status'], 'lead')
+        v = self.send(c, 'patch', f"/api/voyages/{v['id']}", {'status': 'confirmed'}).json()
+        self.assertIn('Bevestigd', v['log'][0]['body'])
+        v = self.send(c, 'post', f"/api/voyages/{v['id']}/log", {'kind': 'mail', 'body': 'Contract gestuurd'}).json()
+        self.assertEqual(v['log'][0]['kind'], 'mail')
+        self.assertEqual(len(c.get('/api/voyages').json()['voyages']), 1)

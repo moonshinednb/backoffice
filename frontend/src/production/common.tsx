@@ -210,7 +210,7 @@ export function TravelId({ a, prefix = '', needed }: { a: Record<string, any>; p
 }
 
 /** "Open in OneDrive" when the folder exists, otherwise a button that creates it. */
-export function DriveButton({ kind, id, url, onDone }: { kind: 'event' | 'booking' | 'release'; id: string; url?: string; onDone: () => void }) {
+export function DriveButton({ kind, id, url, onDone }: { kind: 'event' | 'booking' | 'release' | 'voyage'; id: string; url?: string; onDone: () => void }) {
   const edit = useCanEdit();
   const toast = useToast();
   const [busy, setBusy] = useState(false);

@@ -7,11 +7,13 @@ import re
 from datetime import date
 from core.services import audit, settings
 from . import rules as R
-from .models import Booking, Event, Release
+from .models import Booking, Event, Release, Voyage
 
 DEFAULTS = {
     'drive_events_folder': '2. Events',
     'drive_releases_folder': '4. Releases',
+    'drive_voyages_folder': '2. Events/_Voyages',
+    'drive_voyage_tree': ['Contract', 'Travel', 'Promo', 'Finance'],
     'drive_event_tree': ['01 Finance', '02 Artists', '03 Artwork/Artist Announcements', '03 Artwork/Posters & Line-up',
                          '04 Content/Reels & TikToks', '04 Content/Giveaway', '05 Crew & Briefings', '06 Organisatie'],
     'drive_artist_tree': ['EPK', 'Rider', 'Contract', 'Travel'],
@@ -95,6 +97,15 @@ def sync_release(release_id):
         return
     name = release_folder_name(r)
     return _place(r, f"{conf('drive_releases_folder')}/{name}", conf('drive_release_tree'), name)
+
+
+def sync_voyage(voyage_id):
+    v = Voyage.objects.filter(id=voyage_id).first()
+    if not v or not enabled():
+        return
+    label = ' '.join(x for x in (v.date or '[TBC]', v.event_name, f'({v.city})' if v.city else '') if x)
+    name = R.safe_name(label, 'Voyage')
+    return _place(v, f"{conf('drive_voyages_folder')}/{name}", conf('drive_voyage_tree'), name)
 
 
 def queue(kind, ident):

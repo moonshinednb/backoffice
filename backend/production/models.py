@@ -221,3 +221,50 @@ class ReleaseStep(models.Model):
 
     class Meta:
         ordering = ['sort', 'due']
+
+
+class Voyage(models.Model):
+    """An outbound show: one of our artists playing outside the Moonshine
+    programme (other events, abroad). Tracked from first contact to played."""
+    STATUSES = [('lead', 'Aanvraag'), ('offer', 'Voorstel verstuurd'), ('negotiating', 'In onderhandeling'), ('confirmed', 'Bevestigd'),
+                ('contracted', 'Contract getekend'), ('advanced', 'Advancing rond'), ('played', 'Gespeeld'), ('declined', 'Afgewezen'), ('cancelled', 'Geannuleerd')]
+    id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
+    performer = models.CharField(max_length=200, help_text='Who plays, e.g. PEPPY or Moonshine Showcase')
+    artist = models.ForeignKey(Artist, null=True, blank=True, on_delete=models.SET_NULL, related_name='voyages')
+    event_name = models.CharField(max_length=300)
+    venue = models.CharField(max_length=300, blank=True, default='')
+    city = models.CharField(max_length=120, blank=True, default='')
+    country = models.CharField(max_length=80, blank=True, default='')
+    date = models.CharField(max_length=10, blank=True, default='')
+    set_time = models.CharField(max_length=40, blank=True, default='')
+    status = models.CharField(max_length=20, choices=STATUSES, default='lead')
+    fee = models.IntegerField(default=0, help_text='Cents')
+    currency = models.CharField(max_length=3, default='EUR')
+    deal = models.CharField(max_length=300, blank=True, default='', help_text='Flat fee, door split, guarantee + bonus …')
+    travel = models.CharField(max_length=300, blank=True, default='', help_text='Who arranges and pays travel/hotel')
+    promoter_name = models.CharField(max_length=200, blank=True, default='')
+    promoter_email = models.CharField(max_length=320, blank=True, default='')
+    promoter_phone = models.CharField(max_length=40, blank=True, default='')
+    mail_link = models.CharField(max_length=1000, blank=True, default='', help_text='Link to the mail thread')
+    notes = models.TextField(blank=True, default='')
+    drive_id = models.CharField(max_length=200, blank=True, default='')
+    drive_url = models.CharField(max_length=1000, blank=True, default='')
+    created_by = models.CharField(max_length=150, blank=True, default='')
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['date', 'created']
+
+
+class VoyageNote(models.Model):
+    """Contact log: a mail, call or decision, with who and when."""
+    id = models.BigAutoField(primary_key=True)
+    voyage = models.ForeignKey(Voyage, on_delete=models.CASCADE, related_name='log')
+    kind = models.CharField(max_length=10, default='note')  # note | mail | call | status
+    body = models.TextField()
+    author = models.CharField(max_length=150, blank=True, default='')
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created']

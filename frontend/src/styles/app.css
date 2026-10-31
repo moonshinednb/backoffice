@@ -101,3 +101,10 @@ a.button { display: inline-flex; align-items: center; gap: 8px; text-decoration:
 label.button { display: inline-flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; border: 1px solid var(--line); border-radius: 9px; padding: 10px 15px; font-size: .875rem; font-weight: 600; }
 @media (max-width: 1000px) { .promo-grid { grid-template-columns: 1fr; } }
 .key-note { opacity: .7; margin-top: 4px; max-width: 340px; white-space: normal; }
+.log-form { display: grid; grid-template-columns: 110px 1fr auto; gap: 8px; align-items: start; margin-bottom: 14px; }
+.voyage-log { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.voyage-log li { display: grid; grid-template-columns: 70px 1fr; gap: 10px; padding-bottom: 10px; border-bottom: 1px solid #262021; }
+.voyage-log p { margin: 0 0 3px; white-space: pre-wrap; } .voyage-log small { opacity: .55; }
+.log-kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .7; padding-top: 2px; }
+.log-status .log-kind { color: #a996e8; } .log-mail .log-kind { color: #ec4860; }
+@media (max-width: 640px) { .log-form { grid-template-columns: 1fr; } }
