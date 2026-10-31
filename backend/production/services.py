@@ -99,6 +99,8 @@ def event_create(payload, actor):
                              doors=R._time(payload.get('doors'), 'Deuren'), capacity=max(0, int(payload.get('capacity') or 0)),
                              status=payload.get('status') if payload.get('status') in dict(Event.STATUSES) else 'planning')
     seed_checklist(e.id)
+    from .steps import seed
+    seed(e)
     audit(actor, 'Evenement aangemaakt', e.id, name)
     from .drive import queue
     queue('event', e.id)

@@ -48,6 +48,18 @@ def deadlines():
         late = s.due < today.isoformat()
         notify(involved([s.release_id]), 'deadline', ('Over tijd: ' if late else 'Binnenkort: ') + s.label,
                f'{s.release.title} · {s.due}', '/label/planning', key=f'step:{s.id}:{"late" if late else "soon"}')
+    from production.models import EventStep
+    from production.steps import due
+    for s in EventStep.objects.filter(done=False).exclude(owner='').select_related('event'):
+        d = due(s, s.event.date)
+        # Deadlines already past when the checklist was made get no alarm.
+        if not d or d > soon or d < s.created.date().isoformat() or (s.event.date and s.event.date < today.isoformat()):
+            continue
+        user = User.objects.filter(username=s.owner, is_active=True).first()
+        if user:
+            late = d < today.isoformat()
+            notify([user], 'deadline', ('Over tijd: ' if late else 'Binnenkort: ') + s.label, f'{s.event.name} · {d}',
+                   f'/events/{s.event_id}', key=f'evstep:{s.id}:{"late" if late else "soon"}')
 
 
 @router.get('/notifications')

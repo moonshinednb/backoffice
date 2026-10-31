@@ -264,3 +264,43 @@ button.wide { width: 100%; }
 .files-list small { opacity: .5; font-size: .72rem; white-space: nowrap; }
 .files-more { display: inline-block; margin-top: 8px; font-size: .78rem; } .files-other { margin: 0 0 8px; font-size: .95rem; }
 @media (max-width: 900px) { .files-grid { grid-template-columns: 1fr; } }
+/* Event team checklist */
+.steps-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; flex-wrap: wrap; margin-bottom: 14px; }
+.steps-progress { display: flex; align-items: center; gap: 12px; } .steps-progress progress { width: 160px; height: 6px; }
+.steps-progress .helper { display: inline-flex; align-items: center; gap: 6px; margin: 0; font-size: .78rem; }
+.steps-filters { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.steps-filters select { width: auto; padding: 6px 10px; font-size: .8rem; }
+.check-inline { display: inline-flex; align-items: center; gap: 6px; margin: 0 0 0 4px; font-size: .8rem; }
+.steps-board { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; align-items: start; }
+.steps-col { background: #161112; border: 1px solid #2c2325; border-radius: 12px; padding: 12px; }
+.steps-col h3 { margin: 0 0 10px; font-size: .74rem; letter-spacing: .06em; text-transform: uppercase; display: flex; justify-content: space-between; }
+.steps-col h3 span { opacity: .55; }
+.steps-col.phase-prep { border-top: 3px solid #9b8cff; } .steps-col.phase-promo { border-top: 3px solid #fab1c0; }
+.steps-col.phase-production { border-top: 3px solid #f6e58d; } .steps-col.phase-after { border-top: 3px solid #7ed6a7; }
+.steps-col ul { list-style: none; margin: 0 0 10px; padding: 0; display: grid; gap: 6px; }
+.step { background: #1c1617; border: 1px solid #2a2224; border-radius: 9px; padding: 8px 10px; }
+.step.late { border-color: #6b2a33; background: #241517; }
+.step label { display: flex; gap: 8px; align-items: flex-start; margin: 0; font-size: .84rem; line-height: 1.3; color: inherit; }
+.step input[type=checkbox] { width: 15px; height: 15px; min-width: 15px; margin-top: 1px; }
+.step.done label span { text-decoration: line-through; opacity: .5; }
+.step-meta { display: flex; align-items: center; gap: 7px; flex-wrap: wrap; margin: 6px 0 0 23px; font-size: .72rem; }
+.step-meta small { font-size: .72rem; } .step-meta .text-link { font-size: .72rem; padding: 0; }
+.step-meta .icon-btn { margin-left: auto; opacity: .5; } .step:hover .step-meta .icon-btn { opacity: 1; }
+.owner-chip { width: auto; min-height: 0; height: auto; padding: 1px 6px; font-size: .72rem; border-radius: 999px; border: 1px solid #ffffff1f; background: #ffffff0a; color: inherit; }
+.owner-chip.o-peppy { border-color: #f6e58d66; } .owner-chip.o-shoroy { border-color: #fab1c066; } .owner-chip.o-anne { border-color: #9b8cff88; }
+.owner-chip.o-bram { border-color: #c7ecee66; } .owner-chip.o-niels { border-color: #7ed6a766; }
+.due { opacity: .6; } .due.soon { color: #f0b35a; opacity: 1; } .due.late { color: #ff919b; opacity: 1; font-weight: 600; }
+.step-by { color: #7ed6a7; } .step-task { opacity: .6; }
+.step-auto { display: inline-flex; align-items: center; gap: 3px; opacity: .55; } .step-auto svg { width: 12px; height: 12px; }
+.step-add { display: grid; grid-template-columns: 1fr 78px auto; gap: 5px; }
+.step-add input, .step-add select { font-size: .78rem; padding: 5px 7px; }
+.steps-help { margin-top: 12px; font-size: .76rem; }
+.roles-form { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 14px; align-items: end; }
+.roles-form button { grid-column: 1 / -1; justify-self: start; }
+.my-steps { margin-top: 18px; } .my-steps ul { list-style: none; margin: 0; padding: 0 18px 14px; display: grid; gap: 2px; }
+.my-steps li { display: grid; grid-template-columns: 18px 1fr auto; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid #241d1f; }
+.my-steps li:last-child { border-bottom: 0; } .my-steps li a { display: grid; color: inherit; text-decoration: none; }
+.my-steps li a small { opacity: .6; font-size: .76rem; } .my-steps li.late a strong { color: #ff919b; }
+.my-steps-more { padding: 0 18px 14px; margin: 0; }
+@media (max-width: 1100px) { .steps-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .steps-board, .roles-form { grid-template-columns: 1fr; } }

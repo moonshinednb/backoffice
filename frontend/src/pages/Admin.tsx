@@ -256,6 +256,7 @@ export function SettingsPage() {
             <div className="field"><label htmlFor="s-mail">Finance e-mailadres</label><input id="s-mail" name="finance_email" type="email" defaultValue={s.finance_email || ''} required /></div></div>
           <button type="submit" className="primary" disabled={busy}>Opslaan</button>
         </form></section>
+      <EventRoles />
       <section className="card card-pad section-gap"><h2>Automatische verwerking</h2><p className="helper">Claude leest facturen uit zodra de koppeling is ingesteld. Automatisch boeken kun je aanzetten na controle van de Odoo-rekeningen en btw-mapping. Onzekere gevallen blijven altijd in de controle-inbox.</p>
         <button onClick={() => setAuto(true)}>Automatisering instellen</button></section>
       <section className="card card-pad section-gap"><h2>Beveiliging</h2><p className="helper">Wachtwoorden worden gehasht opgeslagen. Inlogsessies verlopen na 12 uur. De server is alleen bereikbaar via het Moonshine-tailnet.</p>
@@ -264,6 +265,27 @@ export function SettingsPage() {
     <PasswordDialog open={password} onClose={() => setPassword(false)} />
     {auto ? <ConfigDialog provider="automation" onClose={() => setAuto(false)} /> : null}
   </>;
+}
+
+/** Who does what at events: the default owners of a new event checklist. */
+function EventRoles() {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const users = useUsers();
+  const q = useQuery({ queryKey: ['event-roles'], queryFn: () => api<{ roles: [string, string, string][] }>('/event-roles') });
+  if (q.isPending || users.isPending) return null;
+  const team = (users.data?.users || []).filter((u) => u.active);
+  return <section className="card card-pad section-gap"><h2>Wie doet wat bij events</h2>
+    <p className="helper">Een nieuw event krijgt een checklist met deze eigenaren. Per punt kun je het daarna nog aanpassen.</p>
+    <form className="roles-form" onSubmit={async (e) => {
+      e.preventDefault();
+      try { await api('/settings', { method: 'POST', body: { settings: { event_roles: formValues(e.currentTarget) }, secrets: {} } }); toast('Opgeslagen.'); qc.invalidateQueries({ queryKey: ['event-roles'] }); }
+      catch (err) { toast((err as Error).message, true); }
+    }}>
+      {(q.data?.roles || []).map(([key, label, user]) => <div key={key} className="field"><label htmlFor={`role-${key}`}>{label}</label>
+        <select id={`role-${key}`} name={key} defaultValue={user}><option value="">Team</option>{team.map((u) => <option key={u.username} value={u.username}>{u.name}</option>)}</select></div>)}
+      <button type="submit" className="primary">Opslaan</button>
+    </form></section>;
 }
 
 /* --- Sleutels ------------------------------------------------------------------------ */

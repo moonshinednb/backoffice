@@ -10,6 +10,7 @@ import { FormDialog } from '../production/common';
 import { EventRow } from '../production/Events';
 import { ConnectionBadge, Connection, Doc, DocumentBadge, Task, UploadZone, useConnections, useDocuments, useTasks, useUpload, useUsers } from './shared';
 import { InvoiceDialog } from './Finance';
+import { MyEventSteps } from '../production/EventChecklist';
 
 type Dashboard = {
   upcoming_events: EventRow[]; finance_email: string; tasks_open: number; connections: Connection[];
@@ -50,6 +51,7 @@ export function DashboardPage() {
         </Link>;
       })}</div> : <Empty title="Geen komende evenementen" sub="Plan het volgende evenement bij Productie." action={<button onClick={() => navigate('/events')}>Naar evenementen</button>} icon="calendar" />}
     </section> : null}
+    <MyEventSteps />
     {f ? <div className="stats">
       <Stat label="Ontvangen facturen" value={f.documents} sub={`${eur(f.total)} totaal`} icon="invoice" />
       <Stat label="Geboekt in Odoo" value={f.posted} sub={f.documents ? `${Math.round(f.posted / f.documents * 100)}% verwerkt` : 'Nog geen boekingen'} icon="check" />

@@ -393,9 +393,90 @@ def event_files(request, event_id: str):
     if not drive.enabled():
         return {'enabled': False, 'url': '', 'sections': [], 'other': []}
     try:
-        return {'enabled': True, **drive.event_files(e)}
+        files = drive.event_files(e)
     except (ValueError, RuntimeError) as err:
         raise HttpError(400, str(err))
+    from . import steps
+    steps.auto_check(e, files)
+    return {'enabled': True, **files}
+
+
+# --- Team checklist per event -------------------------------------------------
+
+def _steps_call(fn, *args):
+    try:
+        return fn(*args)
+    except ValueError as e:
+        raise HttpError(400, str(e))
+
+
+@router.get('/events/{event_id}/steps')
+def event_steps(request, event_id: str):
+    require(request, 'production')
+    from . import steps
+    return _steps_call(steps.event_steps, event_id)
+
+
+@router.post('/events/{event_id}/steps/check')
+def event_steps_check(request, event_id: str):
+    """Tick what is already on OneDrive (a few seconds: it reads the folders)."""
+    require(request, 'production')
+    from . import steps
+    from .models import Event
+    e = Event.objects.filter(id=event_id).first()
+    if not e:
+        raise HttpError(404, 'Evenement niet gevonden.')
+    try:
+        ticked = steps.auto_check(e)
+    except (ValueError, RuntimeError):
+        ticked = 0
+    return {**steps.event_steps(event_id), 'ticked': ticked}
+
+
+@router.post('/events/{event_id}/steps')
+def event_step_add(request, event_id: str):
+    require(request, 'production', write=True)
+    from . import steps
+    return _steps_call(steps.step_add, event_id, body(request), actor(request))
+
+
+@router.patch('/event-steps/{ident}')
+def event_step_update(request, ident: str):
+    require(request, 'production', write=True)
+    from . import steps
+    return _steps_call(steps.step_update, ident, body(request), actor(request))
+
+
+@router.delete('/event-steps/{ident}')
+def event_step_delete(request, ident: str):
+    require(request, 'production', write=True)
+    from . import steps
+    _steps_call(steps.step_delete, ident, actor(request))
+    return {'ok': True}
+
+
+@router.post('/event-steps/{ident}/task')
+def event_step_task(request, ident: str):
+    require(request, 'production', write=True)
+    from . import steps
+    return _steps_call(steps.make_task, ident, actor(request))
+
+
+@router.get('/event-roles')
+def event_roles(request):
+    """Who does what by default; new checklists take their owners from this."""
+    require(request, 'production')
+    from . import steps
+    current = steps.roles()
+    return {'roles': [[k, label, current.get(k, '')] for k, label in steps.ROLE_LABELS.items()]}
+
+
+@router.get('/my-event-steps')
+def event_steps_mine(request):
+    """Open checklist points of the signed-in person (for the overview)."""
+    require(request, 'production')
+    from . import steps
+    return {'steps': steps.mine(request.auth.username)}
 
 
 @router.get('/label/artists')

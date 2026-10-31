@@ -16,6 +16,7 @@ class Event(models.Model):
     venue_email = models.CharField(max_length=1000, blank=True, default='')
     venue_phone = models.CharField(max_length=60, blank=True, default='')
     checklist_seeded = models.BooleanField(default=False)
+    steps_seeded = models.BooleanField(default=False, help_text='Team checklist created')
     drive_id = models.CharField(max_length=200, blank=True, default='', help_text='OneDrive folder of this event')
     drive_url = models.CharField(max_length=1000, blank=True, default='')
     created = models.DateTimeField(auto_now_add=True)
@@ -133,6 +134,30 @@ class Asset(models.Model):
 
     class Meta:
         ordering = ['kind', '-created']
+
+
+class EventStep(models.Model):
+    """One point on the team checklist of an event: who does it and when.
+    The deadline follows the event date (offset in days) unless set by hand."""
+    PHASES = [('prep', 'Voorbereiding'), ('promo', 'Promo'), ('production', 'Productie'), ('after', 'Na afloop')]
+    id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='steps')
+    key = models.CharField(max_length=40, blank=True, default='')
+    phase = models.CharField(max_length=12, choices=PHASES, default='prep')
+    label = models.CharField(max_length=200)
+    owner = models.CharField(max_length=150, blank=True, default='', help_text='Username; empty = team')
+    offset = models.IntegerField(default=0, help_text='Days relative to the event date')
+    due = models.CharField(max_length=10, blank=True, default='', help_text='Set by hand; empty = event date + offset')
+    auto = models.CharField(max_length=120, blank=True, default='', help_text='OneDrive section that ticks this step when it has files')
+    done = models.BooleanField(default=False)
+    done_by = models.CharField(max_length=150, blank=True, default='')
+    done_at = models.DateTimeField(null=True, blank=True)
+    task_id = models.CharField(max_length=24, blank=True, default='')
+    sort = models.IntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort', 'created']
 
 
 class ChecklistItem(models.Model):

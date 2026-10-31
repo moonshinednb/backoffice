@@ -7,6 +7,7 @@ import { BackLink, Badge, Empty, ErrorBox, Icon, Loading, PageTitle, Stat, Tabs,
 import { Act, ActDialog, SendDialog } from './dialogs';
 import { ContentPlan } from './EventContent';
 import { EventFiles } from './EventFiles';
+import { EventChecklist } from './EventChecklist';
 import { Asset, AssetGroups, DriveButton, Field, FormDialog, SaveBar, Select, STATUS, StatusBadge, useCanEdit, useDirty } from './common';
 
 type Booking = { id: string; artist_id: string; status: string; complete: boolean; missing: string[]; acts: string[]; artist: { name: string } };
@@ -47,9 +48,9 @@ export function EventPage({ tab = 'advancing' }: { tab?: string }) {
       <Stat label="Eerste act" value={first ? first.start : '—'} sub={e.doors ? 'Deuren ' + e.doors : 'Deuren nog onbekend'} icon="clock" />
       <Stat label="Acts" value={String(o.acts.length)} sub={o.acts.length ? 'In de timetable' : 'Nog geen timetable'} icon="calendar" />
     </div>
-    <Tabs items={[{ to: base, label: 'Advancing' }, { to: base + '/timetable', label: <>Timetable <span className="count">{o.acts.length}</span></> },
+    <Tabs items={[{ to: base, label: 'Checklist' }, { to: base + '/advancing', label: 'Advancing' }, { to: base + '/timetable', label: <>Timetable <span className="count">{o.acts.length}</span></> },
       { to: base + '/venue', label: 'Venue' }, { to: base + '/files', label: 'Bestanden' }, { to: base + '/content', label: 'Content' }, { to: base + '/notes', label: 'Notities' }, { to: base + '/details', label: 'Gegevens' }]} />
-    {tab === 'files' ? <EventFiles eventId={e.id} driveUrl={e.drive_url} reload={reload} /> : tab === 'content' ? <ContentPlan eventId={e.id} /> : tab === 'timetable' ? <Timetable o={o} set={set} reload={reload} /> : tab === 'venue' ? <Venue o={o} set={set} reload={reload} />
+    {tab === 'checklist' ? <EventChecklist eventId={e.id} hasDrive={!!e.drive_url} /> : tab === 'files' ? <EventFiles eventId={e.id} driveUrl={e.drive_url} reload={reload} /> : tab === 'content' ? <ContentPlan eventId={e.id} /> : tab === 'timetable' ? <Timetable o={o} set={set} reload={reload} /> : tab === 'venue' ? <Venue o={o} set={set} reload={reload} />
       : tab === 'notes' ? <Notes id={e.id} /> : tab === 'info' ? <Info o={o} reload={reload} /> : <Advancing o={o} />}
     <SendDialog open={send} eventId={e.id} checklist={o.checklist} onClose={() => setSend(false)} done={set} />
   </>;
