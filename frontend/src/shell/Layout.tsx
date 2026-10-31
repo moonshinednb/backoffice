@@ -11,6 +11,7 @@ import { NotificationBell } from './Notifications';
 import { ProfileDialog } from './Profile';
 import { PasswordDialog } from './PasswordDialog';
 import { installSteps } from './pwa';
+import { FeatureRequestDialog } from './FeatureRequest';
 
 type Item = [path: string, label: string, icon: string];
 const FINANCE = ['/invoices', '/odoo', '/bank', '/vat', '/documents'];
@@ -34,6 +35,7 @@ export function Layout() {
   const [password, setPassword] = useState(false);
   const [install, setInstall] = useState(false);
   const [me, setMe] = useState(false);
+  const [wish, setWish] = useState(false);
   const docs = useQuery({ queryKey: ['review-count'], queryFn: () => api<{ documents: { status: string }[] }>('/documents?limit=2000'), enabled: can.finance(user), refetchInterval: 30000 });
   const review = docs.data?.documents.filter((d) => d.status === 'review').length || 0;
   useEffect(() => { setMenu(false); setProfile(false); }, [location.pathname]);
@@ -59,7 +61,9 @@ export function Layout() {
             </nav>
           </div>
         ))}
-        <div className="side-bottom"><div className="connection-mini"><Icon name="lock" /> Besloten Moonshine-omgeving</div></div>
+        <div className="side-bottom">
+          <button className="feature-btn" onClick={() => { setMenu(false); setWish(true); }}><Icon name="spark" /><span><strong>Feature request</strong><small>Iets missen of anders willen?</small></span></button>
+          <div className="connection-mini"><Icon name="lock" /> Besloten Moonshine-omgeving</div></div>
       </aside>
       <main className="main">
         <header className="topbar">
@@ -92,6 +96,7 @@ export function Layout() {
       <PasswordDialog open={password} onClose={() => setPassword(false)} />
       <ProfileDialog open={me} onClose={() => setMe(false)} onPassword={() => { setMe(false); setPassword(true); }} />
       <ChatWidget />
+      <FeatureRequestDialog open={wish} onClose={() => setWish(false)} />
       <Modal title="Moonshine als app" open={install} onClose={() => setInstall(false)} footer={<button onClick={() => setInstall(false)}>Sluiten</button>}>
         {installSteps()}
       </Modal>

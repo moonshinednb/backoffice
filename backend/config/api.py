@@ -14,6 +14,7 @@ from core.webhooks import router as webhook_router
 from core.chat import router as chat_router
 from core.reset import router as reset_router
 from core.notify import router as notify_router
+from core.requests import router as requests_router
 from promo.views import router as promo_router
 from production.voyages import router as voyage_router
 from feedback.views import router as feedback_router
@@ -54,6 +55,7 @@ api.add_router('/', core_router)
 api.add_router('/', chat_router)
 api.add_router('/', reset_router)
 api.add_router('/', notify_router)
+api.add_router('/', requests_router)
 api.add_router('/', promo_router)
 api.add_router('/', voyage_router)
 api.add_router('/', feedback_router)

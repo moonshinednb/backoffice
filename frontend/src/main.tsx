@@ -21,6 +21,7 @@ import { MeetingPage, MeetingsPage } from './pages/Meetings';
 import { CalendarPage } from './pages/Calendar';
 import { BankPage, DocumentsPage, FinanceLayout, InvoicesPage, OdooPage, VatPage } from './pages/Finance';
 import { ActivityPage, AdminHome, AdminLayout, IntegrationsPage, KeysPage, SettingsPage, UsersPage } from './pages/Admin';
+import { RequestsPage } from './pages/Requests';
 import { Events } from './production/Events';
 import { EventPage } from './production/Event';
 import { BookingPage } from './production/Booking';
@@ -119,6 +120,7 @@ const router = createBrowserRouter([{
       { path: 'users', element: <UsersPage /> },
       { path: 'activity', element: <ActivityPage /> },
       { path: 'settings', element: <SettingsPage /> },
+      { path: 'requests', element: <RequestsPage /> },
     ] }] },
     { path: '*', element: <LegacyRedirect /> },
   ],

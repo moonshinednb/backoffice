@@ -141,3 +141,31 @@ class Notification(models.Model):
 
     class Meta:
         ordering = ['-id']
+
+
+class FeatureRequest(models.Model):
+    """A wish from the team: where in the app, what kind, how it works now and
+    how it should work. The admin sees them all in an inbox."""
+    KINDS = [('new', 'Nieuwe functie'), ('change', 'Aanpassing'), ('different', 'Werkt anders dan verwacht'), ('bug', 'Fout / werkt niet'), ('idea', 'Idee')]
+    PRIORITIES = [('low', 'Kan wachten'), ('normal', 'Normaal'), ('high', 'Belangrijk'), ('blocking', 'Houdt mijn werk tegen')]
+    STATUSES = [('new', 'Nieuw'), ('planned', 'Ingepland'), ('in_progress', 'Mee bezig'), ('done', 'Klaar'), ('declined', 'Niet nu')]
+    id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
+    author = models.CharField(max_length=150)
+    area = models.CharField(max_length=80)
+    sub = models.CharField(max_length=80, blank=True, default='')
+    feature = models.CharField(max_length=200, blank=True, default='', help_text='Button or function it is about')
+    kind = models.CharField(max_length=12, choices=KINDS, default='change')
+    title = models.CharField(max_length=200)
+    current = models.TextField(blank=True, default='', help_text='How it works now')
+    wanted = models.TextField(blank=True, default='', help_text='How it should work')
+    why = models.TextField(blank=True, default='', help_text='Why / what it brings')
+    priority = models.CharField(max_length=10, choices=PRIORITIES, default='normal')
+    page = models.CharField(max_length=300, blank=True, default='', help_text='Page the request was made from')
+    screenshot = models.CharField(max_length=40, blank=True, default='', help_text='File name in the data folder')
+    status = models.CharField(max_length=12, choices=STATUSES, default='new', db_index=True)
+    admin_note = models.TextField(blank=True, default='')
+    created = models.DateTimeField(auto_now_add=True)
+    updated = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-created']

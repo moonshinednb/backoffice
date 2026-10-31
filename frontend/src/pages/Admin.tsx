@@ -9,6 +9,7 @@ import { AdminPanel } from './Work';
 import { PasswordDialog } from '../shell/PasswordDialog';
 import { FormDialog } from '../production/common';
 import { ConnectionBadge, Connection, useConnections, useUsers } from './shared';
+import { useFeatureRequests } from './Requests';
 import { useOdoo } from './Finance';
 
 /* --- Koppelingen ---------------------------------------------------------------- */
@@ -366,9 +367,12 @@ export function KeysPage() {
 /* --- Admin-omgeving -------------------------------------------------------------------- */
 
 export function AdminLayout() {
+  const requests = useFeatureRequests();
+  const fresh = requests.data?.new || 0;
   return <>
-    <Tabs items={[{ to: '/admin', label: 'Overzicht' }, { to: '/admin/koppelingen', label: 'Koppelingen' }, { to: '/admin/sleutels', label: 'Sleutels' },
-      { to: '/admin/gebruikers', label: 'Gebruikers' }, { to: '/admin/activiteit', label: 'Activiteit' }, { to: '/admin/instellingen', label: 'Instellingen' }]} />
+    <Tabs items={[{ to: '/admin', label: 'Overzicht' }, { to: '/admin/requests', label: <>Feature requests {fresh ? <span className="count hot">{fresh}</span> : null}</> },
+      { to: '/admin/integrations', label: 'Koppelingen' }, { to: '/admin/keys', label: 'Sleutels' },
+      { to: '/admin/users', label: 'Gebruikers' }, { to: '/admin/activity', label: 'Activiteit' }, { to: '/admin/settings', label: 'Instellingen' }]} />
     <Outlet />
   </>;
 }
