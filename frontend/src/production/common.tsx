@@ -208,3 +208,17 @@ export function TravelId({ a, prefix = '', needed }: { a: Record<string, any>; p
   return needed ? <><h2 className="sub">Reisgegevens</h2><p className="field-hint">Nodig omdat Moonshine of de venue de reis of het hotel boekt.</p>{body}</>
     : <details className="optional-block"><summary>Reisgegevens (alleen nodig als Moonshine of de venue boekt)</summary>{body}</details>;
 }
+
+/** "Open in OneDrive" when the folder exists, otherwise a button that creates it. */
+export function DriveButton({ kind, id, url, onDone }: { kind: 'event' | 'booking' | 'release'; id: string; url?: string; onDone: () => void }) {
+  const edit = useCanEdit();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  if (url) return <a className="button ghost" href={url} target="_blank" rel="noopener noreferrer"><Icon name="folder" /> OneDrive</a>;
+  if (!edit) return null;
+  return <button className="ghost" disabled={busy} onClick={async () => {
+    setBusy(true);
+    try { await api(`/drive/${kind}/${id}`, { method: 'POST' }); toast('Mappen aangemaakt op OneDrive.'); onDone(); }
+    catch (e) { toast((e as Error).message, true); } finally { setBusy(false); }
+  }}>{busy ? <Orb state="weaving" /> : <Icon name="folder" />} Mappen aanmaken</button>;
+}

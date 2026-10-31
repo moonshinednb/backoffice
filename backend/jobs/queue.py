@@ -30,6 +30,9 @@ def handlers():
         'archive_invoice': lambda p: finance.archive_onedrive(p['document_id']),
         'sync_asset': lambda p: production.sync_asset(p['asset_id']),
         'archive_sent': lambda p: production.archive_sent(p['event_id'], p['send_id']),
+        'drive_event': lambda p: __import__('production.drive', fromlist=['x']).sync_event(p['id']),
+        'drive_booking': lambda p: __import__('production.drive', fromlist=['x']).sync_booking(p['id']),
+        'drive_release': lambda p: __import__('production.drive', fromlist=['x']).sync_release(p['id']),
         'promo_send': lambda p: __import__('promo.services', fromlist=['send_batch']).send_batch(p['campaign_id']),
     }
 

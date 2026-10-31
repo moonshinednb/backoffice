@@ -5,11 +5,11 @@ import { api } from '../lib/api';
 import { euroInput, longDate } from '../lib/format';
 import { BackLink, Badge, ErrorBox, Icon, Loading, PageTitle, formValues, useAction, useToast } from '../lib/ui';
 import { Act, ActDialog } from './dialogs';
-import { Area, Asset, AssetGroups, BOOKED_BY, ContactBlock, Field, SaveBar, Select, TravelId, YES_NO, useCanEdit, useDirty } from './common';
+import { Area, Asset, AssetGroups, BOOKED_BY, ContactBlock, DriveButton, Field, SaveBar, Select, TravelId, YES_NO, useCanEdit, useDirty } from './common';
 
 type Leg = { from: string; to: string; departure: string; arrival: string; number: string };
 type Detail = {
-  id: string; status: string; fee: number; flight: string; grounds: string; hotel: string; notes: string; complete: boolean; missing: string[]; showday_contact: string; showday_phone: string;
+  id: string; status: string; fee: number; flight: string; grounds: string; hotel: string; notes: string; complete: boolean; missing: string[]; showday_contact: string; showday_phone: string; drive_url: string;
   flight_info: { tickets_booked: string; booked_by: string; price: number; notes: string; inbound: Leg; outbound: Leg };
   hotel_info: Record<string, any>; ground_info: Record<string, any>;
   artist: Record<string, any> & { id: string; name: string; masked: boolean };
@@ -75,10 +75,10 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
     <BackLink to={`/events/${e.id}`}>{e.name}</BackLink>
     <PageTitle eyebrow={`Artiest · ${e.name}`} title={a.name}
       sub={<>{b.status === 'cancelled' ? <Badge>Geannuleerd</Badge> : b.complete ? <Badge color="lime">Compleet</Badge> : <Badge color="amber">{`${b.missing.length} punten open`}</Badge>} <Link className="text-link" to={`/artists/${a.id}`}>Profiel en riders <Icon name="chevron" /></Link></>}
-      actions={edit ? <><button className="ghost" onClick={() => {
+      actions={<><DriveButton kind="booking" id={b.id} url={b.drive_url} onDone={reload} />{edit ? <><button className="ghost" onClick={() => {
         if (!confirm(`${a.name} van ${e.name} halen? Acts blijven staan; facturen bij deze boeking worden verwijderd. Het artiestenprofiel blijft bestaan.`)) return;
         run(async () => { await api(`/bookings/${b.id}`, { method: 'DELETE' }); setDirty(false); toast('Boeking verwijderd.'); navigate(`/events/${e.id}`); });
-      }}><Icon name="trash" /> Van evenement halen</button><button className="primary" type="submit" form="booking-main">Opslaan</button></> : null} />
+      }}><Icon name="trash" /> Van evenement halen</button><button className="primary" type="submit" form="booking-main">Opslaan</button></> : null}</>} />
     <Missing b={b} />
     <div className="booking-grid">
       <form id="booking-main" className="booking-form" {...track} onSubmit={(ev) => { ev.preventDefault(); run(() => save()); }}>

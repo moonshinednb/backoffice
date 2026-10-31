@@ -4,14 +4,14 @@ import { Link, useNavigate } from 'react-router';
 import { api } from '../lib/api';
 import { fullDate, shortDate } from '../lib/format';
 import { Badge, Empty, ErrorBox, Icon, Loading, PageTitle, Tabs, formValues, useAction, useToast } from '../lib/ui';
-import { FormDialog, useCanEdit } from './common';
+import { DriveButton, FormDialog, useCanEdit } from './common';
 import { TaskDialog } from '../pages/Work';
 import { Task, useTasks, useUsers } from '../pages/shared';
 import { PromoCampaign, PromoCampaigns, PromoContacts } from './Promo';
 
 const RELEASE: Record<string, [string, string]> = { planned: ['Gepland', 'amber'], scheduled: ['Ingepland', 'purple'], released: ['Uitgebracht', 'lime'] };
 type Step = { id: string; label: string; due: string; done: boolean };
-type Release = { id: string; title: string; artist: string; release_date: string; status: string; labelgrid_release_id: string; notes: string;
+type Release = { id: string; catalog: string; drive_url: string; title: string; artist: string; release_date: string; status: string; labelgrid_release_id: string; notes: string;
   steps: Step[]; steps_done: number; tasks_open: number; tasks: number };
 type Statement = { id: string; period: string; invoice_number: string; status: string; total_due_usd: number };
 type Tab = 'releases' | 'planning' | 'tasks' | 'artists' | 'statements' | 'promo' | 'promo-campaign' | 'promo-contacts';
@@ -39,10 +39,11 @@ export function Label({ tab }: { tab: Tab }) {
               : <Releases releases={q.data.releases} onEdit={(x) => setDialog({ r: x })} button={button} />}
     <FormDialog id="release-form" title={r ? 'Release bewerken' : 'Nieuwe release'} open={!!dialog} onClose={() => setDialog(null)} label={r ? 'Opslaan' : 'Toevoegen'} submit={async (form) => {
       await api(r ? `/releases/${r.id}` : '/releases', { method: r ? 'PATCH' : 'POST', body: formValues(form) });
-      setDialog(null); toast(r ? 'Release bijgewerkt.' : 'Release toegevoegd. De planning staat klaar.'); qc.invalidateQueries({ queryKey: ['releases'] });
+      setDialog(null); toast(r ? 'Release bijgewerkt.' : 'Release toegevoegd. De planning staat klaar en de mappen worden op OneDrive aangemaakt.'); qc.invalidateQueries({ queryKey: ['releases'] });
     }}>
       <div key={r?.id || 'new'}>
         <div className="field"><label htmlFor="rl-title">Titel *</label><input id="rl-title" name="title" required defaultValue={r?.title} /></div>
+        <div className="field"><label htmlFor="rl-cat">Catalogusnummer</label><input id="rl-cat" name="catalog" defaultValue={r?.catalog} placeholder="Leeg laten: volgende nummer (bijv. MS013)" /></div>
         <div className="form-grid"><div className="field"><label htmlFor="rl-artist">Artiest</label><input id="rl-artist" name="artist" defaultValue={r?.artist} /></div>
           <div className="field"><label htmlFor="rl-date">Releasedatum</label><input id="rl-date" name="release_date" type="date" defaultValue={r?.release_date} /></div></div>
         <div className="form-grid"><div className="field"><label htmlFor="rl-status">Status</label><select id="rl-status" name="status" defaultValue={r?.status || 'planned'}>{Object.entries(RELEASE).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select></div>
@@ -59,12 +60,12 @@ function Releases({ releases, onEdit, button }: { releases: Release[]; onEdit: (
   const qc = useQueryClient();
   const run = useAction();
   if (!releases.length) return <section className="card"><Empty title="Nog geen releases" sub="Plan een release met titel, artiest en datum. De planning komt er automatisch bij." action={button} icon="music" /></section>;
-  return <section className="card"><div className="table-wrap"><table className="release-table"><thead><tr><th>Datum</th><th>Titel</th><th>Artiest</th><th>Status</th><th>Planning</th><th>Taken</th><th /></tr></thead><tbody>
+  return <section className="card"><div className="table-wrap"><table className="release-table"><thead><tr><th>Cat.</th><th>Datum</th><th>Titel</th><th>Artiest</th><th>Status</th><th>Planning</th><th>Taken</th><th /></tr></thead><tbody>
     {releases.map((x) => { const [l, c] = RELEASE[x.status] || [x.status, '']; return <tr key={x.id}>
-      <td>{shortDate(x.release_date)}</td><td><strong>{x.title}</strong>{x.notes ? <small className="block">{x.notes}</small> : null}</td><td>{x.artist || '—'}</td><td><Badge color={c}>{l}</Badge></td>
+      <td className="nowrap">{x.catalog || '—'}</td><td>{shortDate(x.release_date)}</td><td><strong>{x.title}</strong>{x.notes ? <small className="block">{x.notes}</small> : null}</td><td>{x.artist || '—'}</td><td><Badge color={c}>{l}</Badge></td>
       <td>{x.steps.length ? <div className="progress-line"><progress max={x.steps.length} value={x.steps_done} /><span>{x.steps_done}/{x.steps.length}</span></div> : '—'}</td>
       <td className="nowrap">{x.tasks_open ? `${x.tasks_open} open` : x.tasks ? 'Klaar' : '—'}</td>
-      <td className="row-tools">{edit ? <><button className="icon-btn ghost" onClick={() => onEdit(x)} aria-label={`${x.title} bewerken`}><Icon name="edit" /></button>
+      <td className="row-tools"><DriveButton kind="release" id={x.id} url={x.drive_url} onDone={() => qc.invalidateQueries({ queryKey: ['releases'] })} />{edit ? <><button className="icon-btn ghost" onClick={() => onEdit(x)} aria-label={`${x.title} bewerken`}><Icon name="edit" /></button>
         <button className="icon-btn ghost" aria-label={`${x.title} verwijderen`} onClick={() => confirm(`Release ${x.title} verwijderen? De planning gaat mee.`) && run(async () => { await api(`/releases/${x.id}`, { method: 'DELETE' }); qc.invalidateQueries({ queryKey: ['releases'] }); })}><Icon name="trash" /></button></> : null}</td></tr>; })}
   </tbody></table></div></section>;
 }

@@ -35,3 +35,41 @@ class ReleaseTests(ApiTests):
         self.send(c, 'post', '/api/tasks', {'title': 'Artwork checken', 'release': r['id']})
         rel = c.get('/api/releases').json()['releases'][0]
         self.assertEqual(rel['tasks_open'], 1)
+
+
+class DriveTreeTests(ApiTests):
+    def test_event_booking_and_release_trees(self):
+        from unittest import mock
+        from core.services import set_setting
+        from production import drive
+        from production.models import Booking, Event, Release
+        set_setting('onedrive_drive_id', 'drive-1')
+        made, renamed = [], []
+        fake_ensure = lambda path: (made.append(path), {'id': 'id:' + path, 'webUrl': 'https://sp/' + path})[1]
+        items = {}
+        with mock.patch('integrations.graph.ensure_path', side_effect=fake_ensure), \
+             mock.patch('integrations.graph.drive_item', side_effect=lambda i: items.get(i)), \
+             mock.patch('integrations.graph.rename_item', side_effect=lambda i, n: (renamed.append(n), {'id': i, 'webUrl': 'https://sp/renamed'})[1]):
+            c, _ = self.login('peppy', 'admin-pass-1')
+            e = self.send(c, 'post', '/api/events', {'name': 'Inner Orbit', 'date': '2030-11-20'}).json()
+            drive.sync_event(e['id'])
+            self.assertIn('2. Events/2030-11-20 Inner Orbit', made)
+            self.assertIn('2. Events/2030-11-20 Inner Orbit/04 Content/Reels & TikToks', made)
+            r = self.send(c, 'post', f"/api/events/{e['id']}/bookings", {'name': 'Dwonji'}).json()
+            drive.sync_booking(r['booking_id'])
+            self.assertIn('2. Events/2030-11-20 Inner Orbit/02 Artists/Dwonji/Rider', made)
+            self.assertTrue(Booking.objects.get(id=r['booking_id']).drive_url.startswith('https://sp/'))
+            # rename: event name changes -> folder renamed, not duplicated
+            ev = Event.objects.get(id=e['id']); items[ev.drive_id] = {'name': '2030-11-20 Inner Orbit'}
+            self.send(c, 'patch', f"/api/events/{e['id']}", {'name': 'Inner Orbit II'})
+            drive.sync_event(e['id'])
+            self.assertIn('2030-11-20 Inner Orbit II', renamed)
+            rel = self.send(c, 'post', '/api/releases', {'title': 'Moonlight', 'artist': 'Dwonji'}).json()
+            self.assertEqual(rel['catalog'], 'MS001')
+            drive.sync_release(rel['id'])
+            self.assertIn('4. Releases/MS001 - Dwonji - Moonlight/Contracts/SIGNED', made)
+            self.assertEqual(self.send(c, 'post', '/api/releases', {'title': 'Next'}).json()['catalog'], 'MS002')
+
+    def test_disabled_without_drive(self):
+        from production import drive
+        self.assertFalse(drive.enabled())

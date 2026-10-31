@@ -288,6 +288,23 @@ def delete_step(request, ident: str):
     return S.release_dict(release)
 
 
+@router.post('/drive/{kind}/{ident}')
+def drive_folders(request, kind: str, ident: str):
+    """Create or repair the OneDrive folders now (also for existing items)."""
+    require(request, 'production', write=True)
+    from . import drive
+    if not drive.enabled():
+        raise HttpError(400, 'Stel eerst OneDrive in bij Koppelingen.')
+    fn = {'event': drive.sync_event, 'booking': drive.sync_booking, 'release': drive.sync_release}.get(kind)
+    if not fn:
+        raise HttpError(404, 'Onbekend soort map.')
+    try:
+        url = fn(ident)
+    except (ValueError, RuntimeError) as e:
+        raise HttpError(400, str(e))
+    return {'drive_url': url or ''}
+
+
 @router.get('/label/artists')
 def label_artists(request):
     require(request, 'production')

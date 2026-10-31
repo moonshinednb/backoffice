@@ -5,12 +5,12 @@ import { api, download } from '../lib/api';
 import { longDate, stamp, today } from '../lib/format';
 import { BackLink, Badge, Empty, ErrorBox, Icon, Loading, PageTitle, Stat, Tabs, formValues, useAction, useToast } from '../lib/ui';
 import { Act, ActDialog, SendDialog } from './dialogs';
-import { Asset, AssetGroups, Field, FormDialog, SaveBar, Select, STATUS, StatusBadge, useCanEdit, useDirty } from './common';
+import { Asset, AssetGroups, DriveButton, Field, FormDialog, SaveBar, Select, STATUS, StatusBadge, useCanEdit, useDirty } from './common';
 
 type Booking = { id: string; artist_id: string; status: string; complete: boolean; missing: string[]; acts: string[]; artist: { name: string } };
 type Check = { id: string; key: string; label: string; status: string; notes: string; sent_at: number; sent_to: string };
 export type Overview = {
-  event: { id: string; name: string; date: string; venue: string; doors: string; capacity: number; status: string; venue_contact: string; venue_email: string; venue_phone: string };
+  event: { id: string; drive_url: string; name: string; date: string; venue: string; doors: string; capacity: number; status: string; venue_contact: string; venue_email: string; venue_phone: string };
   summary: { artists: number; complete: number; checklist: number; checklist_done: number };
   acts: Act[]; bookings: Booking[]; checklist: Check[]; assets: Asset[];
   sends: { id: string; status: string; created: number; recipients: string; attachments: unknown[]; error: string }[];
@@ -37,7 +37,7 @@ export function EventPage({ tab = 'advancing' }: { tab?: string }) {
   return <>
     <BackLink to={e.date && e.date < today() ? '/events/afgelopen' : '/events'}>Alle evenementen</BackLink>
     <PageTitle eyebrow="Evenement" title={e.name} sub={<>{longDate(e.date)}{e.venue ? ' · ' + e.venue : ''} <StatusBadge status={e.status} /></>}
-      actions={<><button className="ghost" onClick={() => run(() => download(`/events/${e.id}/advancing.pdf`))}><Icon name="pdf" /> Advancingblad</button>
+      actions={<><DriveButton kind="event" id={e.id} url={e.drive_url} onDone={reload} /><button className="ghost" onClick={() => run(() => download(`/events/${e.id}/advancing.pdf`))}><Icon name="pdf" /> Advancingblad</button>
         {edit ? <button className="primary" onClick={() => setSend(true)}><Icon name="send" /> Advancing versturen</button> : null}</>} />
     <div className="stats">
       <Stat label="Artiesten compleet" value={`${s.complete}/${s.artists}`} sub={s.artists ? (s.complete === s.artists ? 'Alles is binnen' : `${s.artists - s.complete} nog niet compleet`) : 'Nog niemand geboekt'} icon="user" />

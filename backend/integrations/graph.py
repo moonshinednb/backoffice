@@ -178,6 +178,30 @@ def _ensure_folder(path):
     _FOLDERS.add(path)
 
 
+def ensure_path(path):
+    """Create the folder (and missing parents) and return {id, webUrl}."""
+    _ensure_folder(path)
+    item = http(_drive_base() + '/root:/' + urllib.parse.quote(path.strip('/'), safe='/'), None, _drive_token())
+    return {'id': item['id'], 'webUrl': item.get('webUrl', '')}
+
+
+def drive_item(item_id):
+    """Metadata of a drive item, or None when it no longer exists."""
+    try:
+        return http(_drive_base() + '/items/' + urllib.parse.quote(item_id, safe=''), None, _drive_token())
+    except HttpError as e:
+        if e.code == 404:
+            return None
+        raise
+
+
+def rename_item(item_id, name):
+    item = http(_drive_base() + '/items/' + urllib.parse.quote(item_id, safe=''), {'name': name},
+                {**_drive_token(), 'Content-Type': 'application/json'}, 'PATCH')
+    _FOLDERS.clear()
+    return {'id': item['id'], 'webUrl': item.get('webUrl', '')}
+
+
 def drive_upload(path, content, mime):
     """Store a file at an exact path in the configured drive (OneDrive or a
     SharePoint library); replaces a file with the same name. Folders are

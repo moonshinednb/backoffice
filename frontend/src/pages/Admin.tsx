@@ -66,7 +66,7 @@ export function IntegrationsPage() {
   </>;
 }
 
-type Kind = 'text' | 'url' | 'email' | 'number' | 'secret' | 'bool' | 'json' | 'select' | 'odoo';
+type Kind = 'text' | 'url' | 'email' | 'number' | 'secret' | 'bool' | 'json' | 'select' | 'odoo' | 'lines';
 type Spec = { key: string; label: string; kind?: Kind; placeholder?: string; options?: [string, string][]; rows?: (c: any) => { id: number; name: string; code?: string }[] };
 type Provider = { title: string; fields: Spec[]; help?: ReactNode };
 
@@ -104,9 +104,13 @@ const PROVIDERS: Record<string, Provider> = {
     { key: 'production_folder', label: 'Map in OneDrive voor productie', placeholder: 'Moonshine/Productie' },
     { key: 'production_sync', label: 'Riders, EPK’s en promobestanden naar OneDrive kopiëren', kind: 'bool' }],
     help: <p className="helper">Gebruikt de Microsoft-verbinding en dezelfde drive als het OneDrive-archief. De app heeft <strong>Mail.Send</strong> en <strong>Mail.ReadWrite</strong> nodig op dit verzendadres en <strong>Files.ReadWrite.All</strong> of <strong>Sites.Selected</strong> op de drive. Mappen per artiest en evenement worden automatisch aangemaakt.</p> },
-  onedrive: { title: 'OneDrive-archief instellen', fields: [{ key: 'onedrive_drive_id', label: 'Drive-ID' }, { key: 'onedrive_folder', label: 'Archiefmap', placeholder: 'Moonshine/Administratie' },
-    { key: 'onedrive_enabled', label: 'Geboekte facturen naar OneDrive archiveren', kind: 'bool' }],
-    help: <p className="helper">Gebruikt de Microsoft-verbinding. Ontbrekende mappen worden aangemaakt; de app heeft schrijfrechten op de drive nodig.</p> },
+  onedrive: { title: 'OneDrive instellen', fields: [{ key: 'onedrive_drive_id', label: 'Drive-ID' }, { key: 'onedrive_folder', label: 'Archiefmap facturen', placeholder: 'Moonshine/Administratie' },
+    { key: 'drive_events_folder', label: 'Hoofdmap events', placeholder: '2. Events' }, { key: 'drive_releases_folder', label: 'Hoofdmap releases', placeholder: '4. Releases' },
+    { key: 'onedrive_enabled', label: 'Geboekte facturen naar OneDrive archiveren', kind: 'bool' },
+    { key: 'drive_event_tree', label: 'Submappen per event (één per regel)', kind: 'lines', placeholder: '01 Finance\n02 Artists\n03 Artwork/Posters & Line-up' },
+    { key: 'drive_artist_tree', label: 'Submappen per artiest in de line-up', kind: 'lines', placeholder: 'EPK\nRider\nContract\nTravel' },
+    { key: 'drive_release_tree', label: 'Submappen per release', kind: 'lines', placeholder: 'Artworks\nContent\nContracts/SIGNED\nMasters\nPress Kits' }],
+    help: <p className="helper">Bij een nieuw event, een artiest in de line-up of een nieuwe release maakt de backoffice deze mappen vanzelf aan op OneDrive. Bestaande mappen worden niet aangeraakt; een hernoemd event wordt hernoemd. Leeg laten = de standaardindeling.</p> },
   todo: { title: 'Microsoft To Do instellen', fields: [{ key: 'todo_list_id', label: 'To Do-lijst-ID' }, { key: 'microsoft_todo_refresh_token', label: 'To Do refresh-token (eenmalige inlog)', kind: 'secret' }, { key: 'todo_enabled', label: 'Taken synchroniseren met Microsoft To Do', kind: 'bool' }],
     help: <p className="helper">Test de verbinding om jouw lijsten te zien. Vereist gedelegeerde Microsoft-toegang met Tasks.ReadWrite.</p> },
   labelgrid: { title: 'LabelGrid aansluiten', fields: [{ key: 'labelgrid_api_key', label: 'LabelGrid API-sleutel', kind: 'secret' }, { key: 'labelgrid_label_id', label: 'Label-ID (optioneel)' }],
@@ -142,6 +146,7 @@ export function ConfigDialog({ provider, onClose }: { provider: string; onClose:
     const v = s[f.key];
     if (f.kind === 'bool') return <label key={f.key}><input type="checkbox" name={f.key} defaultChecked={!!v} /> {f.label}</label>;
     if (f.kind === 'secret') return <div key={f.key} className="field"><label htmlFor={id}>{f.label}</label><input id={id} name={f.key} type="password" autoComplete="new-password" placeholder={q.data?.configured_secrets.includes(f.key) ? 'Ingesteld — leeg laten om te bewaren' : 'Nog niet ingesteld'} /></div>;
+    if (f.kind === 'lines') return <div key={f.key} className="field"><label htmlFor={id}>{f.label}</label><textarea id={id} name={f.key} rows={6} spellCheck={false} placeholder={f.placeholder} defaultValue={Array.isArray(v) ? v.join('\n') : ''} /></div>;
     if (f.kind === 'json') return <div key={f.key} className="field"><label htmlFor={id}>{f.label}</label><textarea id={id} name={f.key} spellCheck={false} placeholder={f.placeholder} defaultValue={v ? JSON.stringify(v, null, 2) : ''} /></div>;
     if (f.kind === 'select') return <div key={f.key} className="field"><label htmlFor={id}>{f.label}</label><select id={id} name={f.key} defaultValue={v || f.options![0][0]}>{f.options!.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>;
     if (f.kind === 'odoo' && odoo.data) {
@@ -160,6 +165,7 @@ export function ConfigDialog({ provider, onClose }: { provider: string; onClose:
       const raw = (values[f.key] || '').trim();
       if (f.kind === 'secret') { if (raw) secrets[f.key] = raw; }
       else if (f.kind === 'bool') settings[f.key] = f.key in values;
+      else if (f.kind === 'lines') settings[f.key] = raw ? raw.split('\n').map((x) => x.trim()).filter(Boolean) : [];
       else if (f.kind === 'json') { try { settings[f.key] = raw ? JSON.parse(raw) : {}; } catch { throw new Error(`${f.label}: geen geldige JSON.`); } }
       else if (f.kind === 'number' || f.kind === 'odoo') settings[f.key] = raw ? Number(raw) : null;
       else settings[f.key] = raw;
@@ -168,8 +174,8 @@ export function ConfigDialog({ provider, onClose }: { provider: string; onClose:
     toast('Instellingen opgeslagen. Test de verbinding opnieuw.');
     ['settings', 'connections', 'odoo', 'dashboard'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
     onClose();
-  }}>{q.isPending ? <Loading /> : q.error ? <ErrorBox error={q.error} /> : <><div className="form-grid">{p.fields.filter((f) => f.kind !== 'bool' && f.kind !== 'json').map(field)}</div>
-    {p.fields.filter((f) => f.kind === 'json' || f.kind === 'bool').map(field)}{p.help}</>}</FormDialog>;
+  }}>{q.isPending ? <Loading /> : q.error ? <ErrorBox error={q.error} /> : <><div className="form-grid">{p.fields.filter((f) => !['bool', 'json', 'lines'].includes(f.kind || '')).map(field)}</div>
+    {p.fields.filter((f) => ['json', 'bool', 'lines'].includes(f.kind || '')).map(field)}{p.help}</>}</FormDialog>;
 }
 
 /* --- Gebruikers ------------------------------------------------------------------- */

@@ -25,7 +25,7 @@ def ts(value):
 # --- Dicts -----------------------------------------------------------------
 
 def event_dict(e):
-    return {'id': e.id, 'name': e.name, 'date': e.date, 'venue': e.venue, 'doors': e.doors, 'capacity': e.capacity,
+    return {'id': e.id, 'drive_url': e.drive_url, 'name': e.name, 'date': e.date, 'venue': e.venue, 'doors': e.doors, 'capacity': e.capacity,
             'status': e.status, 'venue_contact': e.venue_contact, 'venue_email': e.venue_email, 'venue_phone': e.venue_phone,
             'created': ts(e.created), 'updated': ts(e.updated)}
 
@@ -41,7 +41,7 @@ def artist_dict(a):
 def booking_dict(b):
     return {'id': b.id, 'event_id': b.event_id, 'artist_id': b.artist_id, 'status': b.status, 'fee': b.fee,
             'flight': b.flight, 'grounds': b.grounds, 'hotel': b.hotel, 'notes': b.notes, 'sort': b.sort,
-            'showday_contact': b.showday_contact, 'showday_phone': b.showday_phone,
+            'showday_contact': b.showday_contact, 'showday_phone': b.showday_phone, 'drive_url': b.drive_url,
             'flight_info': R._structured_defaults(R.FLIGHT_FIELDS, b.flight_info or {}),
             'hotel_info': R._structured_defaults(R.HOTEL_FIELDS, b.hotel_info or {}),
             'ground_info': R._structured_defaults(R.GROUND_FIELDS, b.ground_info or {})}
@@ -99,6 +99,8 @@ def event_create(payload, actor):
                              status=payload.get('status') if payload.get('status') in dict(Event.STATUSES) else 'planning')
     seed_checklist(e.id)
     audit(actor, 'Evenement aangemaakt', e.id, name)
+    from .drive import queue
+    queue('event', e.id)
     return e
 
 
@@ -130,6 +132,9 @@ def event_update(event_id, payload, actor):
         e.status = payload['status']
     e.save()
     audit(actor, 'Evenement bijgewerkt', event_id)
+    if e.drive_id and ('name' in payload or 'date' in payload):
+        from .drive import queue
+        queue('event', e.id)
     return e
 
 
@@ -367,6 +372,9 @@ def booking_add(event_id, payload, actor):
         sort = Booking.objects.filter(event_id=event_id).count()
         b = Booking.objects.create(event_id=event_id, artist_id=artist_id, sort=sort)
     audit(actor, 'Artiest geboekt', b.id, event_id)
+    from .drive import queue
+    if Event.objects.filter(id=event_id).exclude(drive_id='').exists():
+        queue('booking', b.id)
     return b.id
 
 
@@ -814,7 +822,7 @@ def release_dict(r):
     from core.models import Task
     steps = [step_dict(s) for s in r.steps.all()]
     tasks = Task.objects.filter(release=r.id)
-    return {'id': r.id, 'title': r.title, 'artist': r.artist, 'release_date': r.release_date, 'status': r.status,
+    return {'id': r.id, 'title': r.title, 'artist': r.artist, 'release_date': r.release_date, 'status': r.status, 'catalog': r.catalog, 'drive_url': r.drive_url,
             'labelgrid_release_id': r.labelgrid_release_id, 'notes': r.notes, 'created': ts(r.created), 'steps': steps,
             'steps_done': sum(1 for s in steps if s['done']), 'tasks_open': tasks.filter(done=False).count(), 'tasks': tasks.count()}
 
@@ -871,6 +879,10 @@ def release_save(payload, actor, ident=None):
     r = Release.objects.filter(id=ident).first() if ident else Release()
     if ident and not r:
         raise ValueError('Release niet gevonden.')
+    before = (r.title, r.artist, r.catalog) if ident else None
+    if 'catalog' in payload or not ident:
+        from .drive import next_catalog
+        r.catalog = (R._text(payload.get('catalog'), 20) or (r.catalog if ident else next_catalog())).upper()
     for key, limit in (('title', 300), ('artist', 300), ('status', 40), ('labelgrid_release_id', 100), ('notes', 4000)):
         if key in payload or not ident:
             setattr(r, key, R._text(payload.get(key), limit) or ('planned' if key == 'status' else ''))
@@ -881,5 +893,8 @@ def release_save(payload, actor, ident=None):
     r.save()
     if not ident:
         seed_steps(r)
+    from .drive import queue
+    if not ident or (r.drive_id and before != (r.title, r.artist, r.catalog)):
+        queue('release', r.id)
     audit(actor, 'Release bijgewerkt' if ident else 'Release aangemaakt', r.id)
     return release_dict(r)
