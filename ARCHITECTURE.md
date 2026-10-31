@@ -22,6 +22,8 @@ Lees dit eerst; dan hoef je niet de hele code door. Houd het bij als er iets str
 | `production/` | Event, Act, Booking (+showday_contact/phone), Artist (+contact_via agency/self, on_label), Asset (OneDrive-sync), ChecklistItem, Send (venue-mail via Graph), Release + ReleaseStep (planning, auto 7 stappen), LabelStatement, Contract |
 | `production/drive.py` | OneDrive-mappenbomen: event (`2. Events/<datum> <naam>/…`), artiest in line-up (`02 Artists/<artiest>/…`), release (`4. Releases/<MSxxx> - <artiest> - <titel>/…`); sjablonen als instellingen `drive_*`; worker-jobs `drive_event/booking/release`; hernoemt bij naamswijziging |
 | `production/rules.py` | pure regels: validatie, `missing_items` (advancing compleet?), `contact_via`, `needs_id`, pdf's |
+| `production/voyages.py` | Voyages: outbound shows (Voyage + VoyageNote contactlog), OneDrive-map `2. Events/_Voyages/…` |
+| `feedback/` | Track feedback: Track, Review (per persoon productie/compositie 1–10, oordeel, feedback), TrackLog; audio op OneDrive `3. Scouting/Demo's/<artiest>/` + stream-redirect; import `manage.py import_track_feedback` (TRACK FEEDBACK.xlsx + Feedback Files/<n>.docx + Track options + V2) |
 | `promo/` | Contact, Template, Campaign, Recipient; import Excel (openpyxl), verzenden via Graph `send_mail` in worker-job `promo_send` |
 | `integrations/` | http.py (veilige HTTPS), graph.py (Microsoft), odoo.py, claude.py (AI-factuurlezer met aanbieder-keuze: Claude, Gemini, OpenAI-compatibel; instellingen `ai_*`), providers.py (LabelGrid, OpenSign, To Do), resend.py, checks.py (verbinding testen) |
 | `jobs/` | Job/Schedule, queue.py (handlers + periodic) |
@@ -37,7 +39,7 @@ webhooks: `/webhooks/{bank,outlook,opensign}`
 
 ## Frontend (frontend/src)
 - `main.tsx`: routes + Gate (login / verplicht wachtwoord / herstelpagina `/wachtwoord-herstellen`).
-- `shell/`: Layout (zijbalk: Werkplek, Productie=Evenementen+Label, Financiën, Beheer=Admin alleen voor admins), Chat (zwevend), Notifications (bel), Profile, PasswordDialog, pwa.
+- `shell/`: Layout (zijbalk: Werkplek, Productie=Evenementen+Voyages+Label, Financiën (één kopje met tabs), Beheer=Admin alleen voor admins), Chat (zwevend), Notifications (bel), Profile, PasswordDialog, pwa.
 - `lib/`: api.ts (fetch + CSRF + nette fouten), auth.tsx, ui.tsx (Modal, Tabs, Orb, Avatar, toasts), format.ts, icons.tsx, **i18n.ts** (UI is in het Nederlands geschreven; Engels = standaard, vertaald via woordenboek + MutationObserver. Nieuwe teksten: voeg NL→EN toe aan `D` of een patroon aan `P`).
 - `pages/`: Work (dashboard, taken, TaskDialog), Finance, Admin (koppelingen, sleutels, gebruikers, activiteit, instellingen), shared.
 - `production/`: Events (+tabs incl. Artiesten), Event, Booking (+reis), Artists, Label (releases, planning, taken, promo, artiesten, afrekeningen), Promo, common (Field, ContactBlock, TravelId, AssetGroups, FormDialog, useDirty).

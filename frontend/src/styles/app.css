@@ -108,3 +108,20 @@ label.button { display: inline-flex; align-items: center; gap: 8px; margin: 0; c
 .log-kind { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .7; padding-top: 2px; }
 .log-status .log-kind { color: #a996e8; } .log-mail .log-kind { color: #ec4860; }
 @media (max-width: 640px) { .log-form { grid-template-columns: 1fr; } }
+/* Track feedback */
+.status-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.chip-btn { padding: 6px 11px; border-radius: 999px; font-size: .78rem; font-weight: 500; background: #1a1415; border: 1px solid #33292b; }
+.chip-btn span { margin-left: 6px; opacity: .6; } .chip-btn.active { background: #3a2329; border-color: #ec4860; }
+.chip-btn.st-approved.active { border-color: #a3e635; } .chip-btn.st-rejected.active { border-color: #ff919b; } .chip-btn.st-needs_work.active { border-color: #f0b35a; }
+.feedback-table tr { border-left: 3px solid transparent; }
+.feedback-table tr.row-approved td:first-child { box-shadow: inset 3px 0 0 #a3e635; } .feedback-table tr.row-rejected td:first-child { box-shadow: inset 3px 0 0 #ff919b; }
+.feedback-table tr.row-needs_work td:first-child { box-shadow: inset 3px 0 0 #f0b35a; } .feedback-table tr.row-signed td:first-child, .feedback-table tr.row-released td:first-child { box-shadow: inset 3px 0 0 #a996e8; }
+.feedback-table tr.row-in_review td:first-child { box-shadow: inset 3px 0 0 #7baaf5; } .feedback-table tr.row-rejected td { opacity: .65; }
+.grade { font-variant-numeric: tabular-nums; } .grade.strong { font-weight: 700; }
+.g-high { color: #a3e635; } .g-mid { color: #f0b35a; } .g-low { color: #ff919b; } .muted { opacity: .5; }
+.inline-check { display: inline-flex; gap: 8px; align-items: center; margin: 0; font-size: .82rem; }
+.track-head { display: flex; justify-content: space-between; gap: 16px; align-items: flex-start; margin-bottom: 16px; flex-wrap: wrap; }
+.track-head h1 { margin: 0 0 6px; font-size: 1.6rem; }
+.track-audio { width: 100%; } .track-embed { width: 100%; height: 166px; border: 0; border-radius: 10px; } .track-embed.short { height: 152px; }
+.review-card { border-top: 1px solid #2a2224; padding: 12px 0; } .review-card p { margin: 6px 0; white-space: pre-wrap; line-height: 1.5; font-size: .88rem; }
+.review-head { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }

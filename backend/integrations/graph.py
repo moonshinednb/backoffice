@@ -5,8 +5,9 @@ import re
 import threading
 import time
 import urllib.parse
+import urllib.request
 from core.services import save_secrets, secret_values, settings
-from .http import HttpError, UncertainSend, http
+from .http import secure_url, HttpError, UncertainSend, http
 
 GRAPH = 'https://graph.microsoft.com/v1.0'
 DRIVE_CHUNK = 320 * 1024 * 10   # OneDrive wants multiples of 320 KiB
@@ -193,6 +194,17 @@ def drive_item(item_id):
         if e.code == 404:
             return None
         raise
+
+
+def download_path(path):
+    """Bytes of a file by its path in the drive (via the short-lived download link)."""
+    item = http(_drive_base() + '/root:/' + urllib.parse.quote(path.strip('/'), safe='/'), None, _drive_token())
+    url = item.get('@microsoft.graph.downloadUrl')
+    if not url:
+        raise ValueError('Geen downloadlink voor ' + path)
+    secure_url(url)
+    with urllib.request.urlopen(url, timeout=120) as response:
+        return response.read()
 
 
 def rename_item(item_id, name):

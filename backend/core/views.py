@@ -318,8 +318,6 @@ def connections():
         ('advancing', 'Advancing', bool(cfg.get('advancing_sender') and microsoft)),
         ('onedrive', 'OneDrive', bool(cfg.get('onedrive_drive_id'))),
         ('todo', 'Microsoft To Do', bool(cfg.get('todo_list_id'))),
-        ('labelgrid', 'LabelGrid', bool(sv.get('labelgrid_api_key'))),
-        ('opensign', 'OpenSign', bool(sv.get('opensign_api_key'))),
         ('resend', 'Resend', bool(sv.get('resend_api_key') and cfg.get('resend_from'))),
         ('ing', 'ING', True),
         ('sumup', 'SumUp', bool(sv.get('sumup_api_key'))),

@@ -263,11 +263,11 @@ export function SettingsPage() {
 /* --- Sleutels ------------------------------------------------------------------------ */
 
 const KEYS: [string, string, string][] = [
-  ['odoo_api_key', 'Odoo API-sleutel', 'Boekhouding'], ['ai_api_key', 'AI API-sleutel', 'Facturen uitlezen (gekozen aanbieder)'], ['anthropic_api_key', 'Anthropic API-sleutel (oud)', 'Alleen als Claude is gekozen en nog geen AI-sleutel is ingesteld'],
-  ['microsoft_client_secret', 'Microsoft client secret', 'Outlook, OneDrive en To Do'], ['microsoft_refresh_token', 'Microsoft refresh-token', 'Gedelegeerde toegang'], ['microsoft_todo_refresh_token', 'Microsoft To Do refresh-token', 'Alleen To Do (eenmalige inlog)'],
-  ['microsoft_access_token', 'Microsoft access-token', 'Tijdelijk, optioneel'], ['sumup_api_key', 'SumUp API-sleutel', 'Pinomzet en uitbetalingen'], ['bank_webhook_secret', 'Bank-webhooksleutel', 'ING / SumUp-aanvoer'],
-  ['mail_webhook_secret', 'Mail-webhooksleutel', 'Outlook-notificaties'], ['labelgrid_api_key', 'LabelGrid API-sleutel', 'Royalties'],
-  ['opensign_api_key', 'OpenSign API-sleutel', 'Contracten'], ['resend_api_key', 'Resend API-sleutel', 'Wachtwoordmails'], ['opensign_webhook_secret', 'OpenSign webhooksleutel', 'Ondertekenstatus'],
+  ['microsoft_client_secret', 'Microsoft client secret', 'Outlook, OneDrive en mail (app-toegang)'],
+  ['microsoft_todo_refresh_token', 'Microsoft To Do refresh-token', 'Alleen To Do (eenmalige inlog)'],
+  ['odoo_api_key', 'Odoo API-sleutel', 'Boekhouding'], ['ai_api_key', 'AI API-sleutel', 'Facturen uitlezen (gekozen aanbieder)'],
+  ['sumup_api_key', 'SumUp API-sleutel', 'Pinomzet en uitbetalingen'], ['resend_api_key', 'Resend API-sleutel', 'Wachtwoordmails'],
+  ['bank_webhook_secret', 'Bank-webhooksleutel', 'ING / SumUp-aanvoer'], ['mail_webhook_secret', 'Mail-webhooksleutel', 'Outlook-notificaties'],
 ];
 
 /** Which integration proves that a key works. Keys without a provider are only

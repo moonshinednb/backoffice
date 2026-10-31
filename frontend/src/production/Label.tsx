@@ -8,13 +8,14 @@ import { DriveButton, FormDialog, useCanEdit } from './common';
 import { TaskDialog } from '../pages/Work';
 import { Task, useTasks, useUsers } from '../pages/shared';
 import { PromoCampaign, PromoCampaigns, PromoContacts } from './Promo';
+import { FeedbackList, FeedbackTrack } from './Feedback';
 
 const RELEASE: Record<string, [string, string]> = { planned: ['Gepland', 'amber'], scheduled: ['Ingepland', 'purple'], released: ['Uitgebracht', 'lime'] };
 type Step = { id: string; label: string; due: string; done: boolean };
 type Release = { id: string; catalog: string; drive_url: string; title: string; artist: string; release_date: string; status: string; labelgrid_release_id: string; notes: string;
   steps: Step[]; steps_done: number; tasks_open: number; tasks: number };
 type Statement = { id: string; period: string; invoice_number: string; status: string; total_due_usd: number };
-type Tab = 'releases' | 'planning' | 'tasks' | 'artists' | 'statements' | 'promo' | 'promo-campaign' | 'promo-contacts';
+type Tab = 'releases' | 'planning' | 'tasks' | 'artists' | 'statements' | 'promo' | 'promo-campaign' | 'promo-contacts' | 'feedback' | 'feedback-track';
 
 const useReleases = () => useQuery({ queryKey: ['releases'], queryFn: () => api<{ releases: Release[]; statements: Statement[] }>('/releases') });
 
@@ -29,8 +30,8 @@ export function Label({ tab }: { tab: Tab }) {
   return <>
     <PageTitle eyebrow="Productie" title="Label" sub="Releases van het Moonshine-label: planning, taken, artiesten en royalty’s." actions={button} />
     <Tabs items={[{ to: '/label', label: 'Releases' }, { to: '/label/planning', label: 'Planning' }, { to: '/label/tasks', label: 'Taken' },
-      { to: '/label/promo', label: 'Promo', end: false }, { to: '/label/artists', label: 'Artiesten' }, { to: '/label/statements', label: 'Afrekeningen' }]} />
-    {tab === 'promo' ? <PromoCampaigns /> : tab === 'promo-campaign' ? <PromoCampaign /> : tab === 'promo-contacts' ? <PromoContacts />
+      { to: '/label/feedback', label: 'Track feedback', end: false }, { to: '/label/promo', label: 'Promo', end: false }, { to: '/label/artists', label: 'Artiesten' }, { to: '/label/statements', label: 'Afrekeningen' }]} />
+    {tab === 'feedback' ? <FeedbackList /> : tab === 'feedback-track' ? <FeedbackTrack /> : tab === 'promo' ? <PromoCampaigns /> : tab === 'promo-campaign' ? <PromoCampaign /> : tab === 'promo-contacts' ? <PromoContacts />
       : q.isPending ? <Loading /> : q.error ? <ErrorBox error={q.error} />
       : tab === 'planning' ? <Planning releases={q.data.releases} />
         : tab === 'tasks' ? <ReleaseTasks releases={q.data.releases} />
