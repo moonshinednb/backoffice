@@ -15,24 +15,48 @@ function Sticky({ a, onChange }: { a: Action; onChange: () => void }) {
   const edit = useCanEdit();
   return <li className={`sticky ${a.done ? 'done' : ''}`}>
     <label><input type="checkbox" checked={a.done} disabled={!edit} onChange={(e) => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'PATCH', body: { done: e.target.checked } }); onChange(); })} /> <span>{a.text}</span></label>
-    <small>{a.due ? `voor ${fullDate(a.due)} · ` : ''}meeting {fullDate(a.meeting_date)}{a.source === 'ai' ? ' · AI' : ''}</small>
-    {edit && !a.task_id ? <button className="text-link" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); }, 'Taak aangemaakt.')}>Maak taak</button> : a.task_id ? <small className="sticky-task">✓ staat bij Taken</small> : null}
+    <div className="sticky-foot"><small>{a.due ? `voor ${fullDate(a.due)} · meeting ${fullDate(a.meeting_date)}` : `meeting ${fullDate(a.meeting_date)}`}</small>
+      {edit && !a.task_id ? <button className="text-link" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); }, 'Taak aangemaakt.')}>Maak taak</button> : a.task_id ? <small className="sticky-task">✓ Taak</small> : null}</div>
   </li>;
 }
 
-/** Open action points per person, as sticky notes. */
-export function StickyBoard({ meetingId }: { meetingId?: string }) {
+const SHOWN = 4;
+
+/** Open action points per person, as sticky notes (newest first, a few per person). */
+export function StickyBoard() {
   const qc = useQueryClient();
+  const [all, setAll] = useState<Record<string, boolean>>({});
   const q = useQuery({ queryKey: ['meeting-board'], queryFn: () => api<{ actions: Action[] }>('/meetings/board') });
   const refresh = () => { qc.invalidateQueries({ queryKey: ['meeting-board'] }); qc.invalidateQueries({ queryKey: ['meeting'] }); qc.invalidateQueries({ queryKey: ['meetings'] }); qc.invalidateQueries({ queryKey: ['tasks'] }); };
   if (q.isPending) return <Loading />;
-  const rows = (q.data?.actions || []).filter((a) => !meetingId || a.meeting_id === meetingId);
+  const rows = q.data?.actions || [];
   const cols: [string, string][] = [['peppy', 'Pepijn'], ['bram', 'Bram'], ['shoroy', 'Shoroy'], ['__other', 'Overig / team']];
   return <div className="sticky-board">{cols.map(([key, name]) => {
     const mine = rows.filter((a) => key === '__other' ? !NAMES[a.owner] : a.owner === key);
+    const shown = all[key] ? mine : mine.slice(0, SHOWN);
     return <section key={key} className={`sticky-col col-${key.replace('__', '')}`}><h3>TODO · {name} <span>{mine.length}</span></h3>
-      {mine.length ? <ul>{mine.map((a) => <Sticky key={a.id} a={a} onChange={refresh} />)}</ul> : <p className="helper">Niets open.</p>}</section>;
+      {mine.length ? <ul>{shown.map((a) => <Sticky key={a.id} a={a} onChange={refresh} />)}</ul> : <p className="helper">Niets open.</p>}
+      {mine.length > SHOWN ? <button className="text-link sticky-more" onClick={() => setAll({ ...all, [key]: !all[key] })}>{all[key] ? 'Minder tonen' : `+${mine.length - SHOWN} meer`}</button> : null}</section>;
   })}</div>;
+}
+
+const OWNERS: [string, string][] = [['peppy', 'Pepijn'], ['bram', 'Bram'], ['shoroy', 'Shoroy'], ['', 'Team']];
+
+/** One action point of a single meeting: a small note in the side column. */
+function MiniAction({ a, onChange }: { a: Action; onChange: () => void }) {
+  const run = useAction();
+  const edit = useCanEdit();
+  const patch = (body: object) => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'PATCH', body }); onChange(); });
+  return <li className={`mini-note col-${NAMES[a.owner] ? a.owner : 'other'} ${a.done ? 'done' : ''}`}>
+    <label><input type="checkbox" checked={a.done} disabled={!edit} onChange={(e) => patch({ done: e.target.checked })} /><span>{a.text}</span></label>
+    <div className="mini-meta">
+      <select value={a.owner} disabled={!edit} aria-label="Voor wie" onChange={(e) => patch({ owner: e.target.value })}>
+        {OWNERS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}{a.owner && !NAMES[a.owner] ? <option value={a.owner}>{a.owner}</option> : null}</select>
+      {a.due ? <small>{`voor ${fullDate(a.due)}`}</small> : null}
+      {a.task_id ? <small className="sticky-task">✓ bij Taken</small> : edit ? <button className="text-link" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); }, 'Taak aangemaakt.')}>Maak taak</button> : null}
+      {edit ? <button className="icon-btn ghost tiny" aria-label="Verwijderen" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'DELETE' }); onChange(); })}><Icon name="close" /></button> : null}
+    </div>
+  </li>;
 }
 
 export function MeetingsPage() {
@@ -73,7 +97,9 @@ export function MeetingPage() {
   if (q.isPending) return <Loading />;
   if (q.error) return <><BackLink to="/meetings">Meetings</BackLink><ErrorBox error={q.error} /></>;
   const m = q.data;
+  const actions = m.actions || [];
   const set = (n: Meeting) => { qc.setQueryData(['meeting', id], n); qc.invalidateQueries({ queryKey: ['meetings'] }); qc.invalidateQueries({ queryKey: ['meeting-board'] }); };
+  const refresh = () => { for (const k of ['meeting', 'meetings', 'meeting-board', 'tasks']) qc.invalidateQueries({ queryKey: [k] }); };
   async function act(kind: 'read' | 'extract') {
     setBusy(kind);
     try {
@@ -88,21 +114,15 @@ export function MeetingPage() {
       actions={<>{m.drive_url ? <a className="button ghost" href={m.drive_url} target="_blank" rel="noopener noreferrer"><Icon name="file" /> Open in Word</a> : null}
         {edit ? <><button className="ghost" disabled={!!busy} onClick={() => act('read')}>{busy === 'read' ? <Orb state="searching" /> : <Icon name="refresh" />} Opnieuw inlezen</button>
           <button className="primary" disabled={!!busy} onClick={() => act('extract')}>{busy === 'extract' ? <Orb state="solving" /> : <Icon name="spark" />} Actiepunten eruit halen</button></> : null}</>} />
-    <StickyBoard meetingId={m.id} />
-    <div className="promo-grid section-gap">
+    <div className="meeting-layout">
       <section className="card card-pad"><h2>Notulen</h2>{m.text ? <pre className="minutes">{m.text}</pre> : <p className="helper">Nog leeg. Schrijf de notulen in Word en klik daarna op “Opnieuw inlezen”.</p>}</section>
-      <section className="card card-pad"><h2>Actiepunten</h2>
-        {edit ? <form className="log-form" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => { set(await api(`/meetings/${id}/actions`, { method: 'POST', body: formValues(f) })); f.reset(); }); }}>
-          <select name="owner" aria-label="Voor wie" defaultValue="peppy"><option value="peppy">Pepijn</option><option value="bram">Bram</option><option value="shoroy">Shoroy</option><option value="">Team</option></select>
-          <input name="text" required placeholder="Actiepunt" aria-label="Actiepunt" /><button className="primary small" type="submit">Toevoegen</button></form> : null}
-        <ul className="action-list">{(m.actions || []).map((a) => <li key={a.id} className={a.done ? 'done' : ''}>
-          <select value={a.owner} disabled={!edit} aria-label="Voor wie" onChange={(e) => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'PATCH', body: { owner: e.target.value } }); qc.invalidateQueries({ queryKey: ['meeting', id] }); qc.invalidateQueries({ queryKey: ['meeting-board'] }); })}>
-            <option value="peppy">Pepijn</option><option value="bram">Bram</option><option value="shoroy">Shoroy</option><option value="">Team</option>{a.owner && !NAMES[a.owner] ? <option value={a.owner}>{a.owner}</option> : null}</select>
-          <span>{a.text}{a.due ? <small> · voor {fullDate(a.due)}</small> : null}</span>
-          {edit ? <button className="icon-btn ghost tiny" aria-label="Verwijderen" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'DELETE' }); qc.invalidateQueries({ queryKey: ['meeting', id] }); qc.invalidateQueries({ queryKey: ['meeting-board'] }); })}><Icon name="close" /></button> : null}
-        </li>)}</ul>
-        <p className="helper">De AI stelt de actiepunten voor; controleer de toewijzing en klik bij een sticky op “Maak taak” om er een echte taak van te maken (ook in Microsoft To Do).</p>
-      </section>
+      <aside className="card card-pad meeting-side"><div className="side-head"><h2>Actiepunten</h2>{actions.length ? <span>{`${m.open} open van ${actions.length}`}</span> : null}</div>
+        {actions.length ? <ul className="mini-notes">{actions.map((a) => <MiniAction key={a.id} a={a} onChange={refresh} />)}</ul> : <p className="helper">Nog geen actiepunten. Klik op “Actiepunten eruit halen” of voeg er zelf een toe.</p>}
+        {edit ? <form className="mini-add" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => { set(await api(`/meetings/${id}/actions`, { method: 'POST', body: formValues(f) })); f.reset(); }); }}>
+          <select name="owner" aria-label="Voor wie" defaultValue="peppy">{OWNERS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select>
+          <input name="text" required placeholder="Actiepunt" aria-label="Actiepunt" /><button className="primary small" type="submit" aria-label="Toevoegen"><Icon name="plus" /></button></form> : null}
+        <p className="helper small">Controleer wie wat doet; “Maak taak” zet het ook in Taken en Microsoft To Do.</p>
+      </aside>
     </div>
   </>;
 }

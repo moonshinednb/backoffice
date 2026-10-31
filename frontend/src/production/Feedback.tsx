@@ -1,10 +1,10 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChangeEvent, useMemo, useState } from 'react';
-import { Link, useNavigate, useParams } from 'react-router';
+import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { stamp } from '../lib/format';
-import { BackLink, Badge, Empty, ErrorBox, Icon, Loading, Orb, formValues, useAction, useToast } from '../lib/ui';
+import { Badge, Empty, ErrorBox, Icon, Loading, Orb, formValues, useAction, useToast } from '../lib/ui';
 import { FormDialog, useCanEdit } from './common';
 
 type Review = { reviewer: string; name: string; production: number | null; composition: number | null; decision: string; release_types: string;
@@ -35,22 +35,26 @@ export function FeedbackList() {
   const [search, setSearch] = useState('');
   const [mine, setMine] = useState(false);
   const [open, setOpen] = useState(false);
+  const [prospects, setProspects] = useState(false);
+  const isProspect = (t: Track) => !t.number && /^tbd$/i.test(t.title.trim());
   const rows = useMemo(() => (q.data?.tracks || []).filter((t) => {
+    if (isProspect(t) !== prospects) return false;
     if (status === 'open' && ['rejected', 'released'].includes(t.status)) return false;
     if (status !== 'open' && status !== 'all' && t.status !== status) return false;
     if (mine && user && mark(t.reviews[user.username])) return false;
     const s = search.toLowerCase();
     return !s || [t.artist, t.title, t.scouted_by, ...(t.options || []), t.release].join(' ').toLowerCase().includes(s);
-  }), [q.data, status, search, mine, user]);
+  }), [q.data, status, search, mine, user, prospects]); // eslint-disable-line
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   const counts: Record<string, number> = {};
-  q.data.tracks.forEach((t) => { counts[t.status] = (counts[t.status] || 0) + 1; });
+  q.data.tracks.filter((t) => isProspect(t) === prospects).forEach((t) => { counts[t.status] = (counts[t.status] || 0) + 1; });
   const reviewers = q.data.reviewers;
   return <>
     <div className="toolbar">
       <div className="search"><Icon name="search" /><input placeholder="Zoek artiest, titel, scout of release" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Zoek track" /></div>
       <label className="inline-check"><input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Nog niet door mij beoordeeld</label>
+      <label className="inline-check"><input type="checkbox" checked={prospects} onChange={(e) => { setProspects(e.target.checked); setStatus('all'); }} /> Benaderd (nog geen track) · {(q.data?.tracks || []).filter(isProspect).length}</label>
       {edit ? <button className="primary" style={{ marginLeft: 'auto' }} onClick={() => setOpen(true)}><Icon name="plus" /> Track toevoegen</button> : null}
     </div>
     <div className="status-chips">
@@ -93,6 +97,28 @@ function Player({ t }: { t: Track }) {
   return <p className="helper">Nog geen link of bestand. Upload een bestand of vul een link in.</p>;
 }
 
+function Ring({ value, size = 64, label }: { value: number | null; size?: number; label?: string }) {
+  const r = size / 2 - 5, c = 2 * Math.PI * r, pct = value == null ? 0 : Math.max(0, Math.min(1, value / 10));
+  return <div className={`ring ${grade(value)}`} style={{ width: size, height: size }} aria-label={label ? `${label}: ${value ?? 'geen cijfer'}` : undefined}>
+    <svg width={size} height={size}><circle cx={size / 2} cy={size / 2} r={r} className="ring-bg" /><circle cx={size / 2} cy={size / 2} r={r} className="ring-fg" strokeDasharray={c} strokeDashoffset={c * (1 - pct)} /></svg>
+    <span>{value ?? '–'}</span>{label ? <small>{label}</small> : null}
+  </div>;
+}
+
+function Slider({ name, label, value }: { name: string; label: string; value: number | null }) {
+  const [v, setV] = useState<string>(value == null ? '' : String(value));
+  const n = v === '' ? null : Number(v);
+  return <div className="score-slider">
+    <div className="score-top"><label htmlFor={`sl-${name}`}>{label}</label><span className={`score-value ${grade(n)}`}>{n ?? '–'}</span></div>
+    <input id={`sl-${name}`} type="range" min="1" max="10" step="0.5" value={v === '' ? 5.5 : v} onChange={(e) => setV(e.target.value)} className={v === '' ? 'unset' : ''} />
+    <input type="hidden" name={name} value={v} />
+    <div className="score-scale"><span>1</span><span>5</span><span>10</span>{v !== '' ? <button type="button" className="text-link" onClick={() => setV('')}>wissen</button> : null}</div>
+  </div>;
+}
+
+const TYPES = ['VA', 'EP', 'Single', 'Remix', 'Album'];
+
+/** One track, fullscreen over the app: listen, grade, read the team's feedback. */
 export function FeedbackTrack() {
   const { id = '' } = useParams();
   const { user } = useAuth();
@@ -102,15 +128,28 @@ export function FeedbackTrack() {
   const toast = useToast();
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
+  const [decision, setDecision] = useState<string | null>(null);
+  const [types, setTypes] = useState<string[] | null>(null);
+  const list = qc.getQueryData<{ tracks: Track[] }>(['feedback'])?.tracks || [];
   const q = useQuery({ queryKey: ['track', id], queryFn: () => api<Track>(`/feedback/tracks/${id}`) });
   const releases = useQuery({ queryKey: ['releases'], queryFn: () => api<{ releases: { id: string; title: string; catalog: string }[] }>('/releases') });
-  if (q.isPending) return <Loading />;
-  if (q.error) return <><BackLink to="/label/feedback">Track feedback</BackLink><ErrorBox error={q.error} /></>;
+  const close = () => navigate('/label/feedback');
+  const idx = list.findIndex((t) => t.id === id);
+  const prev = idx > 0 ? list[idx - 1] : null, next = idx >= 0 && idx < list.length - 1 ? list[idx + 1] : null;
+  useEffect(() => {
+    setDecision(null); setTypes(null);
+    const key = (e: KeyboardEvent) => {
+      if ((e.target as HTMLElement)?.closest('input, textarea, select')) return;
+      if (e.key === 'Escape') close();
+      if (e.key === 'ArrowRight' && next) navigate(`/label/feedback/${next.id}`);
+      if (e.key === 'ArrowLeft' && prev) navigate(`/label/feedback/${prev.id}`);
+    };
+    document.addEventListener('keydown', key);
+    document.body.classList.add('overlay-open');
+    return () => { document.removeEventListener('keydown', key); document.body.classList.remove('overlay-open'); };
+  }, [id, next?.id, prev?.id]); // eslint-disable-line
   const t = q.data;
   const set = (n: Track) => { qc.setQueryData(['track', id], n); qc.invalidateQueries({ queryKey: ['feedback'] }); };
-  const my = user ? t.reviews[user.username] : undefined;
-  const others = Object.values(t.reviews).filter((r) => r.reviewer !== user?.username);
-  const [label, color] = TRACK_STATUS[t.status] || [t.status, ''];
   async function upload(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]; e.target.value = '';
     if (!file) return;
@@ -118,72 +157,96 @@ export function FeedbackTrack() {
     setUploading(true);
     try { set(await api(`/feedback/tracks/${id}/file`, { method: 'POST', body: b })); toast('Opgeslagen op OneDrive.'); } catch (err) { toast((err as Error).message, true); } finally { setUploading(false); }
   }
-  return <>
-    <BackLink to="/label/feedback">Track feedback</BackLink>
-    <div className="track-head">
-      <div><p className="eyebrow">{t.number ? `#${t.number} · ` : ''}Track feedback</p><h1>{t.artist} – {t.title}</h1>
-        <p className="helper"><Badge color={color}>{label}</Badge> {t.scouted_by ? `· aangeleverd door ${t.scouted_by}` : ''}{t.average != null ? ` · gemiddeld ${t.average}` : ''}</p></div>
-      <div className="row-actions">{t.file_url ? <a className="button ghost" href={t.file_url} target="_blank" rel="noopener noreferrer"><Icon name="folder" /> OneDrive</a> : null}
-        {edit ? <label className="button ghost">{uploading ? <Orb state="weaving" /> : <Icon name="upload" />} Audio uploaden<input type="file" accept="audio/*,.wav,.mp3,.flac,.aiff" className="visually-hidden" onChange={upload} /></label> : null}</div>
+  const my = t && user ? t.reviews[user.username] : undefined;
+  const dec = decision ?? my?.decision ?? '';
+  const chosenTypes = types ?? (my?.release_types ? my.release_types.split(/[,/]\s*/).filter(Boolean) : []);
+  const reviews = t ? Object.values(t.reviews).sort((a, b) => (a.reviewer === user?.username ? -1 : b.reviewer === user?.username ? 1 : a.name.localeCompare(b.name))) : [];
+  return <div className="track-overlay" role="dialog" aria-modal="true" aria-label={t ? `${t.artist} – ${t.title}` : 'Track'}>
+    <div className="overlay-bar">
+      <button className="icon-btn ghost" onClick={close} aria-label="Terug naar de lijst"><Icon name="back" /></button>
+      <span className="overlay-crumb">{`Track feedback${idx >= 0 ? ` · ${idx + 1} van ${list.length}` : ''}`}</span>
+      <div className="overlay-nav">
+        <button className="icon-btn ghost" disabled={!prev} onClick={() => prev && navigate(`/label/feedback/${prev.id}`)} aria-label="Vorige track"><Icon name="back" /></button>
+        <button className="icon-btn ghost" disabled={!next} onClick={() => next && navigate(`/label/feedback/${next.id}`)} aria-label="Volgende track"><Icon name="chevron" /></button>
+        <button className="icon-btn ghost" onClick={close} aria-label="Sluiten"><Icon name="close" /></button>
+      </div>
     </div>
-    <section className="card card-pad"><Player t={t} />{t.file_name ? <p className="helper">{t.file_name}</p> : null}</section>
-    <div className="promo-grid section-gap">
-      <div>
-        <form className="card card-pad" key={`me-${my?.updated || 0}`} onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => set(await api(`/feedback/tracks/${id}/review`, { method: 'PUT', body: formValues(f) })), 'Je beoordeling is opgeslagen.'); }}>
-          <h2>Jouw beoordeling</h2>
+    {!t ? <div className="overlay-body">{q.error ? <ErrorBox error={q.error} /> : <Loading />}</div> : <div className="overlay-body">
+      <header className={`track-hero st-${t.status}`}>
+        <div className="hero-art">{t.artist.slice(0, 2).toUpperCase()}</div>
+        <div className="hero-main">
+          <p className="eyebrow">{t.number ? `#${t.number}` : 'Demo'}{t.scouted_by ? ` · aangeleverd door ${t.scouted_by}` : ''}{t.contact ? ` · ${t.contact}` : ''}</p>
+          <h1>{t.title}</h1><h2>{t.artist}</h2>
+          <div className="hero-meta">
+            <select className={`status-select st-${t.status}`} value={t.status} disabled={!edit} aria-label="Status"
+              onChange={(e) => run(async () => set(await api(`/feedback/tracks/${id}`, { method: 'PATCH', body: { status: e.target.value } })))}>
+              {Object.entries(TRACK_STATUS).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select>
+            {(t.options || []).map((o) => <span key={o} className="tag">{o}</span>)}{t.release ? <span className="tag tag-strong">Getekend: {t.release}</span> : null}
+          </div>
+        </div>
+        <Ring value={t.average} size={92} label="gemiddeld" />
+      </header>
+      <section className="player-card">
+        <Player t={t} />
+        <div className="player-actions">{t.link ? <a className="button ghost small" href={t.link} target="_blank" rel="noopener noreferrer"><Icon name="link" /> Bron</a> : null}
+          {t.file_url ? <a className="button ghost small" href={t.file_url} target="_blank" rel="noopener noreferrer"><Icon name="folder" /> OneDrive</a> : null}
+          {edit ? <label className="button ghost small">{uploading ? <Orb state="weaving" /> : <Icon name="upload" />} Nieuwe versie uploaden<input type="file" accept="audio/*,.wav,.mp3,.flac,.aiff" className="visually-hidden" onChange={upload} /></label> : null}
+          {t.file_name ? <small>{t.file_name}</small> : null}</div>
+      </section>
+      <div className="overlay-grid">
+        <form className="glass-card" key={`me-${id}-${my?.updated || 0}`} onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const v = formValues(f);
+          run(async () => { set(await api(`/feedback/tracks/${id}/review`, { method: 'PUT', body: { ...v, decision: dec, release_types: chosenTypes.join(', ') } })); setDecision(null); setTypes(null); }, 'Je beoordeling is opgeslagen.'); }}>
+          <h3>Jouw beoordeling</h3>
           <fieldset disabled={!edit} className="plain-fieldset">
-            <div className="form-grid">
-              <div className="field"><label htmlFor="rv-prod">Productie (1–10)</label><input id="rv-prod" name="production" type="number" min="0" max="10" step="0.1" defaultValue={my?.production ?? ''} /></div>
-              <div className="field"><label htmlFor="rv-comp">Compositie (1–10)</label><input id="rv-comp" name="composition" type="number" min="0" max="10" step="0.1" defaultValue={my?.composition ?? ''} /></div>
-              <div className="field"><label htmlFor="rv-dec">Oordeel</label><select id="rv-dec" name="decision" defaultValue={my?.decision || ''}>{Object.entries(DECISION).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
-              <div className="field"><label htmlFor="rv-types">Geschikt voor</label><input id="rv-types" name="release_types" defaultValue={my?.release_types} placeholder="VA, EP, single" /></div>
-            </div>
-            <div className="field"><label htmlFor="rv-pf">Feedback productie</label><textarea id="rv-pf" name="production_feedback" rows={3} defaultValue={my?.production_feedback} /></div>
-            <div className="field"><label htmlFor="rv-cf">Feedback compositie</label><textarea id="rv-cf" name="composition_feedback" rows={3} defaultValue={my?.composition_feedback} /></div>
+            <div className="slider-row"><Slider name="production" label="Productie" value={my?.production ?? null} /><Slider name="composition" label="Compositie" value={my?.composition ?? null} /></div>
+            <div className="decision-row" role="radiogroup" aria-label="Oordeel">{([['fit', 'Fit for release'], ['needs_work', 'Aanpassingen nodig'], ['not_fit', 'Niet geschikt']] as const).map(([k, l]) =>
+              <button key={k} type="button" role="radio" aria-checked={dec === k} className={`decision d-${k} ${dec === k ? 'on' : ''}`} onClick={() => setDecision(dec === k ? '' : k)}>{l}</button>)}</div>
+            <div className="type-row"><span>Geschikt voor</span>{TYPES.map((x) => <button key={x} type="button" className={`tag-btn ${chosenTypes.includes(x) ? 'on' : ''}`} onClick={() => setTypes(chosenTypes.includes(x) ? chosenTypes.filter((y) => y !== x) : [...chosenTypes, x])}>{x}</button>)}</div>
+            <div className="field"><label htmlFor="rv-pf">Productie</label><textarea id="rv-pf" name="production_feedback" rows={3} defaultValue={my?.production_feedback} placeholder="Mix, master, sounddesign…" /></div>
+            <div className="field"><label htmlFor="rv-cf">Compositie</label><textarea id="rv-cf" name="composition_feedback" rows={3} defaultValue={my?.composition_feedback} placeholder="Opbouw, drop, variatie…" /></div>
             <div className="field"><label htmlFor="rv-db">Dealbreaker</label><input id="rv-db" name="dealbreaker" defaultValue={my?.dealbreaker} placeholder="Wat moet er echt anders?" /></div>
-            <button className="primary" type="submit">Opslaan</button>
+            <button className="primary wide" type="submit">Beoordeling opslaan</button>
           </fieldset>
         </form>
-        <section className="card card-pad section-gap"><h2>Feedback van de anderen</h2>
-          {others.length ? others.map((r) => <div key={r.reviewer} className="review-card">
-            <div className="review-head"><strong>{r.name}</strong><span className={`grade ${grade(avg(mark(r)))}`}>P {r.production ?? '·'} · C {r.composition ?? '·'}</span>{r.decision ? <Badge>{DECISION[r.decision]}</Badge> : null}</div>
-            {r.production_feedback ? <p><b>Productie:</b> {r.production_feedback}</p> : null}
-            {r.composition_feedback ? <p><b>Compositie:</b> {r.composition_feedback}</p> : null}
-            {r.dealbreaker ? <p><b>Dealbreaker:</b> {r.dealbreaker}</p> : null}
+        <section className="team-col">
+          <h3>Team</h3>
+          <div className="team-grid">{reviews.length ? reviews.map((r) => <article key={r.reviewer} className={`team-card ${r.reviewer === user?.username ? 'me' : ''}`}>
+            <header><strong>{r.name}{r.reviewer === user?.username ? ' (jij)' : ''}</strong>{r.decision ? <span className={`decision-pill d-${r.decision}`}>{DECISION[r.decision]}</span> : null}</header>
+            <div className="team-rings"><Ring value={r.production} size={54} label="productie" /><Ring value={r.composition} size={54} label="compositie" /></div>
+            {r.production_feedback ? <p><b>Productie</b> {r.production_feedback}</p> : null}
+            {r.composition_feedback ? <p><b>Compositie</b> {r.composition_feedback}</p> : null}
+            {r.dealbreaker ? <p className="dealbreaker"><b>Dealbreaker</b> {r.dealbreaker}</p> : null}
             {r.release_types ? <small>Geschikt voor: {r.release_types}</small> : null}
-          </div>) : <p className="helper">Nog niemand anders heeft deze track beoordeeld.</p>}
+          </article>) : <p className="helper">Nog niemand heeft deze track beoordeeld.</p>}</div>
         </section>
       </div>
-      <div>
-        <form className="card card-pad" key={`t-${t.updated}`} onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const v = formValues(f);
+      <div className="overlay-grid">
+        <form className="glass-card" key={`t-${t.updated}`} onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const v = formValues(f);
           run(async () => set(await api(`/feedback/tracks/${id}`, { method: 'PATCH', body: { ...v, options: (v.options || '').split(',').map((x) => x.trim()).filter(Boolean) } })), 'Opgeslagen.'); }}>
-          <h2>Track</h2>
+          <h3>Details</h3>
           <fieldset disabled={!edit} className="plain-fieldset">
-            <div className="field"><label htmlFor="tk-status">Status</label><select id="tk-status" name="status" defaultValue={t.status}>{Object.entries(TRACK_STATUS).map(([k, [l]]) => <option key={k} value={k}>{l}</option>)}</select></div>
-            <div className="field"><label htmlFor="tk-opt">Mogelijk op (komma’s)</label><input id="tk-opt" name="options" defaultValue={(t.options || []).join(', ')} placeholder="VA4, BTTW" /></div>
-            <div className="field"><label htmlFor="tk-rel">Getekend op release</label><select id="tk-rel" name="release_id" defaultValue={t.release_id || ''}><option value="">Nog niet</option>{(releases.data?.releases || []).map((r) => <option key={r.id} value={r.id}>{[r.catalog, r.title].filter(Boolean).join(' – ')}</option>)}</select></div>
             <div className="form-grid">
               <div className="field"><label htmlFor="tk-artist">Artiest</label><input id="tk-artist" name="artist" defaultValue={t.artist} /></div>
               <div className="field"><label htmlFor="tk-title">Titel</label><input id="tk-title" name="title" defaultValue={t.title} /></div>
-            </div>
-            <div className="field"><label htmlFor="tk-link">Link</label><input id="tk-link" name="link" type="url" defaultValue={t.link} /></div>
-            <div className="form-grid">
+              <div className="field"><label htmlFor="tk-opt">Mogelijk op (komma’s)</label><input id="tk-opt" name="options" defaultValue={(t.options || []).join(', ')} placeholder="VA4, BTTW" /></div>
+              <div className="field"><label htmlFor="tk-rel">Getekend op release</label><select id="tk-rel" name="release_id" defaultValue={t.release_id || ''}><option value="">Nog niet</option>{(releases.data?.releases || []).map((r) => <option key={r.id} value={r.id}>{[r.catalog, r.title].filter(Boolean).join(' – ')}</option>)}</select></div>
               <div className="field"><label htmlFor="tk-scout">Aangeleverd door</label><input id="tk-scout" name="scouted_by" defaultValue={t.scouted_by} /></div>
               <div className="field"><label htmlFor="tk-contact">Contact</label><input id="tk-contact" name="contact" defaultValue={t.contact} placeholder="Mail, DM, agent" /></div>
             </div>
+            <div className="field"><label htmlFor="tk-link">Link</label><input id="tk-link" name="link" type="url" defaultValue={t.link} /></div>
             <div className="field"><label htmlFor="tk-notes">Notities</label><textarea id="tk-notes" name="notes" rows={4} defaultValue={t.notes} /></div>
             <button className="primary" type="submit">Opslaan</button>
           </fieldset>
         </form>
-        <section className="card card-pad section-gap"><h2>Logboek</h2>
+        <section className="glass-card"><h3>Logboek</h3>
           {edit ? <form className="inline-form" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => { set(await api(`/feedback/tracks/${id}/log`, { method: 'POST', body: formValues(f) })); f.reset(); }); }}>
-            <input name="body" placeholder="Opmerking of 'nieuwe versie ontvangen'" required aria-label="Opmerking" /><button className="primary small" type="submit">Toevoegen</button></form> : null}
+            <input name="body" placeholder="Opmerking of ‘nieuwe versie ontvangen’" required aria-label="Opmerking" /><button className="primary small" type="submit">Toevoegen</button></form> : null}
           <ul className="voyage-log">{(t.log || []).map((l) => <li key={l.id} className={`log-${l.kind}`}><span className="log-kind">{({ comment: 'Notitie', version: 'Versie', status: 'Status' } as Record<string, string>)[l.kind] || l.kind}</span>
             <div><p>{l.body}</p><small>{l.author} · {stamp(l.created)}</small></div></li>)}</ul>
+          {edit ? <p className="helper"><button className="text-link" onClick={() => confirm('Track verwijderen? Feedback gaat ook weg.') && run(async () => { await api(`/feedback/tracks/${id}`, { method: 'DELETE' }); qc.invalidateQueries({ queryKey: ['feedback'] }); close(); })}>Track verwijderen</button></p> : null}
         </section>
-        {edit ? <p className="helper"><button className="text-link" onClick={() => confirm('Track verwijderen? Feedback gaat ook weg.') && run(async () => { await api(`/feedback/tracks/${id}`, { method: 'DELETE' }); qc.invalidateQueries({ queryKey: ['feedback'] }); navigate('/label/feedback'); })}>Track verwijderen</button></p> : null}
-        <p className="helper"><Link className="text-link" to="/label/feedback">Terug naar alle tracks</Link></p>
       </div>
-    </div>
-  </>;
+      <p className="helper overlay-hint">Tip: ← en → voor de vorige/volgende track, Esc om terug te gaan.</p>
+    </div>}
+  </div>;
 }

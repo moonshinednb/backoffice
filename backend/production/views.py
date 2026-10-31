@@ -193,7 +193,7 @@ def roster(request):
     from .models import Artist, Booking, Release, Voyage
     today = date.today().isoformat()
     rows = []
-    for a in Artist.objects.filter(on_label=True).order_by('name'):
+    for a in Artist.objects.filter(in_roster=True).order_by('name'):
         d = S.artist_dict(a)
         name = a.name.casefold()
         releases = [r for r in Release.objects.all() if name in (r.artist or '').casefold()]
@@ -203,6 +203,22 @@ def roster(request):
                     | {'releases': len(releases), 'latest_release': max((r.release_date for r in releases if r.release_date), default=''),
                        'upcoming_shows': shows + voyages, 'has_rider': bool(a.tech_rider.strip() or a.rider_url), 'has_bio': bool(a.bio.strip())})
     return {'artists': rows}
+
+
+@router.post('/roster')
+def add_to_roster(request):
+    """Add one of our own artists (new or existing by name)."""
+    require(request, 'production', write=True)
+    from .models import Artist
+    name = R._text(body(request).get('name'), 120)
+    if not name:
+        raise HttpError(400, 'Vul een artiestennaam in.')
+    a = Artist.objects.filter(name__iexact=name).first() or Artist.objects.create(name=name)
+    a.in_roster = True
+    a.save(update_fields=['in_roster'])
+    from core.services import audit
+    audit(actor(request), 'Toegevoegd aan Moonshine-artiesten', a.id, a.name)
+    return {'id': a.id}
 
 
 @router.post('/artists/{ident}/photo')

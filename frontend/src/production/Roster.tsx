@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { api } from '../lib/api';
 import { fullDate } from '../lib/format';
-import { Badge, Empty, ErrorBox, Icon, Loading, PageTitle } from '../lib/ui';
+import { Badge, Empty, ErrorBox, Icon, Loading, PageTitle, formValues, useToast } from '../lib/ui';
+import { FormDialog, useCanEdit } from './common';
 
 type Row = { id: string; name: string; full_name: string; photo: string; socials: Record<string, string>; city: string; genres: string; epk_folder: string;
   agency: string; instagram: string; email: string; releases: number; latest_release: string; upcoming_shows: number; has_rider: boolean; has_bio: boolean };
@@ -11,11 +13,21 @@ export const SOCIAL_LABEL: Record<string, string> = { spotify: 'Spotify', soundc
 /** The Moonshine artists (marked "Artiest van het Moonshine-label"). */
 export function RosterPage() {
   const navigate = useNavigate();
+  const edit = useCanEdit();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const [open, setOpen] = useState(false);
   const q = useQuery({ queryKey: ['roster'], queryFn: () => api<{ artists: Row[] }>('/roster') });
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   return <>
-    <PageTitle eyebrow="Productie" title="Artists" sub="De Moonshine-artiesten: profiel, foto, socials, EPK, releases en komende shows." />
+    <PageTitle eyebrow="Productie" title="Artists" sub="Onze eigen Moonshine-artiesten: profiel, foto, socials, EPK, releases en komende shows."
+      actions={edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Artiest toevoegen</button> : null} />
+    <FormDialog id="roster-add" title="Moonshine-artiest toevoegen" open={open} onClose={() => setOpen(false)} label="Toevoegen" submit={async (form) => {
+      const r = await api<{ id: string }>('/roster', { method: 'POST', body: formValues(form) });
+      setOpen(false); qc.invalidateQueries({ queryKey: ['roster'] }); toast('Toegevoegd.'); navigate(`/artists/${r.id}`);
+    }}><div className="field"><label htmlFor="ro-name">Artiestennaam</label><input id="ro-name" name="name" required placeholder="Bijv. MC Goblin" /></div>
+      <p className="helper">Bestaat de artiest al (bijv. van een boeking), dan wordt dat profiel gebruikt.</p></FormDialog>
     {q.data.artists.length ? <div className="roster-grid">{q.data.artists.map((a) => {
       const missing = [!a.photo && 'foto', !a.has_bio && 'bio', !a.epk_folder && 'EPK', !a.has_rider && 'rider', !Object.keys(a.socials).length && 'socials'].filter(Boolean);
       return <article key={a.id} className="card roster-card" tabIndex={0} onClick={() => navigate(`/artists/${a.id}`)} onKeyDown={(k) => k.key === 'Enter' && navigate(`/artists/${a.id}`)}>
@@ -29,6 +41,6 @@ export function RosterPage() {
           {missing.length ? <Badge color="amber">{`Nog nodig: ${missing.join(', ')}`}</Badge> : <Badge color="lime">Profiel compleet</Badge>}
         </div>
       </article>; })}</div>
-      : <Empty title="Nog geen Moonshine-artiesten" sub="Open een artiest (Evenementen → Artiesten) en vink “Artiest van het Moonshine-label” aan." icon="user" />}
+      : <Empty title="Nog geen Moonshine-artiesten" sub="Voeg onze eigen artiesten toe met de knop rechtsboven." icon="user" />}
   </>;
 }

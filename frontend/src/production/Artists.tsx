@@ -104,6 +104,7 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
     const payload: Record<string, unknown> = { ...values };
     if (f.id === 'artist-form') {
       payload.on_label = 'on_label' in values;
+      payload.in_roster = 'in_roster' in values;
       payload.socials = Object.fromEntries(Object.keys(SOCIAL_LABEL).map((k) => [k, values['social_' + k] || '']).filter(([, v]) => v));
       Object.keys(SOCIAL_LABEL).forEach((k) => delete payload['social_' + k]);
     }
@@ -135,7 +136,8 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
                 <Field name="name" label="Artiestennaam *" value={a.name} required />
                 <Field name="nationality" label="Nationaliteit" value={a.nationality} />
                 <TravelId a={a} needed={false} />
-                <label className="label-toggle"><input type="checkbox" name="on_label" defaultChecked={a.on_label} disabled={!edit} /> Artiest van het Moonshine-label</label>
+                <label className="label-toggle"><input type="checkbox" name="in_roster" defaultChecked={a.in_roster} disabled={!edit} /> Eigen Moonshine-artiest (staat bij Artists)</label>
+                <label className="label-toggle"><input type="checkbox" name="on_label" defaultChecked={a.on_label} disabled={!edit} /> Brengt uit op het Moonshine-label</label>
               </section>
               <section className="card card-pad">
                 <ContactBlock a={a} />

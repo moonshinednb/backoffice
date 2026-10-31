@@ -103,10 +103,12 @@ class RosterTests(ApiTests):
     def test_roster_profile(self):
         c, _ = self.login('peppy', 'admin-pass-1')
         a = self.send(c, 'post', '/api/artists', {'name': 'PEPPY'}).json()
-        self.send(c, 'patch', f"/api/artists/{a['id']}", {'on_label': True, 'city': 'Arnhem', 'genres': 'Neurofunk',
+        self.send(c, 'patch', f"/api/artists/{a['id']}", {'in_roster': True, 'city': 'Arnhem', 'genres': 'Neurofunk',
                                                          'socials': {'spotify': 'https://open.spotify.com/artist/x', 'bogus': 'https://x.nl'}})
         self.send(c, 'post', '/api/artists', {'name': 'Iemand anders'})
         r = c.get('/api/roster').json()['artists']
         self.assertEqual([x['name'] for x in r], ['PEPPY'])
         self.assertEqual(r[0]['socials'], {'spotify': 'https://open.spotify.com/artist/x'})
         self.assertEqual(r[0]['city'], 'Arnhem')
+        self.send(c, 'post', '/api/roster', {'name': 'MC Goblin'})
+        self.assertEqual([x['name'] for x in c.get('/api/roster').json()['artists']], ['MC Goblin', 'PEPPY'])

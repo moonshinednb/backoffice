@@ -32,7 +32,7 @@ export function Label({ tab }: { tab: Tab }) {
     <PageTitle eyebrow="Productie" title="Label" sub="Releases van het Moonshine-label: planning, taken, artiesten en royalty’s." actions={button} />
     <Tabs items={[{ to: '/label', label: 'Releases' }, { to: '/label/planning', label: 'Planning' }, { to: '/label/tasks', label: 'Taken' },
       { to: '/label/feedback', label: 'Track feedback', end: false }, { to: '/label/promo', label: 'Promo', end: false }, { to: '/label/artists', label: 'Artiesten' }, { to: '/label/statements', label: 'Afrekeningen' }]} />
-    {tab === 'feedback' ? <FeedbackList /> : tab === 'feedback-track' ? <FeedbackTrack /> : tab === 'promo' ? <PromoCampaigns /> : tab === 'promo-campaign' ? <PromoCampaign /> : tab === 'promo-contacts' ? <PromoContacts />
+    {tab === 'feedback' ? <FeedbackList /> : tab === 'feedback-track' ? <><FeedbackList /><FeedbackTrack /></> : tab === 'promo' ? <PromoCampaigns /> : tab === 'promo-campaign' ? <PromoCampaign /> : tab === 'promo-contacts' ? <PromoContacts />
       : q.isPending ? <Loading /> : q.error ? <ErrorBox error={q.error} />
       : tab === 'planning' ? <Planning releases={q.data.releases} />
         : tab === 'tasks' ? <ReleaseTasks releases={q.data.releases} />

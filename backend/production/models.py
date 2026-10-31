@@ -64,6 +64,7 @@ class Artist(models.Model):
     agent_phone = models.CharField(max_length=40, blank=True, default='')
     contact_via = models.CharField(max_length=10, blank=True, default='', help_text="'agency' or 'self'; empty = agency when one is filled in")
     on_label = models.BooleanField(default=False)
+    in_roster = models.BooleanField(default=False, help_text='One of our own Moonshine artists (the Artists catalogue)')
     photo_id = models.CharField(max_length=200, blank=True, default='', help_text='Profile photo on OneDrive')
     socials = models.JSONField(default=dict, help_text='spotify, soundcloud, instagram, tiktok, youtube, facebook, beatport, bandcamp, website')
     city = models.CharField(max_length=120, blank=True, default='')

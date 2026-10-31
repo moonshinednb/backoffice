@@ -35,7 +35,7 @@ ARTIST_KEYS = tuple(R.ARTIST_FIELDS)
 
 def artist_dict(a):
     return {'id': a.id, **{k: getattr(a, k) for k in ARTIST_KEYS}, 'contact_via': R.contact_via({k: getattr(a, k) for k in ARTIST_KEYS}),
-            'on_label': a.on_label, 'socials': a.socials or {}, 'city': a.city, 'genres': a.genres, 'epk_folder': a.epk_folder,
+            'on_label': a.on_label, 'in_roster': a.in_roster, 'socials': a.socials or {}, 'city': a.city, 'genres': a.genres, 'epk_folder': a.epk_folder,
             'photo': f'/api/artists/{a.id}/photo?v={a.photo_id[-8:]}' if a.photo_id else '', 'created': ts(a.created), 'updated': ts(a.updated)}
 
 
@@ -306,10 +306,11 @@ def artist_update(ident, payload, actor):
         data['epk_folder'] = R._url(payload['epk_folder'], 'EPK-map') if payload['epk_folder'] else ''
     if isinstance(payload.get('socials'), dict):
         data['socials'] = {k: R._url(v, k.capitalize()) for k, v in payload['socials'].items() if k in SOCIALS and v}
-    if 'on_label' in payload:
-        if type(payload['on_label']) is not bool:
-            raise ValueError('Ongeldige labelstatus.')
-        data['on_label'] = payload['on_label']
+    for flag in ('on_label', 'in_roster'):
+        if flag in payload:
+            if type(payload[flag]) is not bool:
+                raise ValueError('Ongeldige waarde.')
+            data[flag] = payload[flag]
     if not data:
         return
     if not Artist.objects.filter(id=ident).exists():
