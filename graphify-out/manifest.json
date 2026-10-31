@@ -534,10 +534,10 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/icons.tsx": {
-    "mtime": 1793394273.8503752,
-    "seen": 1793401037.4695382,
-    "ast_hash": "f863de460392cf0945a9f3325808b3af",
-    "semantic_hash": "f863de460392cf0945a9f3325808b3af"
+    "mtime": 1793454148.8767097,
+    "seen": 1793454230.4419627,
+    "ast_hash": "42cf1c46b362e0d893443254cbeac1d2",
+    "semantic_hash": ""
   },
   "frontend/src/lib/ui.tsx": {
     "mtime": 1793394253.028296,
@@ -702,9 +702,9 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1793443419.795267,
-    "seen": 1793443425.0384593,
-    "ast_hash": "7a4ca843bb9a3c674ae1644ec07bdf34",
+    "mtime": 1793453735.5285664,
+    "seen": 1793454230.4420183,
+    "ast_hash": "f380027b11758a8c4a6f7adc0c7d4b00",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -912,9 +912,9 @@
     "semantic_hash": ""
   },
   "frontend/src/production/Feedback.tsx": {
-    "mtime": 1793413153.2676744,
-    "seen": 1793413352.5781565,
-    "ast_hash": "b7301091fe41a96e6a82cf5979eb0754",
+    "mtime": 1793454214.5261428,
+    "seen": 1793454230.4419947,
+    "ast_hash": "2b6ff9dd7c03f2d4b1432d658e1592be",
     "semantic_hash": ""
   },
   "frontend/src/production/Voyages.tsx": {

@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { stamp } from '../lib/format';
-import { Badge, Empty, ErrorBox, Icon, Loading, Orb, formValues, useAction, useToast } from '../lib/ui';
+import { Empty, ErrorBox, Icon, Loading, Orb, formValues, useAction, useToast } from '../lib/ui';
 import { FormDialog, useCanEdit } from './common';
 
 type Review = { reviewer: string; name: string; production: number | null; composition: number | null; decision: string; release_types: string;
@@ -49,29 +49,31 @@ export function FeedbackList() {
   if (q.error) return <ErrorBox error={q.error} />;
   const counts: Record<string, number> = {};
   q.data.tracks.filter((t) => isProspect(t) === prospects).forEach((t) => { counts[t.status] = (counts[t.status] || 0) + 1; });
-  const reviewers = q.data.reviewers;
+  // The list shows the three of us; older reviewers only count in the average.
+  const core = q.data.reviewers.filter(([u]) => ['peppy', 'bram', 'shoroy'].includes(u));
   return <>
     <div className="toolbar">
       <div className="search"><Icon name="search" /><input placeholder="Zoek artiest, titel, scout of release" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Zoek track" /></div>
       <label className="inline-check"><input type="checkbox" checked={mine} onChange={(e) => setMine(e.target.checked)} /> Nog niet door mij beoordeeld</label>
-      <label className="inline-check"><input type="checkbox" checked={prospects} onChange={(e) => { setProspects(e.target.checked); setStatus('all'); }} /> Benaderd (nog geen track) · {(q.data?.tracks || []).filter(isProspect).length}</label>
+      <label className="inline-check"><input type="checkbox" checked={prospects} onChange={(e) => { setProspects(e.target.checked); setStatus('all'); }} /> {`Benaderd (nog geen track) · ${(q.data?.tracks || []).filter(isProspect).length}`}</label>
       {edit ? <button className="primary" style={{ marginLeft: 'auto' }} onClick={() => setOpen(true)}><Icon name="plus" /> Track toevoegen</button> : null}
     </div>
     <div className="status-chips">
       {[['open', 'Lopend'], ['all', 'Alles'], ...Object.entries(TRACK_STATUS).map(([k, [l]]) => [k, l])].map(([k, l]) =>
         <button key={k} className={`chip-btn ${status === k ? 'active' : ''} st-${k}`} onClick={() => setStatus(k)}>{l}{counts[k] ? <span>{counts[k]}</span> : null}</button>)}
     </div>
-    <section className="card">{rows.length ? <div className="table-wrap"><table className="feedback-table"><thead><tr><th>#</th><th>Track</th><th>Scout</th>
-      {reviewers.map(([u, n]) => <th key={u} className="amount" title={`Productie / compositie van ${n}`}>{n}</th>)}<th className="amount">Gem.</th><th>Release</th><th>Status</th></tr></thead><tbody>
+    <section className="card tf-list">{rows.length ? <div className="table-wrap"><table className="tf-table"><thead><tr>
+      <th className="tf-num">#</th><th>Track</th>{core.map(([u, n]) => <th key={u} className="tf-score" title={`Gemiddelde van productie en compositie van ${n}`}>{n}</th>)}
+      <th className="tf-score">Gem.</th><th>Status</th><th className="tf-rel">Release</th></tr></thead><tbody>
       {rows.map((t) => { const [l, c] = TRACK_STATUS[t.status] || [t.status, '']; const go = () => navigate(`/label/feedback/${t.id}`);
-        return <tr key={t.id} className={`clickable row-${t.status}`} tabIndex={0} onClick={go} onKeyDown={(k) => k.key === 'Enter' && go()}>
-          <td className="nowrap muted">{t.number ?? ''}</td>
-          <td><strong>{t.artist}</strong><small className="block">{t.title}{t.link || t.has_file ? ' · ▶' : ''}</small></td>
-          <td>{t.scouted_by || '—'}</td>
-          {reviewers.map(([u]) => { const m = avg(mark(t.reviews[u])); return <td key={u} className={`amount grade ${grade(m)}`}>{m ?? '·'}</td>; })}
-          <td className={`amount grade strong ${grade(t.average)}`}>{t.average ?? '—'}</td>
-          <td>{t.release || (t.options || []).join(', ') || '—'}</td>
-          <td><Badge color={c}>{l}</Badge></td></tr>; })}
+        const others = Object.keys(t.reviews).filter((u) => !core.some(([k]) => k === u) && mark(t.reviews[u])).length;
+        return <tr key={t.id} className={`clickable st-row-${c || 'none'}`} tabIndex={0} onClick={go} onKeyDown={(k) => k.key === 'Enter' && go()}>
+          <td className="tf-num">{t.number ?? ''}</td>
+          <td className="tf-track"><span className="tf-artist">{t.artist}</span><span className="tf-title">{t.title}</span>{t.link || t.has_file ? <Icon name="play" /> : null}</td>
+          {core.map(([u]) => { const m = avg(mark(t.reviews[u])); return <td key={u} className="tf-score"><span className={`tf-chip ${grade(m) || 'none'}`}>{m == null ? '' : m.toFixed(1)}</span></td>; })}
+          <td className="tf-score"><span className={`tf-avg ${grade(t.average)}`} title={others ? `Inclusief ${others} oudere beoordeling(en)` : undefined}>{t.average == null ? '–' : t.average.toFixed(1)}</span></td>
+          <td className="tf-status"><i className={`dot dot-${c || 'none'}`} />{l}</td>
+          <td className="tf-rel">{t.release || (t.options || []).join(', ')}</td></tr>; })}
     </tbody></table></div> : <Empty title="Geen tracks in deze selectie" sub="Voeg een demo toe of kies een ander filter." icon="music" />}</section>
     <FormDialog id="track-new" title="Track toevoegen" open={open} onClose={() => setOpen(false)} label="Toevoegen" submit={async (form) => {
       const t = await api<Track>('/feedback/tracks', { method: 'POST', body: formValues(form) });
@@ -106,11 +108,15 @@ function Ring({ value, size = 64, label }: { value: number | null; size?: number
 }
 
 function Slider({ name, label, value }: { name: string; label: string; value: number | null }) {
-  const [v, setV] = useState<string>(value == null ? '' : String(value));
+  const [v, setV] = useState<string>(value == null ? '' : Number(value).toFixed(1));
   const n = v === '' ? null : Number(v);
+  const nudge = (d: number) => setV(Math.min(10, Math.max(1, Math.round(((n ?? 5.5) + d) * 10) / 10)).toFixed(1));
   return <div className="score-slider">
-    <div className="score-top"><label htmlFor={`sl-${name}`}>{label}</label><span className={`score-value ${grade(n)}`}>{n ?? '–'}</span></div>
-    <input id={`sl-${name}`} type="range" min="1" max="10" step="0.5" value={v === '' ? 5.5 : v} onChange={(e) => setV(e.target.value)} className={v === '' ? 'unset' : ''} />
+    <div className="score-top"><label htmlFor={`sl-${name}`}>{label}</label>
+      <span className="score-nudge"><button type="button" aria-label={`${label} 0,1 lager`} onClick={() => nudge(-0.1)}>−</button>
+        <span className={`score-value ${grade(n)}`}>{n == null ? '–' : n.toFixed(1)}</span>
+        <button type="button" aria-label={`${label} 0,1 hoger`} onClick={() => nudge(0.1)}>+</button></span></div>
+    <input id={`sl-${name}`} type="range" min="1" max="10" step="0.1" value={v === '' ? 5.5 : v} onChange={(e) => setV(Number(e.target.value).toFixed(1))} className={v === '' ? 'unset' : ''} />
     <input type="hidden" name={name} value={v} />
     <div className="score-scale"><span>1</span><span>5</span><span>10</span>{v !== '' ? <button type="button" className="text-link" onClick={() => setV('')}>wissen</button> : null}</div>
   </div>;

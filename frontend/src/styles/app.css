@@ -322,3 +322,27 @@ button.wide { width: 100%; }
 .people-add.crew { grid-template-columns: 2fr 1.4fr 1.6fr 90px auto; } .people-add.guests { grid-template-columns: 2fr 110px 120px 2fr auto; }
 .people-add input, .people-add select { font-size: .84rem; padding: 7px 9px; }
 @media (max-width: 760px) { .people-add.crew, .people-add.guests { grid-template-columns: 1fr 1fr; } .people-add button { grid-column: 1 / -1; } }
+/* Track feedback list: one line per track */
+.tf-list { padding: 0; }
+.tf-table { font-size: .84rem; }
+.tf-table th { font-size: .7rem; padding: 8px 10px; }
+.tf-table td { padding: 0 10px; height: 38px; white-space: nowrap; border-bottom: 1px solid #1f191a; }
+.tf-table tr:hover td { background: #ffffff06; }
+.tf-num { width: 44px; text-align: right; opacity: .45; font-variant-numeric: tabular-nums; }
+.tf-track { max-width: 0; width: 46%; overflow: hidden; text-overflow: ellipsis; }
+.tf-artist { font-weight: 600; } .tf-title { opacity: .6; margin-left: 8px; }
+.tf-track svg { width: 11px; height: 11px; margin-left: 8px; opacity: .45; vertical-align: -1px; }
+.tf-score { width: 70px; text-align: center; }
+.tf-chip { display: inline-block; min-width: 36px; padding: 2px 0; border-radius: 6px; font-size: .78rem; font-variant-numeric: tabular-nums; }
+.tf-chip.g-high { background: #a3e63514; } .tf-chip.g-mid { background: #f0b35a14; } .tf-chip.g-low { background: #ff919b14; }
+.tf-chip.none::after { content: '·'; opacity: .3; }
+.tf-avg { font-weight: 700; font-variant-numeric: tabular-nums; }
+.tf-status { width: 170px; font-size: .78rem; opacity: .85; }
+.dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 7px; background: #6b6264; vertical-align: 1px; }
+.dot-blue { background: #7baaf5; } .dot-amber { background: #f0b35a; } .dot-lime { background: #a3e635; } .dot-purple { background: #a996e8; } .dot-red { background: #ff919b; }
+.tf-rel { max-width: 0; width: 18%; overflow: hidden; text-overflow: ellipsis; opacity: .55; font-size: .78rem; }
+.st-row-red td { opacity: .55; }
+.score-nudge { display: inline-flex; align-items: center; gap: 4px; }
+.score-nudge button { width: 24px; height: 24px; min-height: 0; padding: 0; border-radius: 6px; font-size: .95rem; line-height: 1; background: #ffffff0a; border: 1px solid #ffffff1a; }
+.score-nudge .score-value { min-width: 40px; text-align: center; }
+@media (max-width: 760px) { .tf-rel, .tf-num { display: none; } .tf-status { width: auto; } .tf-score { width: 52px; } }
