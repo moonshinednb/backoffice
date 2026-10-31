@@ -114,13 +114,16 @@ class DriveTreeTests(ApiTests):
         self.assertEqual(T.normal_name('2026-10-02 RTR'), '2026-10-02 RTR')
         self.assertEqual(T.normal_name('[TBC] 2026-08-01'), '[TBC] 2026-08-01')
         kids = [{'id': '1', 'name': 'Artworks', 'folder': {}}, {'id': '2', 'name': 'Photos', 'folder': {}}, {'id': '3', 'name': 'DJI Vids', 'folder': {}},
-                {'id': '4', 'name': 'Finance', 'folder': {}}, {'id': '5', 'name': 'notes.txt'}]
+                {'id': '4', 'name': 'Finance', 'folder': {}}, {'id': '5', 'name': 'notes.txt'}, {'id': '6', 'name': 'ARTIST CONTENT FILES', 'folder': {}},
+                {'id': '7', 'name': 'Content', 'folder': {}}]
         steps = {s[1]['name']: (s[0], s[2], s[3]) for s in T.plan(kids)}
         self.assertEqual(steps['Artworks'], ('rename', '04 Artwork', None))
         self.assertEqual(steps['Finance'], ('rename', '01 Finance', None))
         self.assertEqual(steps['Photos'], ('move', '07 Na afloop', None))
         self.assertEqual(steps['DJI Vids'], ('move', '07 Na afloop', None))
         self.assertEqual(steps['notes.txt'], ('keep', None, None))
+        self.assertEqual(steps['Content'], ('rename', '05 Content', None))
+        self.assertEqual(steps['ARTIST CONTENT FILES'], ('move', '05 Content', None))
 
     def test_disabled_without_drive(self):
         from production import drive

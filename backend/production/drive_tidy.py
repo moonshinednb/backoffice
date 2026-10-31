@@ -88,7 +88,9 @@ def plan(kids, peek=None):
     kind is 'rename' (the folder becomes the section), 'move' or 'keep'."""
     peek = peek or {}
     steps, taken = [], {c['name'] for c in kids}
-    for c in sorted(kids, key=lambda x: ('folder' not in x, x['name'].lower())):
+    plain = set().union(*PLAIN.values())
+    # Folders that simply are a section go first, so they are renamed rather than nested.
+    for c in sorted(kids, key=lambda x: ('folder' not in x, x['name'].lower().strip() not in plain, x['name'].lower())):
         found = classify(c['name'], 'folder' in c, peek.get(c['id'], ()))
         if not found:
             steps.append(('keep', c, None, None))
