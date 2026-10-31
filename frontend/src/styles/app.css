@@ -100,3 +100,4 @@ a.button { display: inline-flex; align-items: center; gap: 8px; text-decoration:
 .mail-preview { white-space: pre-wrap; font-family: inherit; font-size: .9rem; line-height: 1.55; background: #0d0a0b; padding: 16px; border-radius: 10px; border: 1px solid #2c2325; }
 label.button { display: inline-flex; align-items: center; gap: 8px; margin: 0; cursor: pointer; border: 1px solid var(--line); border-radius: 9px; padding: 10px 15px; font-size: .875rem; font-weight: 600; }
 @media (max-width: 1000px) { .promo-grid { grid-template-columns: 1fr; } }
+.key-note { opacity: .7; margin-top: 4px; max-width: 340px; white-space: normal; }

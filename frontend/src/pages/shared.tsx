@@ -8,7 +8,7 @@ import { Badge, Icon, Orb, useToast } from '../lib/ui';
 export type Doc = { id: string; name: string; mime: string; size: number; source: string; status: string; odoo_id: number | null; error: string | null; created: number; updated: number;
   details: { supplier?: string; number?: string; date?: string; total?: number; currency?: string; confidence?: number; onedrive_url?: string; [k: string]: any } };
 export type Task = { id: string; title: string; description: string; assignee: string | null; due: string | null; priority: string; done: boolean; release?: string };
-export type Connection = { id: string; name: string; status: string; checked: number | null };
+export type Connection = { id: string; name: string; status: string; checked: number | null; error?: string; message?: string };
 
 export const useDocuments = (enabled = true) => useQuery({ queryKey: ['documents'], queryFn: () => api<{ documents: Doc[] }>('/documents?limit=2000'), enabled, refetchInterval: 20000 });
 export const useTasks = () => useQuery({ queryKey: ['tasks'], queryFn: () => api<{ tasks: Task[] }>('/tasks'), refetchInterval: 30000 });
@@ -26,7 +26,7 @@ export function DocumentBadge({ d }: { d: Doc }) {
 
 export function ConnectionBadge({ c }: { c?: Connection }) {
   if (!c) return null;
-  return c.status === 'verified' ? <Badge color="lime">Geverifieerd</Badge> : c.status === 'configured' ? <Badge color="amber">Nog testen</Badge> : <Badge>Niet gekoppeld</Badge>;
+  return c.status === 'verified' ? <Badge color="lime">Geverifieerd</Badge> : c.status === 'failed' ? <Badge color="red">Werkt niet</Badge> : c.status === 'configured' ? <Badge color="amber">Nog testen</Badge> : <Badge>Niet gekoppeld</Badge>;
 }
 
 /** Upload invoices: file picker or dropped files, one at a time. */

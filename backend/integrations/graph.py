@@ -15,50 +15,70 @@ _TOKEN_LOCK = threading.Lock()
 _FOLDERS = set()
 
 
-def graph_token():
+def _token_request(body):
+    tenant = settings().get('microsoft_tenant', '')
+    if not re.fullmatch(r'[a-zA-Z0-9.-]+', tenant or ''):
+        raise ValueError('Microsoft tenant ontbreekt.')
+    return http(f'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token', urllib.parse.urlencode(body).encode(),
+                {'Content-Type': 'application/x-www-form-urlencoded'})
+
+
+def graph_token(delegated=False):
+    """Token for Microsoft Graph. Mail, OneDrive and files use the app itself
+    (client secret, application permissions). Microsoft To Do needs a person:
+    `delegated=True` uses the separately stored To Do refresh token."""
     with _TOKEN_LOCK:
         s = secret_values()
         cfg = settings()
-        if s.get('microsoft_access_token') and s.get('microsoft_expires', 0) > time.time() + 90:
-            return s['microsoft_access_token']
-        if s.get('microsoft_refresh_token'):
-            body = {'client_id': cfg.get('microsoft_client_id', ''), 'grant_type': 'refresh_token',
-                    'refresh_token': s['microsoft_refresh_token'], 'scope': 'https://graph.microsoft.com/.default offline_access'}
+        client = cfg.get('microsoft_client_id', '')
+        if delegated:
+            refresh = s.get('microsoft_todo_refresh_token') or s.get('microsoft_refresh_token')
+            if not refresh:
+                raise ValueError('Microsoft To Do heeft een eenmalige inlog nodig (refresh-token ontbreekt).')
+            if s.get('microsoft_todo_access_token') and s.get('microsoft_todo_expires', 0) > time.time() + 90:
+                return s['microsoft_todo_access_token']
+            body = {'client_id': client, 'grant_type': 'refresh_token', 'refresh_token': refresh, 'scope': 'https://graph.microsoft.com/.default offline_access'}
             if s.get('microsoft_client_secret'):
                 body['client_secret'] = s['microsoft_client_secret']
-        elif s.get('microsoft_client_secret'):
-            body = {'client_id': cfg.get('microsoft_client_id', ''), 'client_secret': s['microsoft_client_secret'],
-                    'grant_type': 'client_credentials', 'scope': 'https://graph.microsoft.com/.default'}
+            r = _token_request(body)
+            s['microsoft_todo_access_token'] = r['access_token']
+            s['microsoft_todo_expires'] = time.time() + r.get('expires_in', 3600)
+            if r.get('refresh_token'):
+                s['microsoft_todo_refresh_token'] = r['refresh_token']
+            save_secrets(s)
+            return s['microsoft_todo_access_token']
+        if s.get('microsoft_access_token') and s.get('microsoft_expires', 0) > time.time() + 90:
+            return s['microsoft_access_token']
+        if s.get('microsoft_client_secret'):
+            body = {'client_id': client, 'client_secret': s['microsoft_client_secret'], 'grant_type': 'client_credentials', 'scope': 'https://graph.microsoft.com/.default'}
+        elif s.get('microsoft_refresh_token'):
+            body = {'client_id': client, 'grant_type': 'refresh_token', 'refresh_token': s['microsoft_refresh_token'], 'scope': 'https://graph.microsoft.com/.default offline_access'}
         elif s.get('microsoft_access_token'):
             return s['microsoft_access_token']
         else:
             raise ValueError('Microsoft-verbinding is nog niet geconfigureerd.')
-        tenant = cfg.get('microsoft_tenant', '')
-        if not re.fullmatch(r'[a-zA-Z0-9.-]+', tenant or ''):
-            raise ValueError('Microsoft tenant ontbreekt.')
-        r = http(f'https://login.microsoftonline.com/{tenant}/oauth2/v2.0/token', urllib.parse.urlencode(body).encode(),
-                 {'Content-Type': 'application/x-www-form-urlencoded'})
+        r = _token_request(body)
         s['microsoft_access_token'] = r['access_token']
         s['microsoft_expires'] = time.time() + r.get('expires_in', 3600)
-        if r.get('refresh_token'):
+        if r.get('refresh_token') and 'refresh_token' in body.get('grant_type', ''):
             s['microsoft_refresh_token'] = r['refresh_token']
         save_secrets(s)
         return s['microsoft_access_token']
 
 
-def graph(path, payload=None, method=None, raw=False):
+def graph(path, payload=None, method=None, raw=False, delegated=False):
     if not path.startswith('/'):
         raise ValueError('Ongeldig Microsoft-pad')
-    return http(GRAPH + path, payload, {'Authorization': 'Bearer ' + graph_token()}, method, raw)
+    return http(GRAPH + path, payload, {'Authorization': 'Bearer ' + graph_token(delegated)}, method, raw)
 
 
-def graph_pages(path):
+def graph_pages(path, delegated=False):
     rows, seen = [], set()
     while path:
         if path in seen:
             raise ValueError('Herhaalde Microsoft-paginering.')
         seen.add(path)
-        page = graph(path)
+        page = graph(path, delegated=delegated)
         rows.extend(page.get('value', []))
         following = page.get('@odata.nextLink', '')
         if following and not following.startswith(GRAPH + '/'):

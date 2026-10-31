@@ -11,7 +11,7 @@ from ninja import Router
 from ninja.errors import HttpError
 from .access import actor, body, require
 from .models import AuditLog, LoginAttempt, Task, User
-from .services import audit, save_secrets, secret_values, set_setting, settings
+from .services import safe_error, audit, save_secrets, secret_values, set_setting, settings
 
 router = Router()
 
@@ -23,7 +23,7 @@ SETTING_KEYS = {
     'bank_mode', 'odoo_bank_feed', 'labelgrid_label_id', 'opensign_base', 'opensign_template_id', 'advancing_sender',
     'production_folder', 'production_sync', 'resend_from', 'public_url', 'promo_senders',
 }
-SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'ai_api_key', 'sumup_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token',
+SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'ai_api_key', 'sumup_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token', 'microsoft_todo_refresh_token',
                'bank_webhook_secret', 'mail_webhook_secret', 'labelgrid_api_key', 'opensign_api_key', 'opensign_webhook_secret', 'resend_api_key'}
 BOOLEANS = ('auto_post', 'auto_match', 'auto_sumup', 'mail_enabled', 'onedrive_enabled', 'todo_enabled', 'odoo_bank_feed', 'production_sync')
 
@@ -286,6 +286,8 @@ def save_settings(request):
             old[k] = v.strip()
     if 'microsoft_refresh_token' in sv or 'microsoft_client_secret' in sv:
         old['microsoft_expires'] = 0
+    if 'microsoft_todo_refresh_token' in sv:
+        old['microsoft_todo_expires'] = 0
     for k in ('bank_webhook_secret', 'mail_webhook_secret'):
         old.setdefault(k, secrets.token_urlsafe(40))
     save_secrets(old)
@@ -313,8 +315,16 @@ def connections():
         ('sumup', 'SumUp', bool(sv.get('sumup_api_key'))),
     ]
     checks = cfg.get('connection_checks') or {}
-    return [{'id': k, 'name': name, 'status': 'verified' if checks.get(k, {}).get('ok') and configured else 'configured' if configured else 'not_connected',
-             'checked': checks.get(k, {}).get('checked'), 'mode': 'CSV / webhook' if k in ('ing', 'sumup') else None} for k, name, configured in providers]
+    def state(k, configured):
+        check = checks.get(k, {})
+        if not configured:
+            return 'not_connected'
+        if check.get('ok'):
+            return 'verified'
+        return 'failed' if check.get('ok') is False else 'configured'
+    return [{'id': k, 'name': name, 'status': state(k, configured), 'checked': checks.get(k, {}).get('checked'),
+             'error': checks.get(k, {}).get('error', ''), 'message': checks.get(k, {}).get('message', ''),
+             'mode': 'CSV / webhook' if k in ('ing', 'sumup') else None} for k, name, configured in providers]
 
 
 @router.get('/connections')
@@ -327,9 +337,16 @@ def test_connection(request):
     require(request, 'admin', write=True)
     from integrations.checks import test_connection as run
     provider = body(request).get('provider')
-    result = run(provider)
+    try:
+        result = run(provider)
+    except Exception as error:
+        checks = settings().get('connection_checks') or {}
+        checks[provider] = {'checked': time.time(), 'ok': False, 'error': safe_error(error)[:300]}
+        set_setting('connection_checks', checks)
+        audit(actor(request), 'Koppeling test mislukt', provider)
+        raise
     checks = settings().get('connection_checks') or {}
-    checks[provider] = {'checked': time.time(), 'ok': True}
+    checks[provider] = {'checked': time.time(), 'ok': True, 'message': str(result.get('message', ''))[:200]}
     set_setting('connection_checks', checks)
     audit(actor(request), 'Koppeling gecontroleerd', provider)
     return result

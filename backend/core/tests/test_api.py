@@ -116,3 +116,40 @@ class AiProviderTests(ApiTests):
         self.send(a, 'post', '/api/settings', {'settings': {'ai_provider': 'openai', 'ai_base_url': 'https://api.example.com/v1'}, 'secrets': {}})
         with mock.patch.object(claude, 'DATA', pathlib.Path('/tmp')), self.assertRaises(ValueError):
             claude.extract({'id': 'docx', 'mime': 'application/pdf'})
+
+
+class MicrosoftTokenTests(ApiTests):
+    def test_mail_uses_app_token_and_todo_uses_delegated(self):
+        from unittest import mock
+        from core.services import save_secrets, set_setting
+        from integrations import graph
+        set_setting('microsoft_tenant', 'tenant-1'); set_setting('microsoft_client_id', 'client-1')
+        save_secrets({'microsoft_client_secret': 'sec', 'microsoft_todo_refresh_token': 'todo-refresh'})
+        bodies = []
+
+        def fake(url, data=None, headers=None, *a, **k):
+            from urllib.parse import parse_qs
+            bodies.append(parse_qs(data.decode()))
+            return {'access_token': 'at-' + bodies[-1]['grant_type'][0], 'expires_in': 3600}
+        with mock.patch.object(graph, 'http', side_effect=fake):
+            self.assertEqual(graph.graph_token(), 'at-client_credentials')
+            self.assertEqual(graph.graph_token(delegated=True), 'at-refresh_token')
+        self.assertEqual(bodies[1]['refresh_token'], ['todo-refresh'])
+
+
+class KeyTestTests(ApiTests):
+    def test_failed_and_ok_checks_are_remembered(self):
+        from unittest import mock
+        from core.services import save_secrets
+        save_secrets({'sumup_api_key': 'k'})
+        a, _ = self.login('peppy', 'admin-pass-1')
+        with mock.patch('integrations.checks.test_connection', side_effect=ValueError('Sleutel geweigerd')):
+            r = self.send(a, 'post', '/api/connections/test', {'provider': 'sumup'})
+        self.assertGreaterEqual(r.status_code, 400)
+        sumup = next(c for c in a.get('/api/connections').json()['connections'] if c['id'] == 'sumup')
+        self.assertEqual(sumup['status'], 'failed')
+        self.assertIn('geweigerd', sumup['error'])
+        with mock.patch('integrations.checks.test_connection', return_value={'message': 'SumUp-account geverifieerd'}):
+            self.assertEqual(self.send(a, 'post', '/api/connections/test', {'provider': 'sumup'}).status_code, 200)
+        sumup = next(c for c in a.get('/api/connections').json()['connections'] if c['id'] == 'sumup')
+        self.assertEqual(sumup['status'], 'verified')

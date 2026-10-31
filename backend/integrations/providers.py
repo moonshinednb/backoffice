@@ -90,7 +90,7 @@ def sync_todo():
         raise ValueError('Microsoft To Do-lijst ontbreekt.')
     base = '/me/todo/lists/' + urllib.parse.quote(cfg['todo_list_id'], safe='') + '/tasks'
     local = list(Task.objects.all())
-    recovery = graph_pages(base + '?$top=100') if any(not t.graph_id for t in local) else []
+    recovery = graph_pages(base + '?$top=100', delegated=True) if any(not t.graph_id for t in local) else []
     for t in local:
         marker = '[moonshine:' + t.id + ']'
         payload = {'title': t.title, 'status': 'completed' if t.done else 'notStarted', 'importance': 'high' if t.priority == 'high' else 'normal',
@@ -98,12 +98,12 @@ def sync_todo():
                    'dueDateTime': {'dateTime': t.due.isoformat() + 'T12:00:00', 'timeZone': 'Europe/Amsterdam'} if t.due else None}
         if not t.graph_id:
             remote = next((r for r in recovery if marker in r.get('body', {}).get('content', '')), None)
-            result = remote or graph(base, payload, 'POST')
+            result = remote or graph(base, payload, 'POST', delegated=True)
             Task.objects.filter(id=t.id).update(graph_id=result['id'], dirty=False)
         elif t.dirty:
-            graph(base + '/' + urllib.parse.quote(t.graph_id, safe=''), payload, 'PATCH')
+            graph(base + '/' + urllib.parse.quote(t.graph_id, safe=''), payload, 'PATCH', delegated=True)
             Task.objects.filter(id=t.id).update(dirty=False)
-    for r in graph_pages(base + '?$top=100'):
+    for r in graph_pages(base + '?$top=100', delegated=True):
         values = {'title': r.get('title', 'Taak')[:300], 'description': r.get('body', {}).get('content', ''),
                   'due': (r.get('dueDateTime') or {}).get('dateTime', '')[:10] or None,
                   'priority': 'high' if r.get('importance') == 'high' else 'normal', 'done': r.get('status') == 'completed'}

@@ -52,6 +52,7 @@ export function IntegrationsPage() {
         <div className="integration-title"><span className="conn-logo">{logo}</span><div><h2>{c.name}</h2><small>{sub}</small></div><ConnectionBadge c={c} /></div>
         <p>{desc}</p>
         {c.checked ? <p className="helper">Laatst gecontroleerd {stamp(c.checked)}</p> : null}
+        {c.status === 'failed' && c.error ? <div className="error-box">{c.error}</div> : null}
         <footer><button onClick={() => setParams({ config: c.id })}><Icon name="settings" /> Instellen</button>
           {c.id !== 'ing' ? <button className="ghost" onClick={() => test(c.id)} disabled={!!testing}>{testing === c.id ? <><Orb state="connecting" /> Testen…</> : <><Icon name="refresh" /> Verbinding testen</>}</button> : null}</footer>
       </section>;
@@ -106,7 +107,7 @@ const PROVIDERS: Record<string, Provider> = {
   onedrive: { title: 'OneDrive-archief instellen', fields: [{ key: 'onedrive_drive_id', label: 'Drive-ID' }, { key: 'onedrive_folder', label: 'Archiefmap', placeholder: 'Moonshine/Administratie' },
     { key: 'onedrive_enabled', label: 'Geboekte facturen naar OneDrive archiveren', kind: 'bool' }],
     help: <p className="helper">Gebruikt de Microsoft-verbinding. Ontbrekende mappen worden aangemaakt; de app heeft schrijfrechten op de drive nodig.</p> },
-  todo: { title: 'Microsoft To Do instellen', fields: [{ key: 'todo_list_id', label: 'To Do-lijst-ID' }, { key: 'todo_enabled', label: 'Taken synchroniseren met Microsoft To Do', kind: 'bool' }],
+  todo: { title: 'Microsoft To Do instellen', fields: [{ key: 'todo_list_id', label: 'To Do-lijst-ID' }, { key: 'microsoft_todo_refresh_token', label: 'To Do refresh-token (eenmalige inlog)', kind: 'secret' }, { key: 'todo_enabled', label: 'Taken synchroniseren met Microsoft To Do', kind: 'bool' }],
     help: <p className="helper">Test de verbinding om jouw lijsten te zien. Vereist gedelegeerde Microsoft-toegang met Tasks.ReadWrite.</p> },
   labelgrid: { title: 'LabelGrid aansluiten', fields: [{ key: 'labelgrid_api_key', label: 'LabelGrid API-sleutel', kind: 'secret' }, { key: 'labelgrid_label_id', label: 'Label-ID (optioneel)' }],
     help: <p className="helper">Alleen lezen: haalt royalty-statements op voor halfjaarlijkse artiestenafrekeningen.</p> },
@@ -257,40 +258,74 @@ export function SettingsPage() {
 
 const KEYS: [string, string, string][] = [
   ['odoo_api_key', 'Odoo API-sleutel', 'Boekhouding'], ['ai_api_key', 'AI API-sleutel', 'Facturen uitlezen (gekozen aanbieder)'], ['anthropic_api_key', 'Anthropic API-sleutel (oud)', 'Alleen als Claude is gekozen en nog geen AI-sleutel is ingesteld'],
-  ['microsoft_client_secret', 'Microsoft client secret', 'Outlook, OneDrive en To Do'], ['microsoft_refresh_token', 'Microsoft refresh-token', 'Gedelegeerde toegang'],
+  ['microsoft_client_secret', 'Microsoft client secret', 'Outlook, OneDrive en To Do'], ['microsoft_refresh_token', 'Microsoft refresh-token', 'Gedelegeerde toegang'], ['microsoft_todo_refresh_token', 'Microsoft To Do refresh-token', 'Alleen To Do (eenmalige inlog)'],
   ['microsoft_access_token', 'Microsoft access-token', 'Tijdelijk, optioneel'], ['sumup_api_key', 'SumUp API-sleutel', 'Pinomzet en uitbetalingen'], ['bank_webhook_secret', 'Bank-webhooksleutel', 'ING / SumUp-aanvoer'],
   ['mail_webhook_secret', 'Mail-webhooksleutel', 'Outlook-notificaties'], ['labelgrid_api_key', 'LabelGrid API-sleutel', 'Royalties'],
   ['opensign_api_key', 'OpenSign API-sleutel', 'Contracten'], ['resend_api_key', 'Resend API-sleutel', 'Wachtwoordmails'], ['opensign_webhook_secret', 'OpenSign webhooksleutel', 'Ondertekenstatus'],
 ];
 
-/** All API keys in one place. Values are stored only on the server
-    (secrets.json in the data folder) and are never sent back to the browser. */
+/** Which integration proves that a key works. Keys without a provider are only
+    used by us (webhook secrets) and cannot be tested from here. */
+const KEY_PROVIDER: Record<string, string> = {
+  odoo_api_key: 'odoo', ai_api_key: 'ai', anthropic_api_key: 'ai', microsoft_client_secret: 'microsoft', microsoft_refresh_token: 'microsoft',
+  microsoft_access_token: 'microsoft', microsoft_todo_refresh_token: 'todo', sumup_api_key: 'sumup', labelgrid_api_key: 'labelgrid',
+  opensign_api_key: 'opensign', resend_api_key: 'resend',
+};
+
+/** All API keys in one place, with a test per key. Values are stored only on
+    the server (secrets.json in the data folder) and are never sent back. */
 export function KeysPage() {
   const qc = useQueryClient();
   const toast = useToast();
   const [edit, setEdit] = useState<[string, string, string] | null>(null);
+  const [testing, setTesting] = useState('');
+  const [fresh, setFresh] = useState<Record<string, { ok: boolean; message: string }>>({});
   const q = useQuery({ queryKey: ['settings'], queryFn: () => api<Settings>('/settings') });
+  const conns = useConnections();
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   const set = new Set(q.data.configured_secrets);
+  const refresh = () => ['settings', 'connections', 'dashboard'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
   async function save(key: string, value: string | null) {
     await api('/settings', { method: 'POST', body: { settings: {}, secrets: { [key]: value } } });
-    ['settings', 'connections', 'dashboard'].forEach((k) => qc.invalidateQueries({ queryKey: [k] }));
+    refresh();
   }
+  async function test(provider: string) {
+    setTesting(provider);
+    try { const r = await api<{ message: string }>('/connections/test', { method: 'POST', body: { provider } }); setFresh((f) => ({ ...f, [provider]: { ok: true, message: r.message } })); }
+    catch (e) { setFresh((f) => ({ ...f, [provider]: { ok: false, message: (e as Error).message } })); }
+    finally { setTesting(''); refresh(); }
+  }
+  async function testAll() { for (const p of [...new Set(KEYS.filter((k) => set.has(k[0])).map((k) => KEY_PROVIDER[k[0]]).filter(Boolean))]) await test(p); }
+  const state = (key: string) => {
+    const provider = KEY_PROVIDER[key];
+    if (!set.has(key)) return { badge: <Badge>Niet ingesteld</Badge>, note: '' };
+    if (!provider) return { badge: <Badge color="lime">Ingesteld</Badge>, note: 'Wordt alleen door de backoffice zelf gebruikt; niet te testen.' };
+    const live = fresh[provider];
+    const saved = conns.data?.connections.find((c) => c.id === provider);
+    if (live) return { badge: live.ok ? <Badge color="lime">✓ Werkt</Badge> : <Badge color="red">✗ Werkt niet</Badge>, note: live.message };
+    if (saved?.status === 'verified') return { badge: <Badge color="lime">✓ Werkt</Badge>, note: `${saved.message || 'Getest'}${saved.checked ? ' · ' + stamp(saved.checked) : ''}` };
+    if (saved?.status === 'failed') return { badge: <Badge color="red">✗ Werkt niet</Badge>, note: `${saved.error || ''}${saved.checked ? ' · ' + stamp(saved.checked) : ''}` };
+    return { badge: <Badge color="amber">Nog niet getest</Badge>, note: '' };
+  };
   return <>
-    <PageTitle title="Sleutels" sub="API-sleutels en tokens van alle koppelingen" />
-    <div className="notice"><Icon name="lock" /> Sleutels worden alleen op de server bewaard. Na het opslaan zijn ze hier niet meer te zien; je kunt ze alleen vervangen of verwijderen.</div>
+    <PageTitle title="Sleutels" sub="API-sleutels en tokens van alle koppelingen" actions={<button onClick={testAll} disabled={!!testing}><Icon name="refresh" /> Alles testen</button>} />
+    <div className="notice"><Icon name="lock" /> Sleutels worden alleen op de server bewaard. Na het opslaan zijn ze hier niet meer te zien; je kunt ze alleen vervangen of verwijderen. “Testen” doet één onschuldige aanroep bij de dienst.</div>
     <section className="card"><div className="table-wrap"><table><thead><tr><th>Sleutel</th><th>Gebruikt voor</th><th>Status</th><th /></tr></thead><tbody>
-      {KEYS.map((k) => <tr key={k[0]}><td><strong>{k[1]}</strong></td><td>{k[2]}</td><td>{set.has(k[0]) ? <Badge color="lime">Ingesteld</Badge> : <Badge>Niet ingesteld</Badge>}</td>
-        <td className="row-tools"><button className="small" onClick={() => setEdit(k)}>{set.has(k[0]) ? 'Vervangen' : 'Instellen'}</button>
-          {set.has(k[0]) ? <button className="small ghost" onClick={async () => { if (!confirm(`${k[1]} verwijderen? De koppeling stopt dan.`)) return; try { await save(k[0], null); toast('Sleutel verwijderd.'); } catch (e) { toast((e as Error).message, true); } }}>Verwijderen</button> : null}</td></tr>)}
+      {KEYS.map((k) => { const st = state(k[0]); const provider = KEY_PROVIDER[k[0]]; return <tr key={k[0]}>
+        <td><strong>{k[1]}</strong></td><td>{k[2]}</td>
+        <td>{st.badge}{st.note ? <small className="block key-note">{st.note}</small> : null}</td>
+        <td className="row-tools">
+          {set.has(k[0]) && provider ? <button className="small" disabled={!!testing} onClick={() => test(provider)}>{testing === provider ? <><Orb state="connecting" /> Testen…</> : 'Testen'}</button> : null}
+          <button className="small ghost" onClick={() => setEdit(k)}>{set.has(k[0]) ? 'Vervangen' : 'Instellen'}</button>
+          {set.has(k[0]) ? <button className="small ghost" onClick={async () => { if (!confirm(`${k[1]} verwijderen? De koppeling stopt dan.`)) return; try { await save(k[0], null); toast('Sleutel verwijderd.'); } catch (e) { toast((e as Error).message, true); } }}>Verwijderen</button> : null}</td></tr>; })}
     </tbody></table></div></section>
     <FormDialog id="key-form" title={edit ? edit[1] : ''} open={!!edit} onClose={() => setEdit(null)} submit={async (form) => {
       const v = (formValues(form).value || '').trim();
       if (!v) throw new Error('Vul een waarde in.');
-      await save(edit![0], v); toast('Sleutel opgeslagen.'); setEdit(null);
+      await save(edit![0], v); toast('Sleutel opgeslagen. Klik op Testen om te controleren of hij werkt.'); setEdit(null);
     }}><div className="field"><label htmlFor="key-value">Nieuwe waarde</label><input id="key-value" name="value" type="password" autoComplete="new-password" required /></div>
-      <p className="helper">Na opslaan test je de koppeling opnieuw onder Koppelingen.</p></FormDialog>
+      <p className="helper">Na opslaan test je de koppeling meteen met de Testen-knop.</p></FormDialog>
   </>;
 }
 

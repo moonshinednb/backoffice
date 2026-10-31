@@ -42,7 +42,7 @@ def test_connection(provider):
             message += ' · OneDrive-map bereikbaar'
         return {'message': message}
     if provider == 'todo':
-        return {'message': 'Microsoft To Do geverifieerd', 'data': {'lists': graph('/me/todo/lists').get('value', [])}}
+        return {'message': 'Microsoft To Do geverifieerd', 'data': {'lists': graph('/me/todo/lists', delegated=True).get('value', [])}}
     if provider == 'labelgrid':
         from .providers import labelgrid_http
         data = labelgrid_http('/statements', secret_values().get('labelgrid_api_key', ''))
