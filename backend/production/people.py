@@ -10,7 +10,7 @@ import re
 from django.db import transaction
 from core.services import audit
 from . import rules as R
-from .models import CrewMember, Event, Guest
+from .models import CrewMember, Event, Guest, VenueContact
 
 XLSX = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
 CREW_SHEET, GUEST_SHEET = 'CREW LIST (BACKSTAGE ENTRANCE)', 'GUEST LIST (FRONTSTAGE ENTRANCE'  # Excel allows 31 characters
@@ -23,6 +23,36 @@ def crew_dict(c):
 
 def guest_dict(g):
     return {'id': g.id, 'name': g.name, 'plus': g.plus, 'relation': g.relation, 'added_by': g.added_by}
+
+
+def contact_dict(c):
+    return {'id': c.id, 'role': c.role, 'name': c.name, 'email': c.email, 'phone': c.phone, 'note': c.note, 'advancing': c.advancing}
+
+
+def contact_save(event_id, payload, actor, ident=None):
+    """A person at the venue; those with `advancing` get the advancing mail."""
+    c = VenueContact.objects.filter(id=ident).first() if ident else VenueContact(event=_event(event_id))
+    if not c:
+        raise ValueError('Contactpersoon niet gevonden.')
+    for key, limit in (('role', 80), ('name', 200), ('phone', 60)):
+        if key in payload:
+            setattr(c, key, R._text(payload.get(key), limit))
+    if 'email' in payload:
+        c.email = R._email(payload.get('email'), 'E-mail') if payload.get('email') else ''
+    if 'note' in payload:
+        c.note = str(payload.get('note') or '')[:2000]
+    if 'advancing' in payload:
+        if type(payload['advancing']) is not bool:
+            raise ValueError('Ongeldige waarde.')
+        c.advancing = payload['advancing']
+    if not (c.name or c.email or c.phone or c.role):
+        raise ValueError('Vul minstens een naam, e-mail of telefoonnummer in.')
+    if not ident:
+        c.sort = (c.event.contacts.order_by('-sort').values_list('sort', flat=True).first() or 0) + 1
+    c.save()
+    if not ident:
+        audit(actor, 'Venuecontact toegevoegd', c.event_id, c.name or c.email)
+    return contact_dict(c)
 
 
 def _event(event_id):
@@ -107,8 +137,10 @@ def remove(model, ident, actor):
     if not row:
         raise ValueError('Niet gevonden.')
     row.delete()
-    _queue(row.event)
-    audit(actor, ('Crewlid' if model is CrewMember else 'Gast') + ' verwijderd', row.event_id, row.name)
+    if model is not VenueContact:
+        _queue(row.event)
+    label = {CrewMember: 'Crewlid', Guest: 'Gast', VenueContact: 'Venuecontact'}[model]
+    audit(actor, label + ' verwijderd', row.event_id, row.name)
 
 
 # --- Excel ---------------------------------------------------------------------

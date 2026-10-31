@@ -25,8 +25,15 @@ def ts(value):
 # --- Dicts -----------------------------------------------------------------
 
 def event_dict(e):
+    contacts = list(e.contacts.all())
+    to = [c for c in contacts if c.advancing and c.email]
+    first = next((c for c in to if c.name), next((c for c in contacts if c.name), None))
+    # The contact list is leading; the old single fields only count while it is empty.
+    venue_contact = ', '.join(f'{c.name} ({c.role})' if c.role else c.name for c in contacts if c.name) if contacts else e.venue_contact
     return {'id': e.id, 'drive_url': e.drive_url, 'name': e.name, 'date': e.date, 'venue': e.venue, 'doors': e.doors, 'capacity': e.capacity,
-            'status': e.status, 'venue_contact': e.venue_contact, 'venue_email': e.venue_email, 'venue_phone': e.venue_phone,
+            'status': e.status, 'venue_contact': venue_contact, 'venue_email': ', '.join(c.email for c in to) if contacts else e.venue_email,
+            'venue_phone': (first.phone if first else '') if contacts else e.venue_phone, 'greeting': (first.name.split(' ')[0] if first else '') if contacts else (e.venue_contact or '').split(' ')[0],
+            'contacts': [{'id': c.id, 'role': c.role, 'name': c.name, 'email': c.email, 'phone': c.phone, 'note': c.note, 'advancing': c.advancing} for c in contacts],
             'created': ts(e.created), 'updated': ts(e.updated)}
 
 
@@ -184,7 +191,7 @@ def event_progress(event_ids=None):
 
 
 def event_listing(only=None):
-    events = list(Event.objects.all())
+    events = list(Event.objects.prefetch_related('contacts'))
     if only:
         events = [e for e in events if only(e)]
     progress = event_progress([e.id for e in events] if only else None)
@@ -772,7 +779,7 @@ def build_pack(event_id, payload, with_content=True):
     to = R._recipients(payload['to'] if 'to' in payload else event.get('venue_email'))
     cc = R._recipients(payload.get('cc'))
     subject = R._text(payload.get('subject'), 300) or f"Advancing {event['name']} · {R.nice_date(event.get('date'))}".strip(' ·')
-    greeting = (event.get('venue_contact') or '').split(' ')[0] or 'allemaal'
+    greeting = event.get('greeting') or 'allemaal'
     message = R._text(payload.get('message'), 6000) if payload.get('message') is not None else \
         f"Hoi {greeting},\n\nHierbij de advancing voor {event['name']}{' op ' + R.nice_date(event.get('date')) if event.get('date') else ''}. Laat het ons weten als er iets ontbreekt."
     return {'to': to, 'cc': cc, 'subject': subject, 'message': message, 'items': [checklist[i] for i in item_ids], 'links': links,

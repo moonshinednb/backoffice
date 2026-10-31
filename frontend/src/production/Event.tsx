@@ -9,12 +9,13 @@ import { ContentPlan } from './EventContent';
 import { EventFiles } from './EventFiles';
 import { EventChecklist } from './EventChecklist';
 import { CrewList, GuestList } from './EventPeople';
+import { Contact, VenueContactLines, VenueContacts } from './VenueContacts';
 import { Asset, AssetGroups, DriveButton, Field, FormDialog, SaveBar, Select, STATUS, StatusBadge, useCanEdit, useDirty } from './common';
 
 type Booking = { id: string; artist_id: string; status: string; complete: boolean; missing: string[]; acts: string[]; artist: { name: string } };
 type Check = { id: string; key: string; label: string; status: string; notes: string; sent_at: number; sent_to: string };
 export type Overview = {
-  event: { id: string; drive_url: string; name: string; date: string; venue: string; doors: string; capacity: number; status: string; venue_contact: string; venue_email: string; venue_phone: string };
+  event: { id: string; drive_url: string; name: string; date: string; venue: string; doors: string; capacity: number; status: string; venue_contact: string; venue_email: string; venue_phone: string; contacts: Contact[] };
   summary: { artists: number; complete: number; checklist: number; checklist_done: number };
   acts: Act[]; bookings: Booking[]; checklist: Check[]; assets: Asset[];
   sends: { id: string; status: string; created: number; recipients: string; attachments: unknown[]; error: string }[];
@@ -153,10 +154,9 @@ function Venue({ o, set, reload }: { o: Overview; set: (o: Overview) => void; re
       </div>)}</div>
     </section>
     <aside className="adv-side">
-      <section className="card card-pad"><h2>Contact venue</h2>{e.venue_email || e.venue_contact || e.venue_phone
-        ? <p className="contact-lines">{[e.venue_contact, e.venue_email, e.venue_phone].filter(Boolean).map((v) => <span key={v}>{v}<br /></span>)}</p>
-        : <p className="helper">Nog geen contactpersoon. Vul die in bij Gegevens; het e-mailadres wordt de standaardontvanger.</p>}
-        <Link className="text-link" to={`/events/${e.id}/details`}>Gegevens bewerken <Icon name="chevron" /></Link></section>
+      <section className="card card-pad"><h2>Contact venue</h2>{e.contacts.length ? <VenueContactLines contacts={e.contacts} />
+        : <p className="helper">Nog geen contactpersonen. Voeg ze toe bij Gegevens; wie “Advancing” aan heeft, krijgt de advancingmail.</p>}
+        <Link className="text-link" to={`/events/${e.id}/details`}>Contactpersonen bewerken <Icon name="chevron" /></Link></section>
       <section className="card card-pad"><h2>Bestanden voor de venue</h2><AssetGroups ownerType="event" ownerId={e.id} assets={o.assets} kinds={['guestlist', 'production', 'stage_plot', 'other']} onChange={reload} /></section>
       <section className="card card-pad"><h2>Verzonden</h2>{o.sends.length ? <ul className="send-list">{o.sends.map((s) => <li key={s.id}>
         <span>{s.status === 'accepted' ? <Badge color="lime">Aangenomen door Outlook</Badge> : s.status === 'uncertain' ? <Badge color="amber">Onzeker</Badge> : <Badge color="red">Mislukt</Badge>} {stamp(s.created)}</span>
@@ -208,14 +208,9 @@ function Info({ o, reload }: { o: Overview; reload: () => void }) {
         <Field name="capacity" label="Capaciteit" value={e.capacity || ''} type="number" min={0} />
         <Select name="status" label="Status" value={e.status} options={Object.entries(STATUS).map(([k, [l]]) => [k, l])} />
       </div>
-      <h2 className="sub">Contact bij de venue</h2>
-      <div className="kv-grid">
-        <Field name="venue_contact" label="Contactpersoon" value={e.venue_contact} />
-        <Field name="venue_email" label="E-mail (meerdere met komma)" value={e.venue_email} placeholder="productie@venue.nl" />
-        <Field name="venue_phone" label="Telefoon" value={e.venue_phone} type="tel" />
-      </div>
       {edit ? <div className="form-actions"><button className="primary" type="submit">Opslaan</button></div> : null}
     </form>
+    <VenueContacts eventId={e.id} contacts={e.contacts} />
     {edit ? <section className="card card-pad danger-zone"><h2>Evenement verwijderen</h2><p className="helper">Verwijdert dit evenement met timetable, boekingen, checklist en verzendlog. Artiesten, hun riders en content blijven bewaard, net als de mappen in OneDrive.</p>
       <button className="danger" onClick={() => confirm(`${e.name} verwijderen? Dit kan niet ongedaan worden gemaakt.`) && run(async () => { await api(`/events/${e.id}`, { method: 'DELETE' }); setDirty(false); toast('Evenement verwijderd.'); navigate('/events'); })}><Icon name="trash" /> Evenement verwijderen</button></section> : null}
     <SaveBar form="event-info-form" />

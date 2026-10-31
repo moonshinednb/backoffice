@@ -66,3 +66,24 @@ class PeopleTests(ApiTests):
             self.assertEqual(r['imported'], {'crew': 2, 'guests': 2, 'file': 'CREWLIST + GUESTLIST 19-09-26.xlsx'})
             self.assertEqual(self.send(c, 'post', f'/api/events/{e.id}/people/import').status_code, 400)  # already filled
         self.assertEqual(Event.objects.get(id=e.id).lists_url, 'https://sp/x')
+
+
+class VenueContactTests(ApiTests):
+    def test_contacts_drive_the_advancing_mail(self):
+        c, _ = self.login('peppy', 'admin-pass-1')
+        e = self.send(c, 'post', '/api/events', {'name': 'Inner Orbit', 'date': '2030-11-20'}).json()
+        r = self.send(c, 'post', f"/api/events/{e['id']}/contacts", {'role': 'Productie', 'name': 'Jessica de Vries', 'email': 'productie@luxor.nl', 'phone': '+31 6 1'})
+        self.assertEqual(r.status_code, 200)
+        bar = self.send(c, 'post', f"/api/events/{e['id']}/contacts", {'role': 'Bar', 'name': 'Tom', 'email': 'bar@luxor.nl'}).json()
+        self.assertEqual(self.send(c, 'post', f"/api/events/{e['id']}/contacts", {'email': 'geen-mail'}).status_code, 400)
+        self.assertEqual(self.send(c, 'post', f"/api/events/{e['id']}/contacts", {}).status_code, 400)
+        self.send(c, 'patch', f"/api/venue-contacts/{bar['id']}", {'advancing': False, 'note': 'Alleen voor de bar-afspraken'})
+        ev = c.get(f"/api/events/{e['id']}/overview").json()['event']
+        self.assertEqual(ev['venue_email'], 'productie@luxor.nl')
+        self.assertEqual(ev['greeting'], 'Jessica')
+        self.assertEqual(len(ev['contacts']), 2)
+        self.assertEqual(ev['contacts'][1]['note'], 'Alleen voor de bar-afspraken')
+        preview = self.send(c, 'post', f"/api/events/{e['id']}/send-preview", {}).json()
+        self.assertEqual(preview['to'], ['productie@luxor.nl'])
+        self.assertTrue(preview['message'].startswith('Hoi Jessica'))
+        self.assertEqual(self.send(c, 'delete', f"/api/venue-contacts/{bar['id']}").status_code, 200)

@@ -161,6 +161,24 @@ class EventStep(models.Model):
         ordering = ['sort', 'created']
 
 
+class VenueContact(models.Model):
+    """A person at the venue: role, name, e-mail, phone and a note. Those with
+    `advancing` on receive the advancing mail."""
+    id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='contacts')
+    role = models.CharField(max_length=80, blank=True, default='')
+    name = models.CharField(max_length=200, blank=True, default='')
+    email = models.CharField(max_length=254, blank=True, default='')
+    phone = models.CharField(max_length=60, blank=True, default='')
+    note = models.TextField(blank=True, default='')
+    advancing = models.BooleanField(default=True)
+    sort = models.IntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort', 'created']
+
+
 class CrewMember(models.Model):
     """Crew list (backstage entrance), as in the team's Excel: name, role, act, cars."""
     id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)

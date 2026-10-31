@@ -410,6 +410,29 @@ def event_people(request, event_id: str):
     return _steps_call(people.overview, event_id)
 
 
+@router.post('/events/{event_id}/contacts')
+def contact_add(request, event_id: str):
+    require(request, 'production', write=True)
+    from . import people
+    return _steps_call(people.contact_save, event_id, body(request), actor(request))
+
+
+@router.patch('/venue-contacts/{ident}')
+def contact_update(request, ident: str):
+    require(request, 'production', write=True)
+    from . import people
+    return _steps_call(people.contact_save, None, body(request), actor(request), ident)
+
+
+@router.delete('/venue-contacts/{ident}')
+def contact_delete(request, ident: str):
+    require(request, 'production', write=True)
+    from . import people
+    from .models import VenueContact
+    _steps_call(people.remove, VenueContact, ident, actor(request))
+    return {'ok': True}
+
+
 @router.post('/events/{event_id}/crew')
 def crew_add(request, event_id: str):
     require(request, 'production', write=True)
