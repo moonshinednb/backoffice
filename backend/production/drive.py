@@ -213,7 +213,9 @@ def event_files(e):
         c = by_name.get(top)
         items = [entry(x) for x in item_children(c['id'])] if c else []
         items.sort(key=lambda x: (not x['folder'], x['name'].lower()))
+        # An empty subfolder (from the standard tree) does not make a section filled.
+        filled = any(not x['folder'] or x['count'] for x in items)
         sections.append({'name': top, 'url': c.get('webUrl', '') if c else '', 'exists': bool(c), 'items': items[:60],
-                         'count': len(items), 'filled': bool(items)})
+                         'count': len(items), 'filled': filled})
     other = sorted((entry(c) for c in kids if c['name'] not in order), key=lambda x: (not x['folder'], x['name'].lower()))
     return {'url': e.drive_url, 'sections': sections, 'other': other}

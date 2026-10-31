@@ -187,3 +187,21 @@ class RosterTests(ApiTests):
         self.assertEqual(r[0]['city'], 'Arnhem')
         self.send(c, 'post', '/api/roster', {'name': 'MC Goblin'})
         self.assertEqual([x['name'] for x in c.get('/api/roster').json()['artists']], ['MC Goblin', 'PEPPY'])
+
+
+class EventFilesTests(ApiTests):
+    def test_empty_subfolder_is_not_filled(self):
+        from unittest import mock
+        from core.services import set_setting
+        from production import drive
+        from production.models import Event
+        set_setting('onedrive_drive_id', 'drive-1')
+        e = Event.objects.create(name='Moonshine 13/03', date='2030-03-13', drive_id='ev')
+        tree = {'ev': [{'id': 'a', 'name': '04 Artwork', 'folder': {'childCount': 1}}, {'id': 'f', 'name': '01 Finance', 'folder': {'childCount': 1}}],
+                'a': [{'id': 'aa', 'name': 'Artist Announcements', 'folder': {'childCount': 0}}],
+                'f': [{'id': 'x', 'name': 'costing.xlsx', 'size': 10}]}
+        with mock.patch('integrations.graph.item_children', side_effect=lambda i: tree.get(i, [])):
+            sections = {s['name']: s for s in drive.event_files(e)['sections']}
+        self.assertFalse(sections['04 Artwork']['filled'])
+        self.assertTrue(sections['01 Finance']['filled'])
+        self.assertFalse(sections['03 Riders']['exists'])

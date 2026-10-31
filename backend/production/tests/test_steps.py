@@ -53,6 +53,7 @@ class EventChecklistTests(ApiTests):
             {'name': '04 Artwork', 'items': [folder('Artist Announcements', 0), file('poster.png')], 'filled': True},
             {'name': '05 Content', 'items': [folder('Reels & TikToks', 3)], 'filled': True}]}
         self.assertEqual(steps.auto_check(ev, files), 3)
+        self.assertFalse(EventStep.objects.get(event=ev, key='announcements').done)  # empty subfolder
         done = set(EventStep.objects.filter(event=ev, done=True).values_list('key', flat=True))
         self.assertEqual(done, {'costing', 'poster', 'reels'})  # riders: Kanine is still missing
         files['sections'][1]['items'].append(file('KANINE tech rider.pdf'))
