@@ -28,6 +28,21 @@ def meetings(request):
     return {'meetings': [S.meeting_dict(m) for m in Meeting.objects.prefetch_related('actions')[:500]]}
 
 
+@router.get('/meetings/next')
+def next_meeting(request):
+    require(request, 'production')
+    return {'next': S.next_meeting()}
+
+
+@router.put('/meetings/next')
+def set_next_meeting(request):
+    require(request, 'production', write=True)
+    try:
+        return {'next': S.set_next(body(request), actor(request))}
+    except ValueError as e:
+        raise HttpError(400, str(e))
+
+
 @router.get('/meetings/board')
 def board(request):
     """Open action points per person (sticky notes)."""

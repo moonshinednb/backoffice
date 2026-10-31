@@ -49,3 +49,21 @@ class TableTests(ApiTests):
         self.assertEqual(made, 3)
         self.assertEqual(sorted(a.owner for a in m.actions.all()), ['', 'bram', 'shoroy'])
         self.assertIn('deadline: Vrijdag', m.actions.get(owner='bram').text)
+
+
+class NextMeetingTests(ApiTests):
+    def test_expected_set_and_planned(self):
+        from datetime import date, timedelta
+        from meetings.models import Meeting
+        from meetings import services as S
+        d = lambda n: (date.today() + timedelta(days=n)).isoformat()
+        Meeting.objects.create(id='m1', date=d(-16), title='a')
+        Meeting.objects.create(id='m2', date=d(-2), title='b')
+        n = S.next_meeting()
+        self.assertEqual((n['source'], n['date'], n['every']), ('expected', d(12), 14))
+        c, _ = self.login('peppy', 'admin-pass-1')
+        r = self.send(c, 'put', '/api/meetings/next', {'date': d(5), 'time': '20:00', 'place': 'Discord'}).json()['next']
+        self.assertEqual((r['source'], r['date'], r['time'], r['place']), ('set', d(5), '20:00', 'Discord'))
+        Meeting.objects.create(id='m3', date=d(5), title='c')
+        r = c.get('/api/meetings/next').json()['next']
+        self.assertEqual((r['source'], r['meeting_id'], r['time']), ('planned', 'm3', '20:00'))

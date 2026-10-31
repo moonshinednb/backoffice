@@ -1,17 +1,17 @@
 # Graph Report - backoffice  (2026-10-31)
 
 ## Corpus Check
-- 186 files · ~104,393 words
+- 186 files · ~104,565 words
 - Verdict: corpus is large enough that graph structure adds value.
 - Unclassified: 13 file(s) not represented in the graph (top: .css 6, (none) 3, .example 1)
 
 ## Summary
-- 1681 nodes · 5522 edges · 94 communities (52 shown, 42 thin omitted)
-- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 425 edges (avg confidence: 0.93)
+- 1681 nodes · 5521 edges · 94 communities (52 shown, 42 thin omitted)
+- Extraction: 92% EXTRACTED · 8% INFERRED · 0% AMBIGUOUS · INFERRED: 426 edges (avg confidence: 0.93)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `edb0b3b4`
+- Built from commit: `de94aee7`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -115,8 +115,8 @@ Cohesion: 0.09
 Nodes (48): Act, Artist, Meta, Asset, Meta, Booking, Meta, act_create() (+40 more)
 
 ### Community 1 - "Frontend Auth Context"
-Cohesion: 0.06
-Nodes (50): Options, setCsrf(), Auth, AuthContext, AuthProvider(), useAuth(), User, ROLE (+42 more)
+Cohesion: 0.07
+Nodes (46): Options, setCsrf(), Auth, AuthContext, AuthProvider(), useAuth(), User, ROLE (+38 more)
 
 ### Community 2 - "queue.py"
 Cohesion: 0.12
@@ -187,8 +187,8 @@ Cohesion: 0.12
 Nodes (39): actor(), body(), PasswordReset, mark_read(), digest(), forgot(), reset(), test_connection() (+31 more)
 
 ### Community 19 - "useToast"
-Cohesion: 0.11
-Nodes (20): Tabs(), useToast(), AdminLayout(), ConfigDialog(), EventRoles(), KEY_PROVIDER, KEYS, KeysPage() (+12 more)
+Cohesion: 0.10
+Nodes (20): Tabs(), useToast(), AdminLayout(), ConfigDialog(), EventRoles(), KEY_PROVIDER, KEYS, Kind (+12 more)
 
 ### Community 20 - "feedback/views.py"
 Cohesion: 0.08
@@ -287,8 +287,8 @@ Cohesion: 0.08
 Nodes (19): LegacyScryptHasher, Command, Meeting, Meta, OutlookLink, Meta, _box(), check() (+11 more)
 
 ### Community 68 - "api"
-Cohesion: 0.10
-Nodes (25): api(), ApiError, size(), ResetPassword(), submit(), test(), toggle(), AssetRow() (+17 more)
+Cohesion: 0.09
+Nodes (29): api(), ApiError, size(), ResetPassword(), submit(), test(), KeysPage(), save() (+21 more)
 
 ### Community 69 - "settings"
 Cohesion: 0.10
@@ -331,7 +331,7 @@ _Questions this graph is uniquely positioned to answer:_
 - **Why does `LegacyRedirect()` connect `PDF Writer` to `Frontend Auth Context`?**
   _High betweenness centrality (0.343) - this node is a cross-community bridge._
 - **Should `Frontend Auth Context` be split into smaller, more focused modules?**
-  _Cohesion score 0.06220095693779904 - nodes in this community are weakly interconnected._
+  _Cohesion score 0.06690140845070422 - nodes in this community are weakly interconnected._
 - **Should `queue.py` be split into smaller, more focused modules?**
   _Cohesion score 0.11904761904761904 - nodes in this community are weakly interconnected._
 - **Should `PDF Writer` be split into smaller, more focused modules?**

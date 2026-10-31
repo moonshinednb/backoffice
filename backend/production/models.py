@@ -177,7 +177,8 @@ class CrewMember(models.Model):
 
 
 class Guest(models.Model):
-    """Guest list (frontstage entrance): name, +1s, backstage, relation."""
+    """Guest list (frontstage entrance): name, +1s, relation. Guests never go
+    backstage; `backstage` is only kept from older imports."""
     id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='guests')
     name = models.CharField(max_length=200)

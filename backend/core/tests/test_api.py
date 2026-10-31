@@ -154,3 +154,21 @@ class KeyTestTests(ApiTests):
             self.assertEqual(self.send(a, 'post', '/api/connections/test', {'provider': 'sumup'}).status_code, 200)
         sumup = next(c for c in a.get('/api/connections').json()['connections'] if c['id'] == 'sumup')
         self.assertEqual(sumup['status'], 'verified')
+
+
+
+class TaskAssigneesTests(ApiTests):
+    def test_task_for_two_people(self):
+        from core.models import Notification
+        anne = User.objects.create(username='anne', first_name='Anne', role='staff')
+        c, _ = self.login('peppy', 'admin-pass-1')
+        t = self.send(c, 'post', '/api/tasks', {'title': 'Poster checken', 'assignees': [str(self.bram.id), str(anne.id)]}).json()
+        self.assertEqual(set(t['assignees']), {self.bram.id, anne.id})
+        self.assertEqual(t['assignee'], self.bram.id)  # the first one picked
+        self.assertEqual(Notification.objects.filter(kind='assigned').count(), 2)
+        t = self.send(c, 'patch', f"/api/tasks/{t['id']}", {'title': 'Poster checken', 'assignees': [str(anne.id)]}).json()
+        self.assertEqual(t['assignees'], [anne.id])
+        self.assertEqual(self.send(c, 'post', '/api/tasks', {'title': 'x', 'assignees': ['999999']}).status_code, 400)
+        # an old-style single assignee still works
+        t = self.send(c, 'post', '/api/tasks', {'title': 'Oud', 'assignee': str(self.bram.id)}).json()
+        self.assertEqual(t['assignees'], [self.bram.id])

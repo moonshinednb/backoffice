@@ -1,5 +1,7 @@
 """Crew list (backstage entrance) and guest list (frontstage entrance) per event.
 
+Crew always gets a backstage wristband; guests are always frontstage.
+
 The columns follow the team's Excel. The backoffice keeps the lists and
 writes the same two-tab Excel to 06 Productie on OneDrive after each change,
 so the venue and the door keep getting the file they know."""
@@ -20,7 +22,7 @@ def crew_dict(c):
 
 
 def guest_dict(g):
-    return {'id': g.id, 'name': g.name, 'plus': g.plus, 'backstage': g.backstage, 'relation': g.relation, 'added_by': g.added_by}
+    return {'id': g.id, 'name': g.name, 'plus': g.plus, 'relation': g.relation, 'added_by': g.added_by}
 
 
 def _event(event_id):
@@ -35,7 +37,7 @@ def overview(event_id):
     crew, guests = list(e.crew.all()), list(e.guests.all())
     return {'crew': [crew_dict(c) for c in crew], 'guests': [guest_dict(g) for g in guests], 'file_url': e.lists_url, 'file_name': file_name(e),
             'totals': {'crew': len(crew), 'cars': sum(c.cars for c in crew), 'guests': len(guests),
-                       'people': len(guests) + sum(g.plus for g in guests), 'backstage': sum(1 for g in guests if g.backstage)}}
+                       'people': len(guests) + sum(g.plus for g in guests)}}
 
 
 def _number(value, label, top):
@@ -91,10 +93,6 @@ def guest_save(event_id, payload, actor, ident=None):
         g.relation = R._text(payload.get('relation'), 200)
     if 'plus' in payload:
         g.plus = _number(payload.get('plus'), '+1s', 10)
-    if 'backstage' in payload:
-        if type(payload['backstage']) is not bool:
-            raise ValueError('Backstage: ja of nee.')
-        g.backstage = payload['backstage']
     if not ident:
         g.sort = (g.event.guests.order_by('-sort').values_list('sort', flat=True).first() or 0) + 1
     g.save()
@@ -121,10 +119,6 @@ def _plus(value):
         return min(int(text), 10)
     m = re.match(r'^\+\s*(\d+)', text)
     return min(int(m.group(1)), 10) if m else 0
-
-
-def _yes(value):
-    return str(value or '').strip().upper() in ('YES', 'JA', 'Y', 'J', 'X', 'TRUE', '1')
 
 
 def parse_xlsx(content):
@@ -154,8 +148,7 @@ def parse_xlsx(content):
                 cars = get('CARS')
                 crew.append({'name': name[:200], 'role': get('ROLE')[:120], 'act': get('ACT')[:200], 'cars': min(int(float(cars)), 20) if re.fullmatch(r'\d+(\.0)?', cars) else 0})
             else:
-                guests.append({'name': name[:200], 'plus': _plus(get('+1S') or get('+1')), 'backstage': _yes(get('BACKSTAGE?') or get('BACKSTAGE')),
-                               'relation': get('RELATION')[:200]})
+                guests.append({'name': name[:200], 'plus': _plus(get('+1S') or get('+1')), 'relation': get('RELATION')[:200]})
     return crew, guests
 
 
@@ -191,8 +184,8 @@ def export_xlsx(e):
     sheet(wb.active, 'CREW LIST', ['NAME', 'ROLE', 'ACT', 'CARS'], [[c.name, c.role, c.act, c.cars or ''] for c in crew], [5, 30, 28, 34, 8])
     wb.active.title = CREW_SHEET
     ws = wb.create_sheet(GUEST_SHEET)
-    sheet(ws, 'GUEST LIST', ['NAME', '+1s', 'BACKSTAGE?', 'RELATION'],
-          [[g.name, f'+{g.plus}' if g.plus else 'NO', 'YES' if g.backstage else 'NO', g.relation] for g in guests], [5, 30, 8, 13, 34])
+    sheet(ws, 'GUEST LIST', ['NAME', '+1s', 'RELATION'],
+          [[g.name, f'+{g.plus}' if g.plus else 'NO', g.relation] for g in guests], [5, 30, 8, 34])
     ws.append([])
     ws.append(['', 'TOTAL', len(guests) + sum(g.plus for g in guests)])
     ws.cell(ws.max_row, 2).font = Font(bold=True)

@@ -29,7 +29,7 @@ class PeopleTests(ApiTests):
         crew, guests = people.parse_xlsx(sample_xlsx())
         self.assertEqual([c['name'] for c in crew], ['Bram de Haas', 'Anne'])
         self.assertEqual(crew[0], {'name': 'Bram de Haas', 'role': 'CORE CREW + DJ', 'act': 'Gagelhasu', 'cars': 1})
-        self.assertEqual(guests[1], {'name': 'Piet', 'plus': 2, 'backstage': True, 'relation': '+1 MS CREW'})
+        self.assertEqual(guests[1], {'name': 'Piet', 'plus': 2, 'relation': '+1 MS CREW'})
         self.assertEqual(guests[0]['plus'], 0)
 
     def test_lists_export_and_copy(self):
@@ -37,16 +37,16 @@ class PeopleTests(ApiTests):
         e = self.send(c, 'post', '/api/events', {'name': 'Inner Orbit', 'date': '2030-11-20'}).json()
         r = self.send(c, 'post', f"/api/events/{e['id']}/crew", {'name': 'Bram de Haas', 'role': 'CORE CREW', 'cars': 1})
         self.assertEqual(r.status_code, 200)
-        g = self.send(c, 'post', f"/api/events/{e['id']}/guests", {'name': 'Piet', 'plus': 2, 'backstage': True, 'relation': 'Vriend'}).json()
+        g = self.send(c, 'post', f"/api/events/{e['id']}/guests", {'name': 'Piet', 'plus': 2, 'relation': 'Vriend'}).json()
         self.assertEqual(g['added_by'], 'peppy')
         self.assertEqual(self.send(c, 'patch', f"/api/guests/{g['id']}", {'plus': 11}).status_code, 400)
         o = c.get(f"/api/events/{e['id']}/people").json()
-        self.assertEqual(o['totals'], {'crew': 1, 'cars': 1, 'guests': 1, 'people': 3, 'backstage': 1})
+        self.assertEqual(o['totals'], {'crew': 1, 'cars': 1, 'guests': 1, 'people': 3})
         self.assertEqual(o['file_name'], 'CREWLIST + GUESTLIST 20-11-30.xlsx')
         # the export reads back as the same lists
         crew, guests = people.parse_xlsx(c.get(f"/api/events/{e['id']}/people.xlsx").content)
         self.assertEqual(crew[0]['name'], 'Bram de Haas')
-        self.assertEqual(guests[0], {'name': 'Piet', 'plus': 2, 'backstage': True, 'relation': 'Vriend'})
+        self.assertEqual(guests[0], {'name': 'Piet', 'plus': 2, 'relation': 'Vriend'})
         # core crew comes from the previous event
         nxt = self.send(c, 'post', '/api/events', {'name': 'Next', 'date': '2031-01-10'}).json()
         r = self.send(c, 'post', f"/api/events/{nxt['id']}/crew/copy").json()

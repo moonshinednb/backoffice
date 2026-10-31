@@ -61,8 +61,8 @@ def our_items(start, end):
             out.append(item('content', c.id, title, c.date, link=f'/calendar?content={c.id}', color='content', detail=c.get_status_display()))
     for m in Meeting.objects.filter(date__gte=start, date__lte=end):
         out.append(item('meeting', m.id, f'👥 {m.title}', m.date, link=f'/meetings/{m.id}', color='meeting'))
-    for t in Task.objects.filter(done=False, due__gte=start, due__lte=end).select_related('assignee'):
-        out.append(item('task', t.id, f'☐ {t.title}', t.due.isoformat(), link='/tasks', color='task', detail=t.assignee.display_name if t.assignee else ''))
+    for t in Task.objects.filter(done=False, due__gte=start, due__lte=end).select_related('assignee').prefetch_related('assignees'):
+        out.append(item('task', t.id, f'☐ {t.title}', t.due.isoformat(), link='/tasks', color='task', detail=', '.join(u.display_name for u in t.people())))
     return out
 
 

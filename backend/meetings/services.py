@@ -192,3 +192,40 @@ def refresh_recent():
                 extract(m)
         except Exception as e:  # one broken file must not stop the rest
             audit('worker', 'Meeting lezen mislukt', m.id, safe_error(e)[:200])
+
+
+def next_meeting():
+    """The coming meeting: one already made for a future date, else the date
+    someone set, else the expected date from the rhythm of the last two."""
+    from datetime import date, timedelta
+    from core.services import settings
+    today = date.today().isoformat()
+    planned = Meeting.objects.filter(date__gte=today).order_by('date').first()
+    custom = settings().get('next_meeting') or {}
+    if planned:
+        same = custom.get('date') == planned.date
+        return {'date': planned.date, 'time': custom.get('time', '') if same else '', 'place': custom.get('place', '') if same else '',
+                'source': 'planned', 'meeting_id': planned.id}
+    if custom.get('date', '') >= today:
+        return {'date': custom['date'], 'time': custom.get('time', ''), 'place': custom.get('place', ''), 'source': 'set', 'meeting_id': None}
+    last = list(Meeting.objects.exclude(date='').order_by('-date').values_list('date', flat=True)[:2])
+    if len(last) == 2:
+        a, b = date.fromisoformat(last[0]), date.fromisoformat(last[1])
+        step = max(7, min(28, (a - b).days))
+        nxt = a + timedelta(days=step)
+        while nxt.isoformat() < today:
+            nxt += timedelta(days=step)
+        return {'date': nxt.isoformat(), 'time': custom.get('time', ''), 'place': custom.get('place', ''), 'source': 'expected', 'meeting_id': None, 'every': step}
+    return None
+
+
+def set_next(payload, actor):
+    from core.services import audit, set_setting
+    from production import rules as R
+    day = R._date(payload.get('date'), 'Datum')
+    if not day:
+        raise ValueError('Kies een datum.')
+    time_ = R._time(payload.get('time'), 'Tijd') if payload.get('time') else ''
+    set_setting('next_meeting', {'date': day, 'time': time_, 'place': R._text(payload.get('place'), 120)})
+    audit(actor, 'Volgende meeting ingesteld', '', day)
+    return next_meeting()

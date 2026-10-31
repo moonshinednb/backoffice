@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { stamp } from '../lib/format';
-import { Empty, ErrorBox, Icon, Loading, Orb, formValues, useAction, useToast } from '../lib/ui';
+import { Empty, ErrorBox, Icon, Loading, Modal, Orb, formValues, useAction, useToast } from '../lib/ui';
 import { FormDialog, useCanEdit } from './common';
 
 type Review = { reviewer: string; name: string; production: number | null; composition: number | null; decision: string; release_types: string;
@@ -134,6 +134,7 @@ export function FeedbackTrack() {
   const toast = useToast();
   const navigate = useNavigate();
   const [uploading, setUploading] = useState(false);
+  const [remove, setRemove] = useState(false);
   const [decision, setDecision] = useState<string | null>(null);
   const [types, setTypes] = useState<string[] | null>(null);
   const list = qc.getQueryData<{ tracks: Track[] }>(['feedback'])?.tracks || [];
@@ -249,9 +250,15 @@ export function FeedbackTrack() {
             <input name="body" placeholder="Opmerking of ‘nieuwe versie ontvangen’" required aria-label="Opmerking" /><button className="primary small" type="submit">Toevoegen</button></form> : null}
           <ul className="voyage-log">{(t.log || []).map((l) => <li key={l.id} className={`log-${l.kind}`}><span className="log-kind">{({ comment: 'Notitie', version: 'Versie', status: 'Status' } as Record<string, string>)[l.kind] || l.kind}</span>
             <div><p>{l.body}</p><small>{l.author} · {stamp(l.created)}</small></div></li>)}</ul>
-          {edit ? <p className="helper"><button className="text-link" onClick={() => confirm('Track verwijderen? Feedback gaat ook weg.') && run(async () => { await api(`/feedback/tracks/${id}`, { method: 'DELETE' }); qc.invalidateQueries({ queryKey: ['feedback'] }); close(); })}>Track verwijderen</button></p> : null}
         </section>
       </div>
+      {edit ? <div className="danger-row"><button className="danger big" onClick={() => setRemove(true)}><Icon name="close" /> Track verwijderen</button></div> : null}
+      <Modal title="Track verwijderen?" open={remove} onClose={() => setRemove(false)} footer={<>
+        <button onClick={() => setRemove(false)}>Annuleren</button>
+        <button className="danger" onClick={() => run(async () => { await api(`/feedback/tracks/${id}`, { method: 'DELETE' }); setRemove(false); qc.invalidateQueries({ queryKey: ['feedback'] }); close(); }, 'Track verwijderd.')}>Ja, definitief verwijderen</button></>}>
+        <p>{`Weet je het zeker? „${t.artist} – ${t.title}” verdwijnt met alle beoordelingen, feedback en het logboek. Dit kan niet ongedaan worden gemaakt.`}</p>
+        <p className="helper">Een audiobestand op OneDrive blijft staan.</p>
+      </Modal>
       <p className="helper overlay-hint">Tip: ← en → voor de vorige/volgende track, Esc om terug te gaan.</p>
     </div>}
   </div>;

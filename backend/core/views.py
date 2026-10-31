@@ -165,8 +165,8 @@ def update_user(request, ident: str):
 # --- Tasks -------------------------------------------------------------------------
 
 def task_dict(t):
-    return {'id': t.id, 'title': t.title, 'description': t.description, 'assignee': t.assignee_id, 'due': t.due.isoformat() if t.due else None,
-            'priority': t.priority, 'done': t.done, 'release': t.release, 'created': t.created.timestamp()}
+    return {'id': t.id, 'title': t.title, 'description': t.description, 'assignee': t.assignee_id, 'assignees': [u.id for u in t.people()],
+            'due': t.due.isoformat() if t.due else None, 'priority': t.priority, 'done': t.done, 'release': t.release, 'created': t.created.timestamp()}
 
 
 def _task_fields(d, task):
@@ -176,10 +176,18 @@ def _task_fields(d, task):
     task.title = title
     task.description = str(d.get('description', ''))[:3000]
     task.due = date.fromisoformat(d['due']) if d.get('due') else None
-    assignee = d.get('assignee') or None
-    if assignee and not User.objects.filter(id=assignee, is_active=True).exists():
-        raise HttpError(400, 'Kies een actieve gebruiker.')
-    task.assignee_id = assignee
+    if 'assignees' in d:
+        raw = d.get('assignees') or []
+        if not isinstance(raw, list) or len(raw) > 20:
+            raise HttpError(400, 'Ongeldige toewijzing.')
+        ids = list(dict.fromkeys(str(x) for x in raw if x not in (None, '')))
+    else:
+        ids = [str(d['assignee'])] if d.get('assignee') else []
+    people = list(User.objects.filter(id__in=ids, is_active=True))
+    if len(people) != len(ids):
+        raise HttpError(400, 'Kies actieve gebruikers.')
+    people.sort(key=lambda u: ids.index(str(u.id)))
+    task.assignee = people[0] if people else None
     task.priority = 'high' if d.get('priority') == 'high' else 'normal'
     if 'release' in d:
         from production.models import Release
@@ -187,19 +195,21 @@ def _task_fields(d, task):
         if release and not Release.objects.filter(id=release).exists():
             raise HttpError(400, 'Release niet gevonden.')
         task.release = release
+    return people
 
 
 @router.get('/tasks')
 def list_tasks(request):
-    return {'tasks': [task_dict(t) for t in Task.objects.all()[:1000]]}
+    return {'tasks': [task_dict(t) for t in Task.objects.select_related('assignee').prefetch_related('assignees')[:1000]]}
 
 
 @router.post('/tasks')
 def create_task(request):
     require(request, write=True)
     task = Task(dirty=True)
-    _task_fields(body(request), task)
+    people = _task_fields(body(request), task)
     task.save()
+    task.assignees.set(people)
     audit(actor(request), 'Taak aangemaakt', task.id)
     from .notify import assigned
     assigned(task, actor(request))
@@ -213,20 +223,22 @@ def update_task(request, ident: str):
     task = Task.objects.filter(id=ident).first()
     if not task:
         raise HttpError(404, 'Taak niet gevonden.')
-    was_done, was_assignee = task.done, task.assignee_id
+    was_done, was_people = task.done, {u.id for u in task.people()}
     if 'done' in d:
         if type(d['done']) is not bool:
             raise HttpError(400, 'Ongeldige taakstatus.')
         task.done = d['done']
-    if 'title' in d:
-        _task_fields(d, task)
+    people = _task_fields(d, task) if 'title' in d else None
     task.dirty = True
     task.save()
+    if people is not None:
+        task.assignees.set(people)
     who = actor(request)
     audit(who, ('Taak afgerond' if task.done else 'Taak heropend') if 'done' in d else 'Taak gewijzigd', ident)
     from .notify import assigned, done
-    if task.assignee_id != was_assignee:
-        assigned(task, who)
+    added = [u for u in task.people() if u.id not in was_people]
+    if added:
+        assigned(task, who, added)
     if task.done and not was_done:
         done([task.id], who, 'Taak afgerond', f'{task.title} (door {who})', '/taken', key=f'taskdone:{task.id}')
     return task_dict(task)

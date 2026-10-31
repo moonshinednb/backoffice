@@ -5,8 +5,8 @@ import { Empty, ErrorBox, Icon, Loading, formValues, useAction, useToast } from 
 import { useCanEdit } from './common';
 
 type Crew = { id: string; name: string; role: string; act: string; cars: number };
-type Guest = { id: string; name: string; plus: number; backstage: boolean; relation: string; added_by: string };
-type People = { crew: Crew[]; guests: Guest[]; file_url: string; file_name: string; totals: { crew: number; cars: number; guests: number; people: number; backstage: number } };
+type Guest = { id: string; name: string; plus: number; relation: string; added_by: string };
+type People = { crew: Crew[]; guests: Guest[]; file_url: string; file_name: string; totals: { crew: number; cars: number; guests: number; people: number } };
 
 const usePeople = (eventId: string) => useQuery({ queryKey: ['event-people', eventId], queryFn: () => api<People>(`/events/${eventId}/people`) });
 
@@ -25,8 +25,8 @@ function Bar({ eventId, p, kind, reload }: { eventId: string; p: People; kind: '
   const t = p.totals;
   return <div className="people-bar">
     <div className="people-totals">{kind === 'crew'
-      ? <><strong>{`${t.crew} crew`}</strong><span>{`${t.cars} auto’s (parkeren)`}</span></>
-      : <><strong>{`${t.guests} gasten`}</strong><span>{`${t.people} personen incl. +1s`}</span><span>{`${t.backstage} backstage`}</span></>}</div>
+      ? <><strong>{`${t.crew} crew`}</strong><span>{`${t.cars} auto’s (parkeren)`}</span><span>backstage-bandje</span></>
+      : <><strong>{`${t.guests} gasten`}</strong><span>{`${t.people} personen incl. +1s`}</span><span>frontstage</span></>}</div>
     <div className="people-actions">
       {edit && kind === 'crew' ? <button className="ghost small" onClick={() => run(async () => { const r = await api<People & { copied: number; origin: string }>(`/events/${eventId}/crew/copy`, { method: 'POST' }); reload(r); toast(r.copied ? `${r.copied} crewleden overgenomen van ${r.origin}.` : 'Iedereen staat er al op.'); })}><Icon name="users" /> Core crew overnemen</button> : null}
       {edit && empty ? <button className="ghost small" onClick={() => run(async () => { const r = await api<People & { imported: { crew: number; guests: number; file: string } }>(`/events/${eventId}/people/import`, { method: 'POST' }); reload(r); toast(`${r.imported.crew} crew en ${r.imported.guests} gasten uit ${r.imported.file}.`); })}><Icon name="download" /> Uit OneDrive-Excel halen</button> : null}
@@ -68,7 +68,7 @@ export function CrewList({ eventId }: { eventId: string }) {
   </section>;
 }
 
-/** Guest list (frontstage entrance): name, +1s, backstage, relation. */
+/** Guest list (frontstage entrance, never backstage): name, +1s, relation. */
 export function GuestList({ eventId }: { eventId: string }) {
   const qc = useQueryClient();
   const run = useAction();
@@ -86,23 +86,21 @@ export function GuestList({ eventId }: { eventId: string }) {
     <Bar eventId={eventId} p={p} kind="guests" reload={reload} />
     {p.guests.length > 8 ? <div className="people-find"><Icon name="search" /><input value={find} onChange={(e) => setFind(e.target.value)} placeholder="Zoek een naam of relatie" aria-label="Zoeken" /></div> : null}
     <div className="table-wrap"><table className="people-table">
-      <thead><tr><th className="num">#</th><th>Naam</th><th className="num">+1s</th><th>Backstage</th><th>Relatie</th><th>Gezet door</th><th aria-label="Verwijderen" /></tr></thead>
+      <thead><tr><th className="num">#</th><th>Naam</th><th className="num">+1s</th><th>Relatie</th><th>Gezet door</th><th aria-label="Verwijderen" /></tr></thead>
       <tbody>{rows.map((g) => <tr key={g.id}>
         <td className="num">{p.guests.indexOf(g) + 1}</td>
         <td><Cell edit={edit} value={g.name} save={(v) => patch(g, { name: v })} aria-label="Naam" /></td>
         <td className="num"><select className="cell" value={g.plus} disabled={!edit} aria-label="+1s" onChange={(e) => patch(g, { plus: Number(e.target.value) })}>
           {[0, 1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n ? `+${n}` : '—'}</option>)}</select></td>
-        <td><button className={`toggle-pill ${g.backstage ? 'on' : ''}`} disabled={!edit} onClick={() => patch(g, { backstage: !g.backstage })}>{g.backstage ? 'Ja' : 'Nee'}</button></td>
         <td><Cell edit={edit} value={g.relation} save={(v) => patch(g, { relation: v })} aria-label="Relatie" placeholder="+1 MS CREW, DJ…" /></td>
         <td className="muted-cell">{g.added_by}</td>
         <td>{edit ? <button className="icon-btn ghost tiny" aria-label={`${g.name} verwijderen`} onClick={() => run(async () => { await api(`/guests/${g.id}`, { method: 'DELETE' }); reload(); })}><Icon name="close" /></button> : null}</td>
       </tr>)}</tbody>
     </table></div>
     {!p.guests.length ? <Empty title="Nog geen gasten" sub="Iedereen uit het team kan gasten toevoegen; je ziet wie wie heeft gezet." icon="users" /> : null}
-    {edit ? <form className="people-add guests" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const v = formValues(f); run(async () => { await api(`/events/${eventId}/guests`, { method: 'POST', body: { ...v, plus: Number(v.plus || 0), backstage: v.backstage === 'yes' } }); f.reset(); (f.elements.namedItem('name') as HTMLInputElement).focus(); reload(); }); }}>
+    {edit ? <form className="people-add guests" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; const v = formValues(f); run(async () => { await api(`/events/${eventId}/guests`, { method: 'POST', body: { ...v, plus: Number(v.plus || 0) } }); f.reset(); (f.elements.namedItem('name') as HTMLInputElement).focus(); reload(); }); }}>
       <input name="name" required placeholder="Naam" aria-label="Naam" />
       <select name="plus" aria-label="+1s" defaultValue="0">{[0, 1, 2, 3, 4, 5].map((n) => <option key={n} value={n}>{n ? `+${n}` : 'Geen +1'}</option>)}</select>
-      <select name="backstage" aria-label="Backstage" defaultValue="no"><option value="no">Frontstage</option><option value="yes">Backstage</option></select>
       <input name="relation" placeholder="Relatie" aria-label="Relatie" /><button className="primary small" type="submit"><Icon name="plus" /> Toevoegen</button>
     </form> : null}
   </section>;

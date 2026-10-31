@@ -59,17 +59,56 @@ function MiniAction({ a, onChange }: { a: Action; onChange: () => void }) {
   </li>;
 }
 
+type Next = { date: string; time: string; place: string; source: 'planned' | 'set' | 'expected'; meeting_id: string | null; every?: number } | null;
+
+/** "Upcoming meeting" bar: the next date, how far away, and quick actions. */
+function NextMeeting({ onCreate }: { onCreate: (date: string) => void }) {
+  const qc = useQueryClient();
+  const run = useAction();
+  const edit = useCanEdit();
+  const navigate = useNavigate();
+  const [editing, setEditing] = useState(false);
+  const q = useQuery({ queryKey: ['meeting-next'], queryFn: () => api<{ next: Next }>('/meetings/next') });
+  if (q.isPending) return null;
+  const n = q.data?.next;
+  const days = n ? Math.round((Date.parse(n.date) - Date.parse(today())) / 86400000) : 0;
+  const when = !n ? '' : days === 0 ? 'vandaag' : days === 1 ? 'morgen' : `over ${days} dagen`;
+  return <section className="next-meeting">
+    <div className="nm-icon"><Icon name="calendar" /></div>
+    {editing || !n ? <form className="nm-form" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => { await api('/meetings/next', { method: 'PUT', body: formValues(f) }); setEditing(false); qc.invalidateQueries({ queryKey: ['meeting-next'] }); }, 'Volgende meeting ingesteld.'); }}>
+      <strong>Upcoming meeting</strong>
+      <input name="date" type="date" required defaultValue={n?.date || today()} aria-label="Datum" />
+      <input name="time" type="time" defaultValue={n?.time || ''} aria-label="Tijd" />
+      <input name="place" placeholder="Waar (bijv. Discord)" defaultValue={n?.place || ''} aria-label="Waar" />
+      <button className="primary small" type="submit">Opslaan</button>{n ? <button type="button" className="ghost small" onClick={() => setEditing(false)}>Annuleren</button> : null}
+    </form> : <>
+      <div className="nm-text"><span className="nm-label">Upcoming meeting</span>
+        <strong>{`${fullDate(n.date)}${n.time ? ' · ' + n.time : ''}`}</strong>
+        <small>{[when, n.place, n.source === 'expected' ? `verwacht: elke ${n.every} dagen, zoals de laatste meetings` : n.source === 'planned' ? 'notulen staan klaar' : '']
+          .filter(Boolean).map((part, i) => <span key={i}>{i ? ' · ' : ''}<span>{part}</span></span>)}</small></div>
+      <div className="nm-actions">
+        {n.meeting_id ? <button className="ghost small" onClick={() => navigate(`/meetings/${n.meeting_id}`)}><Icon name="file" /> Notulen openen</button>
+          : edit ? <button className="ghost small" onClick={() => onCreate(n.date)}><Icon name="plus" /> Notulen klaarzetten</button> : null}
+        {edit ? <button className="ghost small" onClick={() => setEditing(true)}>Wijzigen</button> : null}
+      </div>
+    </>}
+  </section>;
+}
+
 export function MeetingsPage() {
+  const qc = useQueryClient();
   const edit = useCanEdit();
   const navigate = useNavigate();
   const toast = useToast();
   const [open, setOpen] = useState(false);
+  const [day, setDay] = useState(today());
   const q = useQuery({ queryKey: ['meetings'], queryFn: () => api<{ meetings: Meeting[] }>('/meetings') });
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   const button = edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Nieuwe meeting</button> : null;
   return <>
     <PageTitle title="Meetings" sub="Notulen van de wekelijkse meetings, met de actiepunten per persoon. De notulen zelf staan als Word-bestand op OneDrive." actions={button} />
+    <NextMeeting onCreate={(d) => { setDay(d); setOpen(true); }} />
     <StickyBoard />
     <section className="card section-gap"><div className="card-head"><h2>Alle meetings</h2></div>
       {q.data.meetings.length ? <div className="table-wrap"><table><thead><tr><th>Datum</th><th>Meeting</th><th>Actiepunten</th><th /></tr></thead><tbody>
@@ -79,8 +118,9 @@ export function MeetingsPage() {
     <FormDialog id="meeting-new" title="Nieuwe meeting" open={open} onClose={() => setOpen(false)} label="Aanmaken" submit={async (form) => {
       const m = await api<Meeting>('/meetings', { method: 'POST', body: formValues(form) });
       setOpen(false); toast('Notulen klaargezet op OneDrive.'); navigate(`/meetings/${m.id}`);
+      qc.invalidateQueries({ queryKey: ['meeting-next'] });
     }}>
-      <div className="field"><label htmlFor="mt-date">Datum</label><input id="mt-date" name="date" type="date" defaultValue={today()} required /></div>
+      <div className="field"><label htmlFor="mt-date">Datum</label><input id="mt-date" key={day} name="date" type="date" defaultValue={day} required /></div>
       <p className="helper">De backoffice kopieert het sjabloon “Template vergaderingen Moonshine Label” naar 1. Vergaderingen/&lt;jaar&gt;/&lt;maand&gt;/MS Meeting &lt;datum&gt;. Je schrijft de notulen in Word; daarna haalt de backoffice de actiepunten eruit.</p>
     </FormDialog>
   </>;

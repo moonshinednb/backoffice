@@ -120,7 +120,7 @@ function ReleaseTasks({ releases }: { releases: Release[] }) {
         <button className="text-link" onClick={() => { setPreset(r.id); setTask(null); }}>Taak toevoegen</button></div>
         {mine.length ? mine.map((t) => <div key={t.id} className={`task-row ${t.done ? 'done' : ''}`}>
           <input type="checkbox" checked={t.done} aria-label={`${t.title} afronden`} onChange={(e) => run(async () => { await api(`/tasks/${t.id}`, { method: 'PATCH', body: { done: e.target.checked } }); qc.invalidateQueries({ queryKey: ['tasks'] }); qc.invalidateQueries({ queryKey: ['releases'] }); })} />
-          <div><strong>{t.title}</strong><small>{t.due ? shortDate(t.due) : 'Geen deadline'}{t.assignee ? ' · ' + (users.data?.users.find((u) => u.id === t.assignee)?.name || '') : ''}</small></div>
+          <div><strong>{t.title}</strong><small>{t.due ? shortDate(t.due) : 'Geen deadline'}{(t.assignees || []).length ? ' · ' + t.assignees.map((id) => users.data?.users.find((u) => u.id === id)?.name).filter(Boolean).join(', ') : ''}</small></div>
           <button className="icon-btn ghost task-edit" onClick={() => { setPreset(r.id); setTask(t); }} aria-label={`${t.title} bewerken`}><Icon name="edit" /></button>
         </div>) : <p className="helper card-pad-x">Nog geen taken voor deze release.</p>}
       </section>;

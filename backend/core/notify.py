@@ -30,17 +30,18 @@ def done(entities, actor, title, body='', link='', key=''):
     notify(involved(entities, exclude=actor), 'done', title, body, link, key)
 
 
-def assigned(task, actor):
-    if task.assignee and task.assignee.username != actor:
-        notify([task.assignee], 'assigned', 'Nieuwe taak voor jou', f'{task.title} (van {actor})', '/taken', key=f'assign:{task.id}:{task.assignee_id}')
+def assigned(task, actor, users=None):
+    for u in (users if users is not None else task.people()):
+        if u.username != actor:
+            notify([u], 'assigned', 'Nieuwe taak voor jou', f'{task.title} (van {actor})', '/tasks', key=f'assign:{task.id}:{u.id}')
 
 
 def deadlines():
     """Daily: tasks due tomorrow or overdue, and release steps due soon."""
     today = date.today()
-    for t in Task.objects.filter(done=False, assignee__isnull=False, due__isnull=False, due__lte=today + timedelta(days=1)):
+    for t in Task.objects.filter(done=False, assignee__isnull=False, due__isnull=False, due__lte=today + timedelta(days=1)).prefetch_related('assignees'):
         late = t.due < today
-        notify([t.assignee], 'deadline', 'Taak over tijd' if late else 'Taak morgen af', t.title, '/taken',
+        notify(t.people(), 'deadline', 'Taak over tijd' if late else 'Taak morgen af', t.title, '/tasks',
                key=f'deadline:{t.id}:{"late" if late else "soon"}')
     from production.models import ReleaseStep
     soon = (today + timedelta(days=2)).isoformat()

@@ -75,13 +75,19 @@ class Task(models.Model):
     id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
     title = models.CharField(max_length=300)
     description = models.TextField(blank=True, default='')
-    assignee = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='tasks')
+    assignee = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name='tasks', help_text='First of the assignees')
+    assignees = models.ManyToManyField(User, blank=True, related_name='shared_tasks', help_text='Everyone the task is for')
     due = models.DateField(null=True, blank=True)
     priority = models.CharField(max_length=10, default='normal')
     done = models.BooleanField(default=False)
     graph_id = models.CharField(max_length=300, blank=True, default='')
     release = models.CharField(max_length=24, blank=True, default='', db_index=True, help_text='Release id when this task belongs to a release')
     dirty = models.BooleanField(default=False, help_text='Changed locally since the last To Do push')
+
+    def people(self):
+        """Everyone the task is for (older tasks only have `assignee`)."""
+        many = list(self.assignees.all())
+        return many or ([self.assignee] if self.assignee_id else [])
     created = models.DateTimeField(auto_now_add=True)
 
     class Meta:

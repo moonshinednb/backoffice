@@ -136,14 +136,14 @@ function TaskRow({ t, onEdit }: { t: Task; onEdit: (t: Task) => void }) {
   const qc = useQueryClient();
   const toast = useToast();
   const users = useUsers();
-  const assignee = users.data?.users.find((u) => u.id === t.assignee);
+  const names = (t.assignees || []).map((id) => users.data?.users.find((u) => u.id === id)?.name).filter(Boolean).join(', ');
   async function toggle(done: boolean) {
     try { await api(`/tasks/${t.id}`, { method: 'PATCH', body: { done } }); toast(done ? 'Taak afgerond.' : 'Taak heropend.'); } catch (e) { toast((e as Error).message, true); }
     qc.invalidateQueries({ queryKey: ['tasks'] }); qc.invalidateQueries({ queryKey: ['dashboard'] });
   }
   return <div className={`task-row ${t.done ? 'done' : ''}`}>
     <input type="checkbox" checked={t.done} onChange={(e) => toggle(e.target.checked)} aria-label={`${t.title} afronden`} />
-    <div><strong>{t.title}</strong><small>{t.due ? shortDate(t.due) : 'Geen deadline'}{assignee ? ' · ' + assignee.name : ''}</small></div>
+    <div><strong>{t.title}</strong><small>{t.due ? shortDate(t.due) : 'Geen deadline'}{names ? ' · ' + names : ''}</small></div>
     {t.priority === 'high' && !t.done ? <Badge color="amber">Prioriteit</Badge> : null}
     <button className="icon-btn ghost task-edit" onClick={() => onEdit(t)} aria-label={`${t.title} bewerken`}><Icon name="edit" /></button>
   </div>;
@@ -157,7 +157,8 @@ export function TaskDialog({ task, onClose, release = '', releases }: { task: Ta
   const t = task || null;
   return <FormDialog id="task-form" title={t ? 'Taak bewerken' : 'Nieuwe taak'} open={task !== undefined} onClose={onClose} submit={async (form) => {
     const v = formValues(form);
-    await api(t ? `/tasks/${t.id}` : '/tasks', { method: t ? 'PATCH' : 'POST', body: { ...v, priority: v.high ? 'high' : 'normal' } });
+    const assignees = new FormData(form).getAll('assignees').map(String);
+    await api(t ? `/tasks/${t.id}` : '/tasks', { method: t ? 'PATCH' : 'POST', body: { ...v, assignees, priority: v.high ? 'high' : 'normal' } });
     toast(t ? 'Taak bijgewerkt.' : 'Taak toegevoegd.');
     qc.invalidateQueries({ queryKey: ['tasks'] }); qc.invalidateQueries({ queryKey: ['dashboard'] });
     onClose();
@@ -165,8 +166,10 @@ export function TaskDialog({ task, onClose, release = '', releases }: { task: Ta
     <div key={(t?.id || 'new') + release}>
       <div className="field"><label htmlFor="f-title">Wat moet er gebeuren?</label><input id="f-title" name="title" defaultValue={t?.title} required /></div>
       <div className="field"><label htmlFor="task-description">Toelichting</label><textarea id="task-description" name="description" defaultValue={t?.description} placeholder="Extra informatie voor het team" /></div>
-      <div className="form-grid"><div className="field"><label htmlFor="f-due">Deadline</label><input id="f-due" name="due" type="date" defaultValue={t?.due || ''} /></div>
-        <div className="field"><label htmlFor="task-assignee">Toewijzen aan</label><select id="task-assignee" name="assignee" defaultValue={t?.assignee || ''}><option value="">Niet toegewezen</option>{(users.data?.users || []).filter((u) => u.active).map((u) => <option key={u.id} value={u.id}>{u.name}</option>)}</select></div></div>
+      <div className="field"><label htmlFor="f-due">Deadline</label><input id="f-due" name="due" type="date" defaultValue={t?.due || ''} /></div>
+      <fieldset className="field assignee-picks"><legend>Voor wie (één of meer)</legend>
+        <div>{(users.data?.users || []).filter((u) => u.active).map((u) => <label key={u.id} className="pick"><input type="checkbox" name="assignees" value={u.id} defaultChecked={(t?.assignees || []).map(String).includes(String(u.id))} /><span>{u.name}</span></label>)}</div>
+      </fieldset>
       {releases ? <div className="field"><label htmlFor="task-release">Release</label><select id="task-release" name="release" defaultValue={(t as any)?.release || release}><option value="">Geen release</option>{releases.map((r) => <option key={r.id} value={r.id}>{r.title}</option>)}</select></div> : null}
       <label><input type="checkbox" name="high" defaultChecked={t?.priority === 'high'} /> Hoge prioriteit</label>
     </div>
