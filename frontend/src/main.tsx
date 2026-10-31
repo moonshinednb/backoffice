@@ -18,6 +18,7 @@ import { Login } from './login/Login';
 import { ResetPassword } from './login/Reset';
 import { DashboardPage, TasksPage } from './pages/Work';
 import { MeetingPage, MeetingsPage } from './pages/Meetings';
+import { CalendarPage } from './pages/Calendar';
 import { BankPage, DocumentsPage, FinanceLayout, InvoicesPage, OdooPage, VatPage } from './pages/Finance';
 import { ActivityPage, AdminHome, AdminLayout, IntegrationsPage, KeysPage, SettingsPage, UsersPage } from './pages/Admin';
 import { Events } from './production/Events';
@@ -26,6 +27,7 @@ import { BookingPage } from './production/Booking';
 import { ArtistPage, Artists } from './production/Artists';
 import { Label } from './production/Label';
 import { VoyagePage, VoyagesPage } from './production/Voyages';
+import { RosterPage } from './production/Roster';
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { staleTime: 10000, refetchOnWindowFocus: true, retry: 1 } } });
 
@@ -65,6 +67,7 @@ const router = createBrowserRouter([{
   children: [
     { index: true, element: <DashboardPage /> },
     { path: 'tasks', element: <TasksPage /> },
+    { path: 'calendar', element: <CalendarPage /> },
     { path: 'meetings', element: <MeetingsPage /> },
     { path: 'meetings/:id', element: <MeetingPage /> },
     { path: 'events', element: <Events /> },
@@ -73,13 +76,14 @@ const router = createBrowserRouter([{
     { path: 'events/:id/timetable', element: <EventPage tab="timetable" /> },
     { path: 'events/:id/venue', element: <EventPage tab="venue" /> },
     { path: 'events/:id/notes', element: <EventPage tab="notes" /> },
+    { path: 'events/:id/content', element: <EventPage tab="content" /> },
     { path: 'events/:id/details', element: <EventPage tab="info" /> },
     { path: 'events/:id/artist/:booking', element: <BookingPage /> },
     { path: 'events/:id/artist/:booking/flight', element: <BookingPage sub="flight" /> },
     { path: 'events/:id/artist/:booking/hotel', element: <BookingPage sub="hotel" /> },
     { path: 'events/:id/artist/:booking/transport', element: <BookingPage sub="ground" /> },
     { path: 'events/artists', element: <Artists /> },
-    { path: 'artists', element: <Navigate to="/events/artists" replace /> },
+    { path: 'artists', element: <RosterPage /> },
     { path: 'artists/:id', element: <ArtistPage /> },
     { path: 'artists/:id/tech', element: <ArtistPage tab="tech" /> },
     { path: 'artists/:id/hospitality', element: <ArtistPage tab="hospitality" /> },

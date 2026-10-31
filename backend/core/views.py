@@ -22,11 +22,11 @@ SETTING_KEYS = {
     'microsoft_tenant', 'mail_enabled', 'onedrive_enabled', 'onedrive_drive_id', 'onedrive_folder', 'todo_enabled', 'todo_list_id',
     'bank_mode', 'odoo_bank_feed', 'labelgrid_label_id', 'opensign_base', 'opensign_template_id', 'advancing_sender',
     'production_folder', 'production_sync', 'resend_from', 'public_url', 'promo_senders', 'drive_events_folder', 'drive_releases_folder',
-    'drive_event_tree', 'drive_artist_tree', 'drive_release_tree', 'drive_voyages_folder', 'drive_voyage_tree', 'meetings_folder', 'meetings_template',
+    'drive_event_tree', 'drive_artist_tree', 'drive_release_tree', 'drive_voyages_folder', 'drive_voyage_tree', 'meetings_folder', 'meetings_template', 'calendar_enabled', 'calendar_mailbox', 'calendar_push',
 }
 SECRET_KEYS = {'odoo_api_key', 'anthropic_api_key', 'ai_api_key', 'sumup_api_key', 'microsoft_client_secret', 'microsoft_access_token', 'microsoft_refresh_token', 'microsoft_todo_refresh_token',
                'bank_webhook_secret', 'mail_webhook_secret', 'labelgrid_api_key', 'opensign_api_key', 'opensign_webhook_secret', 'resend_api_key'}
-BOOLEANS = ('auto_post', 'auto_match', 'auto_sumup', 'mail_enabled', 'onedrive_enabled', 'todo_enabled', 'odoo_bank_feed', 'production_sync')
+BOOLEANS = ('calendar_enabled', 'auto_post', 'auto_match', 'auto_sumup', 'mail_enabled', 'onedrive_enabled', 'todo_enabled', 'odoo_bank_feed', 'production_sync')
 
 
 def user_dict(u):
@@ -318,6 +318,7 @@ def connections():
         ('advancing', 'Advancing', bool(cfg.get('advancing_sender') and microsoft)),
         ('onedrive', 'OneDrive', bool(cfg.get('onedrive_drive_id'))),
         ('todo', 'Microsoft To Do', bool(cfg.get('todo_list_id'))),
+        ('calendar', 'Agenda', bool(cfg.get('calendar_enabled'))),
         ('resend', 'Resend', bool(sv.get('resend_api_key') and cfg.get('resend_from'))),
         ('ing', 'ING', True),
         ('sumup', 'SumUp', bool(sv.get('sumup_api_key'))),

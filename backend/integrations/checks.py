@@ -16,6 +16,9 @@ def test_connection(provider):
             raise ValueError('SumUp API-sleutel ontbreekt.')
         me = http('https://api.sumup.com/v0.1/me', headers={'Authorization': 'Bearer ' + key})
         return {'message': 'SumUp-account geverifieerd', 'data': {'account': (me.get('merchant_profile') or {}).get('company_name') or me.get('account', {}).get('username', '')}}
+    if provider == 'calendar':
+        from planning.services import check
+        return check()
     if provider == 'odoo':
         from .odoo import Odoo, odoo_catalog
         return {'message': 'Odoo-account geverifieerd', 'data': odoo_catalog(Odoo())}

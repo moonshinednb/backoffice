@@ -45,6 +45,7 @@ INSTALLED_APPS = [
     'promo',
     'feedback',
     'meetings',
+    'planning',
 ]
 
 MIDDLEWARE = [

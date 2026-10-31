@@ -8,6 +8,7 @@ import { DriveButton, FormDialog, useCanEdit } from './common';
 import { TaskDialog } from '../pages/Work';
 import { Task, useTasks, useUsers } from '../pages/shared';
 import { PromoCampaign, PromoCampaigns, PromoContacts } from './Promo';
+import { ContentPlan } from './EventContent';
 import { FeedbackList, FeedbackTrack } from './Feedback';
 
 const RELEASE: Record<string, [string, string]> = { planned: ['Gepland', 'amber'], scheduled: ['Ingepland', 'purple'], released: ['Uitgebracht', 'lime'] };
@@ -93,6 +94,7 @@ function Planning({ releases }: { releases: Release[] }) {
         {edit ? <button className="icon-btn ghost tiny" aria-label={`${s.label} verwijderen`} onClick={() => confirm(`Stap ${s.label} verwijderen?`) && run(async () => set(await api(`/release-steps/${s.id}`, { method: 'DELETE' })))}><Icon name="close" /></button> : null}
       </li>;
     })}</ul>
+    <details className="optional-block"><summary>Promo en content van deze release</summary><ContentPlan releaseId={r.id} /></details>
     {edit ? (adding === r.id
       ? <form className="inline-form" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => { set(await api(`/releases/${r.id}/steps`, { method: 'POST', body: formValues(f) })); setAdding(null); }); }}>
         <input name="label" placeholder="Nieuwe stap, bijv. radio-pitch" required autoFocus /><input name="due" type="date" /><button className="primary small" type="submit">Toevoegen</button></form>

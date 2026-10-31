@@ -185,6 +185,65 @@ def delete_artist(request, ident: str):
     return {'ok': True}
 
 
+@router.get('/roster')
+def roster(request):
+    """The Moonshine artists: profile, socials, releases and upcoming shows."""
+    require(request, 'production')
+    from datetime import date
+    from .models import Artist, Booking, Release, Voyage
+    today = date.today().isoformat()
+    rows = []
+    for a in Artist.objects.filter(on_label=True).order_by('name'):
+        d = S.artist_dict(a)
+        name = a.name.casefold()
+        releases = [r for r in Release.objects.all() if name in (r.artist or '').casefold()]
+        shows = Booking.objects.filter(artist=a, event__date__gte=today).exclude(status='cancelled').count()
+        voyages = Voyage.objects.filter(performer__icontains=a.name, date__gte=today).exclude(status__in=['declined', 'cancelled']).count()
+        rows.append({k: d[k] for k in ('id', 'name', 'full_name', 'photo', 'socials', 'city', 'genres', 'epk_folder', 'agency', 'instagram', 'email')}
+                    | {'releases': len(releases), 'latest_release': max((r.release_date for r in releases if r.release_date), default=''),
+                       'upcoming_shows': shows + voyages, 'has_rider': bool(a.tech_rider.strip() or a.rider_url), 'has_bio': bool(a.bio.strip())})
+    return {'artists': rows}
+
+
+@router.post('/artists/{ident}/photo')
+def artist_photo(request, ident: str, file: File[UploadedFile]):
+    """Profile photo, stored on OneDrive under Artists/<name>/."""
+    require(request, 'production', write=True)
+    from .drive import enabled
+    from .models import Artist
+    from integrations.graph import drive_upload
+    a = Artist.objects.filter(id=ident).first()
+    if not a:
+        raise HttpError(404, 'Artiest niet gevonden.')
+    if not enabled():
+        raise HttpError(400, 'Stel eerst OneDrive in bij Koppelingen.')
+    content = file.read(15 * 1024 * 1024 + 1)
+    if len(content) > 15 * 1024 * 1024:
+        raise HttpError(400, 'Maximaal 15 MB.')
+    if not (content.startswith(b'\xff\xd8\xff') or content.startswith(b'\x89PNG') or content[8:12] == b'WEBP'):
+        raise HttpError(400, 'Gebruik een JPG-, PNG- of WebP-afbeelding.')
+    ext = 'png' if content.startswith(b'\x89PNG') else 'webp' if content[8:12] == b'WEBP' else 'jpg'
+    try:
+        a.photo_id, _ = drive_upload(f"Artists/{R.safe_name(a.name, 'Artiest')}/Profielfoto.{ext}", content, f'image/{"jpeg" if ext == "jpg" else ext}')
+    except (ValueError, RuntimeError) as e:
+        raise HttpError(400, str(e))
+    a.save(update_fields=['photo_id'])
+    return S.artist_get(ident, True)
+
+
+@router.get('/artists/{ident}/photo')
+def artist_photo_file(request, ident: str):
+    require(request, 'production')
+    from django.http import HttpResponseRedirect
+    from .models import Artist
+    from integrations.graph import drive_item
+    a = Artist.objects.filter(id=ident).first()
+    item = drive_item(a.photo_id) if a and a.photo_id else None
+    if not item or not item.get('@microsoft.graph.downloadUrl'):
+        raise HttpError(404, 'Geen foto.')
+    return HttpResponseRedirect(item['@microsoft.graph.downloadUrl'])
+
+
 @router.get('/artists/{ident}/rider.pdf')
 def rider_pdf(request, ident: str, kind: str = 'tech'):
     require(request, 'production')

@@ -7,6 +7,11 @@ from . import rules as R
 from .models import Artist, Voyage, VoyageNote
 
 router = Router()
+# What goes to the promoter (sent) and what we need back (received).
+DELIVERABLES = [('tech_rider', 'Technical rider verstuurd'), ('hospitality_rider', 'Hospitality rider verstuurd'), ('epk', 'EPK verstuurd'),
+                ('press_photos', 'Persfoto’s en logo verstuurd'), ('contract', 'Contract getekend terug'), ('invoice', 'Factuur verstuurd'),
+                ('payment', 'Betaling ontvangen'), ('set_time', 'Set time bevestigd'), ('travel', 'Reis en hotel bevestigd'),
+                ('advancing', 'Advancing-info ontvangen (adres, contact op de dag)')]
 STATUS = dict(Voyage.STATUSES)
 TEXT = {'performer': 200, 'event_name': 300, 'venue': 300, 'city': 120, 'country': 80, 'set_time': 40, 'deal': 300, 'travel': 300,
         'promoter_name': 200, 'promoter_phone': 40, 'notes': 6000}
@@ -16,7 +21,9 @@ def voyage_dict(v, full=False):
     out = {'id': v.id, 'performer': v.performer, 'artist_id': v.artist_id, 'event_name': v.event_name, 'venue': v.venue, 'city': v.city,
            'country': v.country, 'date': v.date, 'set_time': v.set_time, 'status': v.status, 'fee': v.fee, 'currency': v.currency,
            'deal': v.deal, 'travel': v.travel, 'promoter_name': v.promoter_name, 'promoter_email': v.promoter_email,
-           'promoter_phone': v.promoter_phone, 'mail_link': v.mail_link, 'drive_url': v.drive_url, 'updated': v.updated.timestamp()}
+           'promoter_phone': v.promoter_phone, 'mail_link': v.mail_link, 'drive_url': v.drive_url, 'updated': v.updated.timestamp(),
+           'deliverables': {k: v.deliverables.get(k, {'done': False}) for k, _ in DELIVERABLES},
+           'delivered': sum(1 for k, _ in DELIVERABLES if v.deliverables.get(k, {}).get('done')), 'deliverables_total': len(DELIVERABLES)}
     if full:
         out['notes'] = v.notes
         out['log'] = [{'id': n.id, 'kind': n.kind, 'body': n.body, 'author': n.author, 'created': n.created.timestamp()} for n in v.log.all()[:200]]
@@ -49,13 +56,13 @@ def _apply(v, d):
     if not v.performer and v.artist:
         v.performer = v.artist.name
     if not v.performer.strip() or not v.event_name.strip():
-        raise ValueError('Vul in wie er speelt en bij welk event.')
+        raise ValueError('Vul het event en de artiest(en) in.')
 
 
 @router.get('/voyages')
 def voyages(request):
     require(request, 'production')
-    return {'voyages': [voyage_dict(v) for v in Voyage.objects.all()[:1000]], 'statuses': Voyage.STATUSES}
+    return {'voyages': [voyage_dict(v) for v in Voyage.objects.all()[:1000]], 'statuses': Voyage.STATUSES, 'deliverables': DELIVERABLES}
 
 
 @router.post('/voyages')
@@ -80,7 +87,7 @@ def detail(request, ident: str):
     v = Voyage.objects.filter(id=ident).first()
     if not v:
         raise HttpError(404, 'Voyage niet gevonden.')
-    return voyage_dict(v, True)
+    return {**voyage_dict(v, True), 'deliverable_labels': DELIVERABLES}
 
 
 @router.patch('/voyages/{ident}')
@@ -94,6 +101,12 @@ def update(request, ident: str):
         _apply(v, body(request))
     except ValueError as e:
         raise HttpError(400, str(e))
+    if isinstance(body(request).get('deliver'), dict):
+        labels = dict(DELIVERABLES)
+        for key, done in body(request)['deliver'].items():
+            if key in labels:
+                v.deliverables[key] = {'done': bool(done), 'at': __import__('time').time(), 'by': actor(request)}
+                VoyageNote.objects.create(voyage=v, kind='status', body=('✓ ' if done else '✗ ') + labels[key], author=actor(request))
     v.save()
     if v.status != before[0]:
         VoyageNote.objects.create(voyage=v, kind='status', body=f'Status: {STATUS[before[0]]} → {STATUS[v.status]}', author=actor(request))
@@ -104,7 +117,7 @@ def update(request, ident: str):
         from .drive import queue
         queue('voyage', v.id)
     audit(actor(request), 'Voyage bijgewerkt', v.id)
-    return voyage_dict(v, True)
+    return {**voyage_dict(v, True), 'deliverable_labels': DELIVERABLES}
 
 
 @router.delete('/voyages/{ident}')
@@ -128,4 +141,4 @@ def add_log(request, ident: str):
         raise HttpError(400, 'Leeg bericht.')
     VoyageNote.objects.create(voyage=v, kind=d.get('kind') if d.get('kind') in ('note', 'mail', 'call') else 'note', body=text, author=actor(request))
     audit(actor(request), 'Voyage-notitie toegevoegd', v.id)
-    return voyage_dict(v, True)
+    return {**voyage_dict(v, True), 'deliverable_labels': DELIVERABLES}

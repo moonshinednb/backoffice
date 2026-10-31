@@ -6,6 +6,8 @@ import { shortDate } from '../lib/format';
 import { BackLink, Badge, Empty, ErrorBox, Icon, Loading, PageTitle, Tabs, formValues, useAction, useToast } from '../lib/ui';
 import { Area, Asset, AssetGroups, ContactBlock, Field, FormDialog, SaveBar, TravelId, useCanEdit, useDirty } from './common';
 import { EventTabs } from './Events';
+import { SOCIAL_LABEL } from './Roster';
+import { Orb } from '../lib/ui';
 
 type Row = { id: string; name: string; full_name: string; agency: string; agent: string; has_tech_rider: boolean; has_rider_url: boolean; rider_files: number; has_epk: boolean; booking_count: number };
 
@@ -81,6 +83,15 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
   const navigate = useNavigate();
   const { setDirty, track, isDirty } = useDirty();
   const q = useQuery({ queryKey: ['artist', id], queryFn: () => api<Artist>(`/artists/${id}`) });
+  const [photoBusy, setPhotoBusy] = useState(false);
+  async function uploadPhoto(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]; e.target.value = '';
+    if (!file) return;
+    const b = new FormData(); b.append('file', file);
+    setPhotoBusy(true);
+    try { qc.setQueryData(['artist', id], await api(`/artists/${id}/photo`, { method: 'POST', body: b })); qc.invalidateQueries({ queryKey: ['roster'] }); toast('Profielfoto opgeslagen op OneDrive.'); }
+    catch (err) { toast((err as Error).message, true); } finally { setPhotoBusy(false); }
+  }
   if (q.isPending) return <Loading />;
   if (q.error) return <><BackLink to="/events/artiesten">Alle artiesten</BackLink><ErrorBox error={q.error} /></>;
   const a = q.data;
@@ -91,9 +102,13 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
     const values = formValues(f);
     if (a.masked) delete values.passport;
     const payload: Record<string, unknown> = { ...values };
-    if (f.id === 'artist-form') payload.on_label = 'on_label' in values;
+    if (f.id === 'artist-form') {
+      payload.on_label = 'on_label' in values;
+      payload.socials = Object.fromEntries(Object.keys(SOCIAL_LABEL).map((k) => [k, values['social_' + k] || '']).filter(([, v]) => v));
+      Object.keys(SOCIAL_LABEL).forEach((k) => delete payload['social_' + k]);
+    }
     qc.setQueryData(['artist', id], await api<Artist>(`/artists/${a.id}`, { method: 'PATCH', body: payload }));
-    qc.invalidateQueries({ queryKey: ['artists'] });
+    qc.invalidateQueries({ queryKey: ['artists'] }); qc.invalidateQueries({ queryKey: ['roster'] });
     setDirty(false);
     if (!quiet) toast('Opgeslagen.');
   }
@@ -127,6 +142,18 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
                 <h2 className="sub">Links</h2>
                 <Field name="rider_url" label="Riderlink" value={a.rider_url} type="url" placeholder="https://" />
                 <Field name="epk_url" label="EPK-link" value={a.epk_url} type="url" placeholder="https://" />
+              </section>
+              <section className="card card-pad wide-card"><h2>Moonshine-profiel</h2>
+                <div className="profile-row">
+                  <div className="roster-photo big">{a.photo ? <img src={a.photo} alt="" /> : <span>{a.name.slice(0, 2).toUpperCase()}</span>}</div>
+                  {edit ? <label className="button ghost">{photoBusy ? <Orb state="weaving" /> : <Icon name="upload" />} Profielfoto<input type="file" accept="image/jpeg,image/png,image/webp" className="visually-hidden" onChange={uploadPhoto} /></label> : null}
+                </div>
+                <div className="form-grid">
+                  <Field name="genres" label="Genres" value={a.genres} placeholder="Neurofunk, jump up" />
+                  <Field name="city" label="Plaats" value={a.city} />
+                  <Field name="epk_folder" label="EPK-map op OneDrive (link)" value={a.epk_folder} type="url" placeholder="https://…sharepoint.com/…" />
+                  {Object.keys(SOCIAL_LABEL).map((k) => <Field key={k} name={'social_' + k} label={SOCIAL_LABEL[k]} value={(a.socials || {})[k]} type="url" placeholder="https://" />)}
+                </div>
               </section>
               <section className="card card-pad wide-card"><h2>Promo</h2>
                 <Area name="bio" label="Bio / promotekst" value={a.bio} rows={6} />

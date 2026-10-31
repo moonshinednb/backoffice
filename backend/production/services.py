@@ -35,7 +35,8 @@ ARTIST_KEYS = tuple(R.ARTIST_FIELDS)
 
 def artist_dict(a):
     return {'id': a.id, **{k: getattr(a, k) for k in ARTIST_KEYS}, 'contact_via': R.contact_via({k: getattr(a, k) for k in ARTIST_KEYS}),
-            'on_label': a.on_label, 'created': ts(a.created), 'updated': ts(a.updated)}
+            'on_label': a.on_label, 'socials': a.socials or {}, 'city': a.city, 'genres': a.genres, 'epk_folder': a.epk_folder,
+            'photo': f'/api/artists/{a.id}/photo?v={a.photo_id[-8:]}' if a.photo_id else '', 'created': ts(a.created), 'updated': ts(a.updated)}
 
 
 def booking_dict(b):
@@ -293,8 +294,18 @@ def artist_create(payload, actor):
     return a.id
 
 
+SOCIALS = ('spotify', 'soundcloud', 'instagram', 'tiktok', 'youtube', 'facebook', 'beatport', 'bandcamp', 'website')
+
+
 def artist_update(ident, payload, actor):
     data = R._artist_payload(payload, partial=True)
+    for key, limit in (('city', 120), ('genres', 200)):
+        if key in payload:
+            data[key] = R._text(payload[key], limit)
+    if 'epk_folder' in payload:
+        data['epk_folder'] = R._url(payload['epk_folder'], 'EPK-map') if payload['epk_folder'] else ''
+    if isinstance(payload.get('socials'), dict):
+        data['socials'] = {k: R._url(v, k.capitalize()) for k, v in payload['socials'].items() if k in SOCIALS and v}
     if 'on_label' in payload:
         if type(payload['on_label']) is not bool:
             raise ValueError('Ongeldige labelstatus.')

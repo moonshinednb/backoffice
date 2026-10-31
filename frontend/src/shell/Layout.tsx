@@ -17,8 +17,8 @@ const FINANCE = ['/invoices', '/odoo', '/bank', '/vat', '/documents'];
 
 export function sections(role: string): [string, Item[]][] {
   const all: [string, Item[]][] = [
-    ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/tasks', 'Taken', 'tasks'], ['/meetings', 'Meetings', 'users']]],
-    ['Productie', [['/events', 'Evenementen', 'calendar'], ['/voyages', 'Voyages', 'plane'], ['/label', 'Label', 'music']]],
+    ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/calendar', 'Agenda', 'calendar'], ['/tasks', 'Taken', 'tasks'], ['/meetings', 'Meetings', 'users']]],
+    ['Productie', [['/events', 'Evenementen', 'calendar'], ['/artists', 'Artists', 'user'], ['/voyages', 'Voyages', 'plane'], ['/label', 'Label', 'music']]],
     ['Financiën', [['/invoices', 'Financiën', 'wallet']]],
     ['Beheer', [['/admin', 'Admin', 'settings']]],
   ];
@@ -39,7 +39,7 @@ export function Layout() {
   useEffect(() => { setMenu(false); setProfile(false); }, [location.pathname]);
   if (!user) return null;
   const nav = sections(user.role);
-  const path = location.pathname.startsWith('/artists') ? '/events' + location.pathname : location.pathname;
+  const path = location.pathname;
   const current = nav.flatMap(([section, items]) => items.map((i) => [section, ...i] as const))
     .filter(([, p]) => p === '/' ? path === '/' : path.startsWith(p)).sort((a, b) => b[1].length - a[1].length)[0];
 
@@ -52,7 +52,7 @@ export function Layout() {
             <div className="nav-label">{section}</div>
             <nav className="nav" aria-label={section}>
               {items.map(([path, label, icon]) => (
-                <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive || (path === '/events' && location.pathname.startsWith('/artists')) || (path === '/invoices' && FINANCE.some((f) => location.pathname.startsWith(f))) ? 'active' : '')}>
+                <NavLink key={path} to={path} end={path === '/'} className={({ isActive }) => (isActive || (path === '/invoices' && FINANCE.some((f) => location.pathname.startsWith(f))) ? 'active' : '')}>
                   <Icon name={icon} />{label}{path === '/invoices' && review ? <span className="nav-count">{review}</span> : null}
                 </NavLink>
               ))}

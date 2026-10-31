@@ -1,6 +1,6 @@
 """Strict browser security headers on every response."""
 
-CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; "
+CSP = ("default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; "
        "connect-src 'self'; font-src 'self'; media-src 'self' https: blob:; "
        "frame-src https://w.soundcloud.com https://open.spotify.com https://www.youtube.com https://bandcamp.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; worker-src 'self'")
 

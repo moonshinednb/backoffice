@@ -87,3 +87,26 @@ class VoyageTests(ApiTests):
         v = self.send(c, 'post', f"/api/voyages/{v['id']}/log", {'kind': 'mail', 'body': 'Contract gestuurd'}).json()
         self.assertEqual(v['log'][0]['kind'], 'mail')
         self.assertEqual(len(c.get('/api/voyages').json()['voyages']), 1)
+
+
+class VoyageDeliverableTests(ApiTests):
+    def test_deliverables(self):
+        c, _ = self.login('peppy', 'admin-pass-1')
+        v = self.send(c, 'post', '/api/voyages', {'event_name': 'Rampage', 'performer': 'PEPPY, Shorrie'}).json()
+        v = self.send(c, 'patch', f"/api/voyages/{v['id']}", {'deliver': {'tech_rider': True, 'epk': True, 'nonsense': True}}).json()
+        self.assertTrue(v['deliverables']['tech_rider']['done'])
+        self.assertEqual(v['delivered'], 2)
+        self.assertNotIn('nonsense', v['deliverables'])
+
+
+class RosterTests(ApiTests):
+    def test_roster_profile(self):
+        c, _ = self.login('peppy', 'admin-pass-1')
+        a = self.send(c, 'post', '/api/artists', {'name': 'PEPPY'}).json()
+        self.send(c, 'patch', f"/api/artists/{a['id']}", {'on_label': True, 'city': 'Arnhem', 'genres': 'Neurofunk',
+                                                         'socials': {'spotify': 'https://open.spotify.com/artist/x', 'bogus': 'https://x.nl'}})
+        self.send(c, 'post', '/api/artists', {'name': 'Iemand anders'})
+        r = c.get('/api/roster').json()['artists']
+        self.assertEqual([x['name'] for x in r], ['PEPPY'])
+        self.assertEqual(r[0]['socials'], {'spotify': 'https://open.spotify.com/artist/x'})
+        self.assertEqual(r[0]['city'], 'Arnhem')

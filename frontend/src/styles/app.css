@@ -143,3 +143,34 @@ label.button { display: inline-flex; align-items: center; gap: 8px; margin: 0; c
 .action-list li { display: grid; grid-template-columns: 110px 1fr 26px; gap: 8px; align-items: center; } .action-list li.done span { text-decoration: line-through; opacity: .55; }
 @media (max-width: 1000px) { .sticky-board { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
 @media (max-width: 640px) { .sticky-board { grid-template-columns: 1fr; } }
+.deliver-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.deliver-list li { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 6px 0; border-bottom: 1px solid #241d1f; }
+.deliver-list label { margin: 0; display: flex; gap: 9px; align-items: center; } .deliver-list li.done label { opacity: .7; }
+.deliver-list small { opacity: .5; white-space: nowrap; }
+/* Calendar */
+.cal-toolbar { justify-content: space-between; } .cal-title { min-width: 160px; text-align: center; text-transform: capitalize; }
+.cal-filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.cal-chip { margin: 0; padding: 5px 10px; border-radius: 999px; font-size: .76rem; cursor: pointer; border: 1px solid #33292b; background: #1a1415; }
+.cal-chip.off { opacity: .4; text-decoration: line-through; }
+.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid #2c2325; border-radius: 14px; overflow: hidden; }
+.cal-head { padding: 8px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; opacity: .6; background: #161112; border-bottom: 1px solid #2c2325; }
+.cal-day { min-height: 118px; padding: 6px; border-right: 1px solid #241d1f; border-bottom: 1px solid #241d1f; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.cal-day.other { opacity: .45; } .cal-day.today { background: #1f1416; } .cal-day.today .cal-num { background: #ec4860; color: #fff; border-radius: 999px; padding: 0 6px; }
+.cal-num { font-size: .75rem; opacity: .75; align-self: flex-start; }
+.cal-item { display: block; width: 100%; text-align: left; font-size: .72rem; font-weight: 500; padding: 3px 6px; border-radius: 5px; border: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; justify-content: flex-start; background: #2a2224; }
+.src-outlook.cal-item, .cal-chip.src-outlook { background: #1e3350; } .src-event.cal-item, .cal-chip.src-event { background: #4a1e29; }
+.src-content.cal-item, .cal-chip.src-content { background: #3b2d10; } .src-voyage.cal-item, .cal-chip.src-voyage { background: #16362a; }
+.src-release.cal-item, .cal-chip.src-release { background: #33204a; } .src-meeting.cal-item, .cal-chip.src-meeting { background: #263238; }
+.src-step.cal-item, .src-task.cal-item { background: #222; }
+.cal-more { font-size: .7rem; opacity: .6; }
+@media (max-width: 760px) { .cal-day { min-height: 70px; } .cal-item { font-size: .62rem; padding: 2px 4px; } }
+/* Roster */
+.roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
+.roster-card { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 16px; cursor: pointer; }
+.roster-card:hover { border-color: #5a3d42; }
+.roster-photo { width: 96px; height: 96px; border-radius: 14px; overflow: hidden; background: #2a1b1e; display: grid; place-items: center; font-weight: 700; font-size: 1.4rem; }
+.roster-photo img { width: 100%; height: 100%; object-fit: cover; } .roster-photo.big { width: 120px; height: 120px; }
+.roster-body h3 { margin: 0 0 4px; } .roster-body .helper { margin: 0 0 8px; }
+.roster-socials { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; } .roster-socials a { font-size: .74rem; padding: 3px 8px; border-radius: 999px; background: #241a1c; display: inline-flex; gap: 4px; align-items: center; }
+.roster-stats { display: flex; gap: 12px; font-size: .78rem; opacity: .8; margin-bottom: 8px; flex-wrap: wrap; }
+.profile-row { display: flex; gap: 16px; align-items: center; margin-bottom: 14px; }
