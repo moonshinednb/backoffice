@@ -82,8 +82,30 @@ NOTULEN:
 {text}'''
 
 
+PEOPLE = r'(Pepijn|Peppy|Bram|Shoroy|Shorrie|Wessel|Bert|Iedereen|Team|Allen)'
+
+
+def table_actions(lines):
+    """A 'Wie / Actie / Deadline' table: Word cells arrive as separate lines."""
+    out = []
+    for i in range(len(lines) - 1):
+        if lines[i].lower() == 'wie' and lines[i + 1].lower().startswith('actie'):
+            width = 3 if i + 2 < len(lines) and lines[i + 2].lower().startswith('deadline') else 2
+            j = i + width
+            while j + 1 < len(lines) and re.fullmatch(PEOPLE, lines[j], re.I):
+                task = lines[j + 1]
+                deadline = lines[j + 2] if width == 3 and j + 2 < len(lines) else ''
+                out.append((lines[j], f'{task} (deadline: {deadline})' if deadline and not re.fullmatch(PEOPLE, deadline, re.I) else task))
+                j += width
+    return out
+
+
 def heuristic(text):
-    """Without AI: lines that start with 'Actie' and name-prefixed lines in the action section."""
+    """Without AI: a Wie/Actie table, lines that start with 'Actie', and name-prefixed lines in the action section."""
+    lines = [l.strip() for l in text.splitlines() if l.strip()]
+    table = table_actions(lines)
+    if table:
+        return table
     out, section = [], False
     for line in text.splitlines():
         s = line.strip(' -•\t')

@@ -39,3 +39,13 @@ class MeetingTests(ApiTests):
         self.assertEqual(t.assignee.username, 'bram')
         self.send(c, 'patch', f'/api/meeting-actions/{a.id}', {'done': True})
         self.assertTrue(Task.objects.get(id=t.id).done)
+
+
+class TableTests(ApiTests):
+    def test_wie_actie_deadline_table(self):
+        text = 'Notulen\n' + 'Uitleg ' * 60 + '\n6. Belangrijkste actiepunten\nWie\nActie\nDeadline\nBram\nOdoo afronden\nVrijdag\nShoroy\nAftermovie publiceren\nMaandag 2 november\nIedereen\nDemo\'s beoordelen\nDoorlopend\n7. Afspraken\n'
+        m = Meeting.objects.create(date='2026-10-28', text=text)
+        made, how = S.extract(m)
+        self.assertEqual(made, 3)
+        self.assertEqual(sorted(a.owner for a in m.actions.all()), ['', 'bram', 'shoroy'])
+        self.assertIn('deadline: Vrijdag', m.actions.get(owner='bram').text)
