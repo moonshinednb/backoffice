@@ -20,7 +20,8 @@ Lees dit eerst; dan hoef je niet de hele code door. Houd het bij als er iets str
 | `core/access.py` | `require(request, area, write)`: area `admin` = alleen role admin; staff mag verder alles |
 | `finance/` | Document (facturen), Transaction, boeken in Odoo, bank/SumUp, btw, export |
 | `production/` | Event, Act, Booking (+showday_contact/phone), Artist (+contact_via agency/self, on_label), Asset (OneDrive-sync), ChecklistItem, Send (venue-mail via Graph), Release + ReleaseStep (planning, auto 7 stappen), LabelStatement, Contract |
-| `production/drive.py` | OneDrive-mappenbomen: event (`2. Events/<datum> <naam>/…`), artiest in line-up (`02 Artists/<artiest>/…`), release (`4. Releases/<MSxxx> - <artiest> - <titel>/…`); sjablonen als instellingen `drive_*`; worker-jobs `drive_event/booking/release`; hernoemt bij naamswijziging |
+| `production/drive.py` | OneDrive-mappenbomen: event (`2. Events/<datum>[ <naam>]/01 Finance, 02 EPKs, 03 Riders, 04 Artwork, 05 Content, 06 Productie, 07 Na afloop`), artiest in line-up (`02 EPKs/<artiest>`), release (`4. Releases/<MSxxx> - <artiest> - <titel>/…`); sjablonen als instellingen `drive_*`; worker-jobs `drive_event/booking/release`; hernoemt bij naamswijziging; `archive_past` (dagelijks) zet eventmappen een week na de datum in `_Past Events`; `event_files` voor de tab Bestanden |
+| `production/drive_tidy.py` + `manage.py tidy_event_folders` | Oude eventmappen in de standaardboom zetten: alleen hernoemen/verplaatsen, logboek in `DATA_DIR/drive-moves/`, `--undo <log>` draait terug; koppelt datummappen aan events |
 | `production/rules.py` | pure regels: validatie, `missing_items` (advancing compleet?), `contact_via`, `needs_id`, pdf's |
 | `production/voyages.py` | Voyages: outbound shows (Voyage + VoyageNote contactlog), OneDrive-map `2. Events/_Voyages/…` |
 | `feedback/` | Track feedback: Track, Review (per persoon productie/compositie 1–10, oordeel, feedback), TrackLog; audio op OneDrive `3. Scouting/Demo's/<artiest>/` + stream-redirect; import `manage.py import_track_feedback` (TRACK FEEDBACK.xlsx + Feedback Files/<n>.docx + Track options + V2) |
@@ -35,7 +36,7 @@ Meldingen-hooks zitten in: core/views.py (taken), production/services.py (`booki
 ## API (alle onder /api)
 auth: `/auth/{login,logout,me,password,forgot,reset}` · profiel: `/profile`, `/profile/avatar`, `/avatars/{id}` · `/users` · `/tasks` · `/settings` · `/connections`, `/connections/test` · `/audit` · `/dashboard` · `/notifications`, `/notifications/read` · `/chat`, `/chat/{conv}`
 financiën: `/documents…`, `/transactions…`, `/sumup/settle`, `/vat`, `/odoo/overview`, `/export`
-productie: `/events…` (overview, bookings, acts, checklist, notes, advancing.pdf, send-preview, send), `/bookings/{id}`, `/acts/{id}`, `/checklist/{id}`, `/artists…` (rider.pdf), `/assets…`, `/releases…`, `/releases/{id}/steps`, `/release-steps/{id}`, `/label/artists`, `/label/pull`, `/contracts`
+productie: `/events…` (overview, bookings, acts, checklist, notes, files, advancing.pdf, send-preview, send), `/bookings/{id}`, `/acts/{id}`, `/checklist/{id}`, `/artists…` (rider.pdf), `/assets…`, `/releases…`, `/releases/{id}/steps`, `/release-steps/{id}`, `/label/artists`, `/label/pull`, `/contracts`
 promo: `/promo/contacts…`, `/promo/import`, `/promo/templates…`, `/promo/campaigns…` (recipients, preview, test, send), `/promo/recipients/{id}/dm`
 webhooks: `/webhooks/{bank,outlook,opensign}`
 
@@ -45,7 +46,7 @@ webhooks: `/webhooks/{bank,outlook,opensign}`
 - `lib/`: api.ts (fetch + CSRF + nette fouten), auth.tsx, ui.tsx (Modal, Tabs, Orb, Avatar, toasts), format.ts, icons.tsx, **i18n.ts** (UI is in het Nederlands geschreven; Engels = standaard, vertaald via woordenboek + MutationObserver. Nieuwe teksten: voeg NL→EN toe aan `D` of een patroon aan `P`).
 - `pages/`: Work (dashboard, taken, TaskDialog), Finance, Admin (koppelingen, sleutels, gebruikers, activiteit, instellingen), shared.
 - `production/`: Events (+tabs incl. Artiesten), Event, Booking (+reis), Artists, Label (releases, planning, taken, promo, artiesten, afrekeningen), Promo, common (Field, ContactBlock, TravelId, AssetGroups, FormDialog, useDirty).
-- Routes (Engels; oude Nederlandse adressen worden doorgestuurd via `LegacyRedirect` in main.tsx): `/events[/past|/artists|/:id[/timetable|venue|notes|details]|/:id/artist/:booking[/flight|hotel|transport]]`, `/artists/:id[/tech|hospitality|files|shows]`, `/label[/planning|tasks|promo[/contacts|/:id]|artists|statements]`, `/invoices`, `/odoo`, `/bank`, `/vat`, `/documents`, `/tasks`, `/admin[/integrations|keys|users|activity|settings]`, `/reset-password`. Django-admin staat op `/django-admin/`.
+- Routes (Engels; oude Nederlandse adressen worden doorgestuurd via `LegacyRedirect` in main.tsx): `/events[/past|/artists|/:id[/timetable|venue|files|content|notes|details]|/:id/artist/:booking[/flight|hotel|transport]]`, `/artists/:id[/tech|hospitality|files|shows]`, `/label[/planning|tasks|promo[/contacts|/:id]|artists|statements]`, `/invoices`, `/odoo`, `/bank`, `/vat`, `/documents`, `/tasks`, `/admin[/integrations|keys|users|activity|settings]`, `/reset-password`. Django-admin staat op `/django-admin/`.
 - Styling: bestaande css in `styles/` + `styles/app.css` voor nieuwe stukken.
 
 ## Afspraken

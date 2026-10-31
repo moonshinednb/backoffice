@@ -62,6 +62,6 @@ export function Events({ past = false }: { past?: boolean }) {
 
 export function EventTabs({ upcoming, past }: { upcoming?: number; past?: number }) {
   return <Tabs items={[{ to: '/events', label: <>Komend {upcoming !== undefined ? <span className="count">{upcoming}</span> : null}</> },
-    { to: '/events/afgelopen', label: <>Afgelopen {past !== undefined ? <span className="count">{past}</span> : null}</> },
-    { to: '/events/artiesten', label: 'Artiesten' }]} />;
+    { to: '/events/past', label: <>Afgelopen {past !== undefined ? <span className="count">{past}</span> : null}</> },
+    { to: '/events/artists', label: 'Artiesten' }]} />;
 }

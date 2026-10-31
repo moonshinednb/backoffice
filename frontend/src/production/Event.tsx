@@ -6,6 +6,7 @@ import { longDate, stamp, today } from '../lib/format';
 import { BackLink, Badge, Empty, ErrorBox, Icon, Loading, PageTitle, Stat, Tabs, formValues, useAction, useToast } from '../lib/ui';
 import { Act, ActDialog, SendDialog } from './dialogs';
 import { ContentPlan } from './EventContent';
+import { EventFiles } from './EventFiles';
 import { Asset, AssetGroups, DriveButton, Field, FormDialog, SaveBar, Select, STATUS, StatusBadge, useCanEdit, useDirty } from './common';
 
 type Booking = { id: string; artist_id: string; status: string; complete: boolean; missing: string[]; acts: string[]; artist: { name: string } };
@@ -36,7 +37,7 @@ export function EventPage({ tab = 'advancing' }: { tab?: string }) {
   const set = (next: Overview) => { qc.setQueryData(['event', id], next); qc.invalidateQueries({ queryKey: ['events'] }); };
   const reload = () => { qc.invalidateQueries({ queryKey: ['event', id] }); qc.invalidateQueries({ queryKey: ['events'] }); };
   return <>
-    <BackLink to={e.date && e.date < today() ? '/events/afgelopen' : '/events'}>Alle evenementen</BackLink>
+    <BackLink to={e.date && e.date < today() ? '/events/past' : '/events'}>Alle evenementen</BackLink>
     <PageTitle eyebrow="Evenement" title={e.name} sub={<>{longDate(e.date)}{e.venue ? ' · ' + e.venue : ''} <StatusBadge status={e.status} /></>}
       actions={<><DriveButton kind="event" id={e.id} url={e.drive_url} onDone={reload} /><button className="ghost" onClick={() => run(() => download(`/events/${e.id}/advancing.pdf`))}><Icon name="pdf" /> Advancingblad</button>
         {edit ? <button className="primary" onClick={() => setSend(true)}><Icon name="send" /> Advancing versturen</button> : null}</>} />
@@ -47,8 +48,8 @@ export function EventPage({ tab = 'advancing' }: { tab?: string }) {
       <Stat label="Acts" value={String(o.acts.length)} sub={o.acts.length ? 'In de timetable' : 'Nog geen timetable'} icon="calendar" />
     </div>
     <Tabs items={[{ to: base, label: 'Advancing' }, { to: base + '/timetable', label: <>Timetable <span className="count">{o.acts.length}</span></> },
-      { to: base + '/venue', label: 'Venue' }, { to: base + '/content', label: 'Content' }, { to: base + '/notes', label: 'Notities' }, { to: base + '/details', label: 'Gegevens' }]} />
-    {tab === 'content' ? <ContentPlan eventId={e.id} /> : tab === 'timetable' ? <Timetable o={o} set={set} reload={reload} /> : tab === 'venue' ? <Venue o={o} set={set} reload={reload} />
+      { to: base + '/venue', label: 'Venue' }, { to: base + '/files', label: 'Bestanden' }, { to: base + '/content', label: 'Content' }, { to: base + '/notes', label: 'Notities' }, { to: base + '/details', label: 'Gegevens' }]} />
+    {tab === 'files' ? <EventFiles eventId={e.id} driveUrl={e.drive_url} reload={reload} /> : tab === 'content' ? <ContentPlan eventId={e.id} /> : tab === 'timetable' ? <Timetable o={o} set={set} reload={reload} /> : tab === 'venue' ? <Venue o={o} set={set} reload={reload} />
       : tab === 'notes' ? <Notes id={e.id} /> : tab === 'info' ? <Info o={o} reload={reload} /> : <Advancing o={o} />}
     <SendDialog open={send} eventId={e.id} checklist={o.checklist} onClose={() => setSend(false)} done={set} />
   </>;

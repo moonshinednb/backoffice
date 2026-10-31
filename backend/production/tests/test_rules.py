@@ -42,7 +42,7 @@ class DriveTreeTests(ApiTests):
         from unittest import mock
         from core.services import set_setting
         from production import drive
-        from production.models import Booking, Event, Release
+        from production.models import Booking, Event
         set_setting('onedrive_drive_id', 'drive-1')
         made, renamed = [], []
         fake_ensure = lambda path: (made.append(path), {'id': 'id:' + path, 'webUrl': 'https://sp/' + path})[1]
@@ -54,13 +54,15 @@ class DriveTreeTests(ApiTests):
             e = self.send(c, 'post', '/api/events', {'name': 'Inner Orbit', 'date': '2030-11-20'}).json()
             drive.sync_event(e['id'])
             self.assertIn('2. Events/2030-11-20 Inner Orbit', made)
-            self.assertIn('2. Events/2030-11-20 Inner Orbit/04 Content/Reels & TikToks', made)
+            self.assertIn('2. Events/2030-11-20 Inner Orbit/05 Content/Reels & TikToks', made)
+            self.assertIn('2. Events/2030-11-20 Inner Orbit/03 Riders', made)
+            ev = Event.objects.get(id=e['id'])
+            items[ev.drive_id] = {'name': '2030-11-20 Inner Orbit', 'parentReference': {'path': '/drives/d/root:/2.%20Events'}}
             r = self.send(c, 'post', f"/api/events/{e['id']}/bookings", {'name': 'Dwonji'}).json()
             drive.sync_booking(r['booking_id'])
-            self.assertIn('2. Events/2030-11-20 Inner Orbit/02 Artists/Dwonji/Rider', made)
+            self.assertIn('2. Events/2030-11-20 Inner Orbit/02 EPKs/Dwonji', made)
             self.assertTrue(Booking.objects.get(id=r['booking_id']).drive_url.startswith('https://sp/'))
             # rename: event name changes -> folder renamed, not duplicated
-            ev = Event.objects.get(id=e['id']); items[ev.drive_id] = {'name': '2030-11-20 Inner Orbit'}
             self.send(c, 'patch', f"/api/events/{e['id']}", {'name': 'Inner Orbit II'})
             drive.sync_event(e['id'])
             self.assertIn('2030-11-20 Inner Orbit II', renamed)
@@ -69,6 +71,56 @@ class DriveTreeTests(ApiTests):
             drive.sync_release(rel['id'])
             self.assertIn('4. Releases/MS001 - Dwonji - Moonlight/Contracts/SIGNED', made)
             self.assertEqual(self.send(c, 'post', '/api/releases', {'title': 'Next'}).json()['catalog'], 'MS002')
+            # a past event gets no empty standard folders
+            made.clear()
+            old = self.send(c, 'post', '/api/events', {'name': 'Moonshine 26/09', 'date': '2025-09-26'}).json()
+            drive.sync_event(old['id'])
+            self.assertEqual(made, ['2. Events/2025-09-26'])
+
+    def test_folder_names(self):
+        from production import drive
+        from production.models import Event
+        self.assertEqual(drive.event_folder_name(Event(name='Moonshine 20/11', date='2026-11-20')), '2026-11-20')
+        self.assertEqual(drive.event_folder_name(Event(name='Moonshine 10 Years', date='2026-09-19')), '2026-09-19 Moonshine 10 Years')
+        self.assertEqual(drive.event_folder_name(Event(name='RTR', date='2026-10-02')), '2026-10-02 RTR')
+        self.assertEqual(drive.section('epks'), '02 EPKs')
+        self.assertEqual(drive.section('na afloop'), '07 Na afloop')
+
+    def test_tidy_rules(self):
+        from production import drive_tidy as T
+        f = lambda n, peek=(): T.classify(n, True, peek)
+        self.assertEqual(f('Press Kits Mainstage'), ('epks', 'Mainstage'))
+        self.assertEqual(f('Riders Mainstage'), ('riders', 'Mainstage'))
+        self.assertEqual(f('Presskits'), ('epks', None))
+        self.assertEqual(f('Content van 28-3'), ('na afloop', None))
+        self.assertEqual(f('Content voor 27-6'), ('content', None))
+        self.assertEqual(f('X DAYS LEFT STORIES'), ('content', None))
+        self.assertEqual(f('Set Audio Recordings'), ('na afloop', None))
+        self.assertEqual(f('Assets', ['Basement', 'Photographer']), ('productie', None))
+        self.assertEqual(f('assets', ['Banner.png']), ('artwork', None))
+        self.assertIsNone(f('01 Finance'))
+        self.assertIsNone(f('Hubert'))
+        g = lambda n: T.classify(n, False)
+        self.assertEqual(g('Costing Moonshine 26 september 2025.xlsx'), ('finance', None))
+        self.assertEqual(g('2026-3-20.xlsx'), ('finance', None))
+        self.assertEqual(g('Technical Rider 19-09-2026.docx'), ('productie', None))
+        self.assertEqual(g('KRITIKAL Rider.pdf'), ('riders', None))
+        self.assertEqual(g('THE GUESTLIST 26-9-2025.docx'), ('productie', None))
+        self.assertEqual(g('Evaluatie Jessica 27_7.docx'), ('na afloop', None))
+        self.assertEqual(g('Moonshine - Basement Rec 19_09 - Luxor Live.mp3'), ('na afloop', None))
+        self.assertEqual(g('moonshine_sept2025_4-5_artist.psd'), ('artwork', None))
+        self.assertEqual(g('Promokalender.docx'), ('content', None))
+        self.assertEqual(T.normal_name('2025-9-26'), '2025-09-26')
+        self.assertEqual(T.normal_name('2026-10-02 RTR'), '2026-10-02 RTR')
+        self.assertEqual(T.normal_name('[TBC] 2026-08-01'), '[TBC] 2026-08-01')
+        kids = [{'id': '1', 'name': 'Artworks', 'folder': {}}, {'id': '2', 'name': 'Photos', 'folder': {}}, {'id': '3', 'name': 'DJI Vids', 'folder': {}},
+                {'id': '4', 'name': 'Finance', 'folder': {}}, {'id': '5', 'name': 'notes.txt'}]
+        steps = {s[1]['name']: (s[0], s[2], s[3]) for s in T.plan(kids)}
+        self.assertEqual(steps['Artworks'], ('rename', '04 Artwork', None))
+        self.assertEqual(steps['Finance'], ('rename', '01 Finance', None))
+        self.assertEqual(steps['Photos'], ('move', '07 Na afloop', None))
+        self.assertEqual(steps['DJI Vids'], ('move', '07 Na afloop', None))
+        self.assertEqual(steps['notes.txt'], ('keep', None, None))
 
     def test_disabled_without_drive(self):
         from production import drive

@@ -247,3 +247,20 @@ button.wide { width: 100%; }
 .track-hero .ring span { font-size: 1.6rem; } .team-rings .ring { margin-bottom: 14px; } .team-rings .ring span { font-size: .9rem; color: inherit; }
 .overlay-hint { text-align: center; opacity: .5; }
 @media (max-width: 900px) { .overlay-grid, .slider-row { grid-template-columns: 1fr; } .track-hero { grid-template-columns: 72px 1fr; } .hero-art { width: 72px; height: 72px; font-size: 1.3rem; } .track-hero .ring { grid-column: 1 / -1; justify-self: start; } }
+/* Event files: the OneDrive folder per section */
+.files-head { display: flex; justify-content: space-between; align-items: center; gap: 14px; margin-bottom: 14px; flex-wrap: wrap; }
+.files-head > div { display: grid; gap: 2px; } .files-head .helper { margin: 0; font-size: .8rem; }
+.files-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.files-card { padding: 14px 16px; }
+.files-card header { display: grid; grid-template-columns: 22px 1fr auto; gap: 10px; align-items: start; margin-bottom: 10px; }
+.files-card h3 { margin: 0; font-size: .95rem; } .files-card header small { font-size: .74rem; opacity: .6; }
+.files-check { width: 20px; height: 20px; border-radius: 50%; border: 1.5px solid #ffffff30; display: grid; place-items: center; margin-top: 1px; }
+.files-check.ok { background: #2f9e63; border-color: #2f9e63; color: #fff; } .files-check svg { width: 12px; height: 12px; }
+.files-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.files-list li { display: flex; justify-content: space-between; gap: 10px; align-items: center; padding: 5px 6px; border-radius: 6px; font-size: .82rem; }
+.files-list li:hover { background: #ffffff08; }
+.files-list a { display: flex; align-items: center; gap: 8px; min-width: 0; color: inherit; text-decoration: none; }
+.files-list a span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .files-list svg { width: 15px; height: 15px; flex: none; opacity: .7; }
+.files-list small { opacity: .5; font-size: .72rem; white-space: nowrap; }
+.files-more { display: inline-block; margin-top: 8px; font-size: .78rem; } .files-other { margin: 0 0 8px; font-size: .95rem; }
+@media (max-width: 900px) { .files-grid { grid-template-columns: 1fr; } }

@@ -77,6 +77,7 @@ def periodic():
     from core.notify import deadlines
     from meetings.services import refresh_recent as refresh_meetings
     from planning.services import push as sync_calendar
+    from production.drive import archive_past
     cfg = settings()
     return {
         'Outlook-facturen': (60, finance.poll_mail, cfg.get('mail_enabled')),
@@ -87,6 +88,7 @@ def periodic():
         'Deadline-meldingen': (3600, deadlines, True),
         'Agenda synchroniseren': (600, sync_calendar, bool(cfg.get('calendar_enabled'))),
         'Notulen lezen': (1800, refresh_meetings, bool(cfg.get('onedrive_drive_id'))),
+        'Eventmappen archiveren': (86400, archive_past, bool(cfg.get('onedrive_drive_id'))),
     }
 
 

@@ -380,6 +380,23 @@ def drive_folders(request, kind: str, ident: str):
     return {'drive_url': url or ''}
 
 
+@router.get('/events/{event_id}/files')
+def event_files(request, event_id: str):
+    """The event's OneDrive folder per section (finance, EPKs, riders, ...)."""
+    require(request, 'production')
+    from . import drive
+    from .models import Event
+    e = Event.objects.filter(id=event_id).first()
+    if not e:
+        raise HttpError(404, 'Evenement niet gevonden.')
+    if not drive.enabled():
+        return {'enabled': False, 'url': '', 'sections': [], 'other': []}
+    try:
+        return {'enabled': True, **drive.event_files(e)}
+    except (ValueError, RuntimeError) as err:
+        raise HttpError(400, str(err))
+
+
 @router.get('/label/artists')
 def label_artists(request):
     require(request, 'production')

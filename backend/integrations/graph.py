@@ -253,6 +253,39 @@ def rename_item(item_id, name):
     return {'id': item['id'], 'webUrl': item.get('webUrl', '')}
 
 
+def move_item(item_id, parent_id, name=None):
+    """Move a file or folder to another folder (optionally under a new name).
+    Sharing links keep working: they follow the item, not the path."""
+    change = {'parentReference': {'id': parent_id}}
+    if name:
+        change['name'] = name
+    item = http(_drive_base() + '/items/' + urllib.parse.quote(item_id, safe=''), change,
+                {**_drive_token(), 'Content-Type': 'application/json'}, 'PATCH')
+    _FOLDERS.clear()
+    return {'id': item['id'], 'webUrl': item.get('webUrl', '')}
+
+
+def create_folder(parent_id, name):
+    """New folder inside a folder (by id); returns its id."""
+    item = http(_drive_base() + '/items/' + urllib.parse.quote(parent_id, safe='') + '/children',
+                {'name': name, 'folder': {}, '@microsoft.graph.conflictBehavior': 'fail'}, {**_drive_token(), 'Content-Type': 'application/json'}, 'POST')
+    _FOLDERS.clear()
+    return item['id']
+
+
+def item_children(item_id):
+    """Items directly inside a folder (by id), all pages."""
+    url = _drive_base() + '/items/' + urllib.parse.quote(item_id, safe='') + '/children?$top=200'
+    out = []
+    while url and len(out) < 2000:
+        page = http(url, None, _drive_token())
+        out += page.get('value', [])
+        url = page.get('@odata.nextLink')
+        if url:
+            secure_url(url)
+    return out
+
+
 def drive_upload(path, content, mime):
     """Store a file at an exact path in the configured drive (OneDrive or a
     SharePoint library); replaces a file with the same name. Folders are

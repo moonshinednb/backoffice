@@ -12,11 +12,14 @@ from .models import Booking, Event, Release, Voyage
 DEFAULTS = {
     'drive_events_folder': '2. Events',
     'drive_releases_folder': '4. Releases',
+    'drive_past_events_folder': '2. Events/_Past Events',
     'drive_voyages_folder': '2. Events/_Voyages',
     'drive_voyage_tree': ['Contract', 'Travel', 'Promo', 'Finance'],
-    'drive_event_tree': ['01 Finance', '02 Artists', '03 Artwork/Artist Announcements', '03 Artwork/Posters & Line-up',
-                         '04 Content/Reels & TikToks', '04 Content/Giveaway', '05 Crew & Briefings', '06 Organisatie'],
-    'drive_artist_tree': ['EPK', 'Rider', 'Contract', 'Travel'],
+    # One folder with all riders (they go to the venue in one go) and one with
+    # the EPKs (for our content); the numbers keep the checklist order.
+    'drive_event_tree': ['01 Finance', '02 EPKs', '03 Riders', '04 Artwork/Artist Announcements',
+                         '05 Content/Reels & TikToks', '05 Content/Countdown', '05 Content/Giveaway', '06 Productie', '07 Na afloop'],
+    'drive_artist_tree': [],
     'drive_release_tree': ['Artworks', 'Content', 'Contracts/SIGNED', 'Masters', 'Press Kits'],
 }
 
@@ -31,8 +34,22 @@ def enabled():
 
 
 def event_folder_name(e):
+    """'2026-11-20' for a plain 'Moonshine 20/11', '2026-09-19 Moonshine 10 Years'
+    when the event has a name of its own (the team's own convention)."""
     name = R.safe_name(e.name, 'Evenement')
-    return f'{e.date} {name}' if e.date else f'[TBC] {name}'
+    generic = not re.sub(r'(?i)moonshine|[\d\s/.\-]', '', e.name or '')
+    if not e.date:
+        return f'[TBC] {name}'
+    return e.date if generic else f'{e.date} {name}'
+
+
+def section(key):
+    """Top folder of the event tree for 'finance', 'epks', 'riders', ... (by its name)."""
+    for path in conf('drive_event_tree'):
+        top = path.split('/')[0]
+        if re.sub(r'^\d+\s*', '', top).lower().startswith(key):
+            return top
+    return {'epks': '02 EPKs', 'riders': '03 Riders'}.get(key, key.title())
 
 
 def release_folder_name(r):
@@ -73,9 +90,11 @@ def sync_event(event_id):
     if not e or not enabled():
         return
     name = event_folder_name(e)
-    url = _place(e, f"{conf('drive_events_folder')}/{name}", conf('drive_event_tree'), name)
-    for b in Booking.objects.filter(event_id=e.id).select_related('artist'):
-        sync_booking(b.id)
+    upcoming = is_upcoming(e)
+    url = _place(e, f"{conf('drive_events_folder')}/{name}", conf('drive_event_tree') if upcoming else [], name)
+    if upcoming:
+        for b in Booking.objects.filter(event_id=e.id).select_related('artist'):
+            sync_booking(b.id)
     return url
 
 
@@ -85,10 +104,15 @@ def sync_booking(booking_id):
         return
     if not b.event.drive_id:
         return sync_event(b.event_id)
-    artists = conf('drive_event_tree')
-    artists = next((s for s in artists if s.split('/')[0].lower().endswith('artists')), '02 Artists').split('/')[0]
+    from integrations.graph import drive_item
+    event = drive_item(b.event.drive_id)
+    if not event:
+        return
+    # The event folder may have moved (e.g. to _Past Events): build from where it is now.
+    parent = _parent_path(event)
+    base = f"{parent}/{event['name']}" if parent else event['name']
     name = R.safe_name(b.artist.name, 'Artiest')
-    return _place(b, f"{conf('drive_events_folder')}/{event_folder_name(b.event)}/{artists}/{name}", conf('drive_artist_tree'), name)
+    return _place(b, f"{base}/{section('epks')}/{name}", conf('drive_artist_tree'), name)
 
 
 def sync_release(release_id):
@@ -117,3 +141,59 @@ def queue(kind, ident):
 
 def is_upcoming(e):
     return not e.date or e.date >= date.today().isoformat()
+
+
+def _parent_path(item):
+    """'2. Events/_Past Events' for an item in that folder ('' at the root)."""
+    from urllib.parse import unquote
+    return unquote((item.get('parentReference') or {}).get('path', '')).split('root:', 1)[-1].strip('/')
+
+
+def archive_past(days=7):
+    """A week after the event its folder moves to _Past Events (nothing is deleted)."""
+    from datetime import timedelta
+    from integrations.graph import drive_item, ensure_path, move_item
+    if not enabled():
+        return 0
+    cutoff = (date.today() - timedelta(days=days)).isoformat()
+    target = None
+    moved = 0
+    for e in Event.objects.exclude(drive_id='').exclude(date='').filter(date__lt=cutoff):
+        item = drive_item(e.drive_id)
+        if not item:
+            continue
+        past = conf('drive_past_events_folder').strip('/')
+        if _parent_path(item) == past:
+            continue
+        target = target or ensure_path(past)
+        e.drive_url = move_item(e.drive_id, target['id'])['webUrl']
+        e.save(update_fields=['drive_url'])
+        audit('worker', 'Eventmap naar _Past Events', e.id, e.name)
+        moved += 1
+    return moved
+
+
+def event_files(e):
+    """What is in the event folder, per top folder in checklist order."""
+    from integrations.graph import item_children
+    if not e.drive_id:
+        return {'url': '', 'sections': [], 'other': []}
+    def entry(c):
+        return {'name': c['name'], 'url': c.get('webUrl', ''), 'size': c.get('size', 0), 'folder': 'folder' in c,
+                'count': (c.get('folder') or {}).get('childCount', 0), 'modified': c.get('lastModifiedDateTime', '')}
+    kids = item_children(e.drive_id)
+    by_name = {c['name']: c for c in kids}
+    order = []
+    for path in conf('drive_event_tree'):
+        top = path.split('/')[0]
+        if top not in order:
+            order.append(top)
+    sections = []
+    for top in order:
+        c = by_name.get(top)
+        items = [entry(x) for x in item_children(c['id'])] if c else []
+        items.sort(key=lambda x: (not x['folder'], x['name'].lower()))
+        sections.append({'name': top, 'url': c.get('webUrl', '') if c else '', 'exists': bool(c), 'items': items[:60],
+                         'count': len(items), 'filled': bool(items)})
+    other = sorted((entry(c) for c in kids if c['name'] not in order), key=lambda x: (not x['folder'], x['name'].lower()))
+    return {'url': e.drive_url, 'sections': sections, 'other': other}
