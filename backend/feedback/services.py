@@ -35,12 +35,15 @@ def average(reviews):
     return round(sum(marks) / len(marks), 1) if marks else None
 
 
-def track_dict(t, full=False):
+def track_dict(t, full=False, lean=False):
+    """lean: for the list, only the marks per reviewer (the written feedback comes with the track itself)."""
     reviews = list(t.reviews.all())
+    marks = {r.reviewer: {'reviewer': r.reviewer, 'production': float(r.production) if r.production is not None else None,
+                          'composition': float(r.composition) if r.composition is not None else None, 'decision': r.decision} for r in reviews} if lean else None
     out = {'id': t.id, 'number': t.number, 'artist': t.artist, 'title': t.title, 'link': t.link, 'file_url': t.file_url, 'file_name': t.file_name,
            'has_file': bool(t.file_id), 'scouted_by': t.scouted_by, 'status': t.status, 'release_id': t.release_id,
            'release': f'{t.release.catalog} {t.release.title}'.strip() if t.release else '', 'options': t.options, 'contact': t.contact,
-           'average': average(reviews), 'reviews': {r.reviewer: review_dict(r) for r in reviews}, 'updated': t.updated.timestamp()}
+           'average': average(reviews), 'reviews': marks if lean else {r.reviewer: review_dict(r) for r in reviews}, 'updated': t.updated.timestamp()}
     if full:
         out['notes'] = t.notes
         out['log'] = [{'id': l.id, 'kind': l.kind, 'body': l.body, 'author': display(l.author), 'created': l.created.timestamp()} for l in t.log.all()[:200]]

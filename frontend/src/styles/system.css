@@ -333,3 +333,13 @@ dialog::backdrop { background: var(--scrim); backdrop-filter: none; }
 .sd-call li { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
 .sd-call li span { display: grid; } .sd-call li small { color: var(--text-3); }
 .sd-call .button.primary { min-height: 44px; }
+
+/* --- Files: drop files straight into a section ------------------------------------------ */
+.files-drop { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 8px; color: var(--text-2); font-size: .8rem; cursor: pointer; }
+.files-drop:hover { border-color: var(--accent); color: var(--text); }
+.files-drop input { display: none; } .files-drop svg { width: 15px; height: 15px; }
+.files-card.drop { border-color: var(--accent); background: var(--accent-tint); }
+.files-head .row-actions { display: flex; gap: 8px; }
+.th-sort { background: none; border: 0; min-height: 0; padding: 0; font: inherit; color: inherit; font-weight: 600; cursor: pointer; }
+.th-sort:hover { color: var(--text); background: none; }
+th[aria-sort='ascending'] .th-sort, th[aria-sort='descending'] .th-sort { color: var(--text); }

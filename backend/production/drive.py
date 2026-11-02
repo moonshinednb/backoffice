@@ -198,11 +198,16 @@ def archive_past(days=7):
     return moved
 
 
-def event_files(e):
-    """What is in the event folder, per top folder in checklist order."""
+def event_files(e, fresh=False):
+    """What is in the event folder, per top folder in checklist order. Kept two
+    minutes, because reading OneDrive takes about two seconds."""
+    from django.core.cache import cache
     from integrations.graph import item_children
     if not e.drive_id:
         return {'url': '', 'sections': [], 'other': []}
+    key = f'event-files:{e.id}'
+    if not fresh and (hit := cache.get(key)):
+        return hit
     def entry(c):
         return {'name': c['name'], 'url': c.get('webUrl', ''), 'size': c.get('size', 0), 'folder': 'folder' in c,
                 'count': (c.get('folder') or {}).get('childCount', 0), 'modified': c.get('lastModifiedDateTime', '')}
@@ -223,4 +228,24 @@ def event_files(e):
         sections.append({'name': top, 'url': c.get('webUrl', '') if c else '', 'exists': bool(c), 'items': items[:60],
                          'count': len(items), 'filled': filled})
     other = sorted((entry(c) for c in kids if c['name'] not in order), key=lambda x: (not x['folder'], x['name'].lower()))
-    return {'url': e.drive_url, 'sections': sections, 'other': other}
+    result = {'url': e.drive_url, 'sections': sections, 'other': other}
+    cache.set(key, result, 120)
+    return result
+
+
+UPLOAD_LIMIT = 100 * 1024 * 1024
+
+
+def upload_to_section(e, section_name, filename, content, mime):
+    """Put a file in one of the event's top folders (e.g. '05 Content'); same name = new version."""
+    from django.core.cache import cache
+    from integrations.graph import drive_upload
+    tops = {p.split('/')[0] for p in conf('drive_event_tree')}
+    if section_name not in tops:
+        raise ValueError('Onbekend onderdeel van de eventmap.')
+    if len(content) > UPLOAD_LIMIT:
+        raise ValueError('Maximaal 100 MB per bestand via de backoffice; zet grotere bestanden (video, opnames) direct op OneDrive.')
+    name = R.safe_name(filename, 'Bestand')
+    _, url = drive_upload(f"{event_base(e)}/{section_name}/{name}", content, mime or 'application/octet-stream')
+    cache.delete(f'event-files:{e.id}')
+    return {'name': name, 'url': url}

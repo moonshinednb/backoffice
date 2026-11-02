@@ -437,8 +437,29 @@ def drive_folders(request, kind: str, ident: str):
     return {'drive_url': url or ''}
 
 
+@router.post('/events/{event_id}/files')
+def event_file_upload(request, event_id: str, section: str = Form(...), file: UploadedFile = File(...)):
+    """Upload straight into a section of the event folder on OneDrive."""
+    require(request, 'production', write=True)
+    from . import drive
+    from .models import Event
+    e = Event.objects.filter(id=event_id).first()
+    if not e:
+        raise HttpError(404, 'Evenement niet gevonden.')
+    if not drive.enabled() or not e.drive_id:
+        raise HttpError(400, 'Dit evenement heeft nog geen map op OneDrive.')
+    content = file.read(drive.UPLOAD_LIMIT + 1)
+    try:
+        out = drive.upload_to_section(e, section, file.name or 'Bestand', content, file.content_type)
+    except (ValueError, RuntimeError) as err:
+        raise HttpError(400, str(err))
+    from core.services import audit
+    audit(actor(request), 'Bestand op OneDrive gezet', e.id, f"{section}/{out['name']}")
+    return out
+
+
 @router.get('/events/{event_id}/files')
-def event_files(request, event_id: str):
+def event_files(request, event_id: str, fresh: int = 0):
     """The event's OneDrive folder per section (finance, EPKs, riders, ...)."""
     require(request, 'production')
     from . import drive
@@ -449,7 +470,7 @@ def event_files(request, event_id: str):
     if not drive.enabled():
         return {'enabled': False, 'url': '', 'sections': [], 'other': []}
     try:
-        files = drive.event_files(e)
+        files = drive.event_files(e, fresh=bool(fresh))
     except (ValueError, RuntimeError) as err:
         raise HttpError(400, str(err))
     from . import steps

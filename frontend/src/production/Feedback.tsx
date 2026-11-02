@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { ChangeEvent, useEffect, useMemo, useState } from 'react';
+import { ChangeEvent, Fragment, useEffect, useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
@@ -36,6 +36,7 @@ export function FeedbackList() {
   const [mine, setMine] = useState(false);
   const [open, setOpen] = useState(false);
   const [prospects, setProspects] = useState(false);
+  const [sort, setSort] = useState<{ key: string; dir: 1 | -1 }>({ key: 'number', dir: -1 });
   const isProspect = (t: Track) => !t.number && /^tbd$/i.test(t.title.trim());
   const rows = useMemo(() => (q.data?.tracks || []).filter((t) => {
     if (isProspect(t) !== prospects) return false;
@@ -47,6 +48,18 @@ export function FeedbackList() {
   }), [q.data, status, search, mine, user, prospects]); // eslint-disable-line
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
+  const ORDER = Object.keys(TRACK_STATUS);
+  const value = (t: Track): string | number => {
+    if (sort.key === 'number') return t.number ?? -1;
+    if (sort.key === 'artist') return `${t.artist} ${t.title}`.toLowerCase();
+    if (sort.key === 'average') return t.average ?? -1;
+    if (sort.key === 'status') return ORDER.indexOf(t.status);
+    return avg(mark(t.reviews[sort.key])) ?? -1;
+  };
+  const sorted = [...rows].sort((a, b) => { const x = value(a), y = value(b); return (x < y ? -1 : x > y ? 1 : 0) * sort.dir; });
+  const head = (key: string, label: string, cls = '') => <th className={cls} aria-sort={sort.key === key ? (sort.dir === 1 ? 'ascending' : 'descending') : 'none'}>
+    <button className="th-sort" onClick={() => setSort({ key, dir: sort.key === key ? (sort.dir === 1 ? -1 : 1) : (key === 'artist' || key === 'status' ? 1 : -1) })}>
+      {label}{sort.key === key ? <span aria-hidden="true">{sort.dir === 1 ? ' ↑' : ' ↓'}</span> : null}</button></th>;
   const counts: Record<string, number> = {};
   q.data.tracks.filter((t) => isProspect(t) === prospects).forEach((t) => { counts[t.status] = (counts[t.status] || 0) + 1; });
   // The list shows the three of us; older reviewers only count in the average.
@@ -63,9 +76,9 @@ export function FeedbackList() {
         <button key={k} className={`chip-btn ${status === k ? 'active' : ''} st-${k}`} onClick={() => setStatus(k)}>{l}{counts[k] ? <span>{counts[k]}</span> : null}</button>)}
     </div>
     <section className="card tf-list">{rows.length ? <div className="table-wrap"><table className="tf-table"><thead><tr>
-      <th className="tf-num">#</th><th>Track</th>{core.map(([u, n]) => <th key={u} className="tf-score" title={`Gemiddelde van productie en compositie van ${n}`}>{n}</th>)}
-      <th className="tf-score">Gem.</th><th>Status</th><th className="tf-rel">Release</th></tr></thead><tbody>
-      {rows.map((t) => { const [l, c] = TRACK_STATUS[t.status] || [t.status, '']; const go = () => navigate(`/label/feedback/${t.id}`);
+      {head('number', '#', 'tf-num')}{head('artist', 'Track')}{core.map(([u, n]) => <Fragment key={u}>{head(u, n, 'tf-score')}</Fragment>)}
+      {head('average', 'Gem.', 'tf-score')}{head('status', 'Status')}<th className="tf-rel">Release</th></tr></thead><tbody>
+      {sorted.map((t) => { const [l, c] = TRACK_STATUS[t.status] || [t.status, '']; const go = () => navigate(`/label/feedback/${t.id}`);
         const others = Object.keys(t.reviews).filter((u) => !core.some(([k]) => k === u) && mark(t.reviews[u])).length;
         return <tr key={t.id} className={`clickable st-row-${c || 'none'}`} tabIndex={0} onClick={go} onKeyDown={(k) => k.key === 'Enter' && go()}>
           <td className="tf-num">{t.number ?? ''}</td>

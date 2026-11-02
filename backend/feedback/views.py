@@ -22,7 +22,7 @@ def _track(ident):
 def tracks(request):
     require(request, 'production')
     rows = Track.objects.select_related('release').prefetch_related('reviews')[:3000]
-    return {'tracks': [S.track_dict(t) for t in rows], 'statuses': list(S.STATUS.items()), 'reviewers': [(u, S.display(u)) for u in S.REVIEWERS]}
+    return {'tracks': [S.track_dict(t, lean=True) for t in rows], 'statuses': list(S.STATUS.items()), 'reviewers': [(u, S.display(u)) for u in S.REVIEWERS]}
 
 
 @router.post('/feedback/tracks')

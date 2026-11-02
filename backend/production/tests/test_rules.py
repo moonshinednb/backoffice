@@ -213,3 +213,29 @@ class EventFilesTests(ApiTests):
         self.assertFalse(sections['04 Artwork']['filled'])
         self.assertTrue(sections['01 Finance']['filled'])
         self.assertFalse(sections['03 Riders']['exists'])
+
+
+class EventUploadTests(ApiTests):
+    def test_upload_into_section_and_cache(self):
+        from unittest import mock
+        from django.core.files.uploadedfile import SimpleUploadedFile
+        from core.services import set_setting
+        from production.models import Event
+        set_setting('onedrive_drive_id', 'drive-1')
+        e = Event.objects.create(name='Moonshine 20/11', date='2030-11-20', drive_id='ev')
+        c, _ = self.login('peppy', 'admin-pass-1')
+        where = {'id': 'ev', 'name': '2030-11-20', 'parentReference': {'path': '/drives/d/root:/2.%20Events'}}
+        with mock.patch('integrations.graph.drive_item', return_value=where), \
+             mock.patch('integrations.graph.drive_upload', return_value=('x', 'https://sp/x')) as up:
+            r = c.post(f'/api/events/{e.id}/files', {'section': '05 Content', 'file': SimpleUploadedFile('reel 1.mp4', b'1234', 'video/mp4')}, HTTP_X_CSRFTOKEN=c.csrf)
+            self.assertEqual(r.status_code, 200)
+            self.assertEqual(up.call_args[0][0], '2. Events/2030-11-20/05 Content/reel 1.mp4')
+            bad = c.post(f'/api/events/{e.id}/files', {'section': '../Geheim', 'file': SimpleUploadedFile('x.txt', b'1', 'text/plain')}, HTTP_X_CSRFTOKEN=c.csrf)
+            self.assertEqual(bad.status_code, 400)
+        calls = []
+        with mock.patch('integrations.graph.item_children', side_effect=lambda i: calls.append(i) or []):
+            from production import drive
+            drive.event_files(e); drive.event_files(e)
+            self.assertEqual(calls.count('ev'), 1)  # second time from the cache
+            drive.event_files(e, fresh=True)
+            self.assertEqual(calls.count('ev'), 2)
