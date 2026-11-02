@@ -86,11 +86,34 @@ class Artist(models.Model):
         constraints = [models.UniqueConstraint(models.functions.Lower('name'), name='artist_name_unique_ci')]
 
 
+class LineupAct(models.Model):
+    """What is booked for an event: a solo artist, a duo or a group. Fee,
+    contract, rider and EPK belong to the act; travel and hotel to the members
+    (the bookings), because a duo needs two tickets and two beds."""
+    STATUSES = [('option', 'Optie'), ('confirmed', 'Bevestigd'), ('cancelled', 'Geannuleerd')]
+    TRAVEL = [('', 'Nog niet gekozen'), ('self', 'Reist zelf'), ('us', 'Wij regelen'), ('venue', 'Venue regelt')]
+    id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
+    event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='lineup')
+    name = models.CharField(max_length=200)
+    fee = models.IntegerField(default=0)
+    status = models.CharField(max_length=20, choices=STATUSES, default='confirmed')
+    travel = models.CharField(max_length=10, choices=TRAVEL, blank=True, default='')
+    notes = models.TextField(blank=True, default='')
+    drive_id = models.CharField(max_length=200, blank=True, default='')
+    drive_url = models.CharField(max_length=1000, blank=True, default='')
+    sort = models.IntegerField(default=0)
+    created = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['sort', 'created']
+
+
 class Booking(models.Model):
     STATUSES = [('option', 'Optie'), ('confirmed', 'Bevestigd'), ('cancelled', 'Geannuleerd')]
     id = models.CharField(primary_key=True, max_length=24, default=uid, editable=False)
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='bookings')
     artist = models.ForeignKey(Artist, on_delete=models.PROTECT, related_name='bookings')
+    lineup_act = models.ForeignKey(LineupAct, null=True, blank=True, on_delete=models.SET_NULL, related_name='members')
     status = models.CharField(max_length=20, choices=STATUSES, default='confirmed')
     fee = models.IntegerField(default=0)
     flight = models.CharField(max_length=3, blank=True, default='')
@@ -204,6 +227,7 @@ class Guest(models.Model):
     backstage = models.BooleanField(default=False)
     relation = models.CharField(max_length=200, blank=True, default='')
     added_by = models.CharField(max_length=150, blank=True, default='')
+    arrived = models.IntegerField(default=0, help_text='People of this entry who came in (guest + their +1s), set at the door')
     sort = models.IntegerField(default=0)
     created = models.DateTimeField(auto_now_add=True)
 

@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.utils import timezone
 from core.services import DATA, audit, safe_error, settings
 from . import rules as R
-from .models import Act, Artist, Asset, Booking, ChecklistItem, Event, EventNote, Release, ReleaseStep, Send
+from .models import Act, Artist, Asset, Booking, ChecklistItem, Event, EventNote, LineupAct, Release, ReleaseStep, Send
 
 ASSETS = DATA / 'assets'
 ASSETS.mkdir(parents=True, exist_ok=True)
@@ -47,7 +47,7 @@ def artist_dict(a):
 
 
 def booking_dict(b):
-    return {'id': b.id, 'event_id': b.event_id, 'artist_id': b.artist_id, 'status': b.status, 'fee': b.fee,
+    return {'id': b.id, 'event_id': b.event_id, 'artist_id': b.artist_id, 'lineup_act_id': b.lineup_act_id, 'status': b.status, 'fee': b.fee,
             'flight': b.flight, 'grounds': b.grounds, 'hotel': b.hotel, 'notes': b.notes, 'sort': b.sort,
             'showday_contact': b.showday_contact, 'showday_phone': b.showday_phone, 'drive_url': b.drive_url,
             'flight_info': R._structured_defaults(R.FLIGHT_FIELDS, b.flight_info or {}),
@@ -81,8 +81,8 @@ def sorted_acts(event_id):
     return acts
 
 
-def asset_index(artist_ids=(), booking_ids=(), event_id=None):
-    query = Q(owner_type='artist', owner_id__in=list(artist_ids)) | Q(owner_type='booking', owner_id__in=list(booking_ids))
+def asset_index(artist_ids=(), booking_ids=(), event_id=None, act_ids=()):
+    query = Q(owner_type='artist', owner_id__in=list(artist_ids)) | Q(owner_type='booking', owner_id__in=list(booking_ids)) | Q(owner_type='act', owner_id__in=list(act_ids))
     if event_id:
         query |= Q(owner_type='event', owner_id=event_id)
     index = {}
@@ -171,13 +171,19 @@ def event_progress(event_ids=None):
     acts = {}
     for a in Act.objects.filter(event_id__in={b.event_id for b in bookings}):
         acts.setdefault(a.event_id, []).append(act_dict(a))
-    assets = asset_index(artists)
+    act_ids = list(LineupAct.objects.filter(event_id__in={b.event_id for b in bookings}).values_list('id', flat=True))
+    assets = asset_index(artists, act_ids=act_ids)
     progress = {}
+    from .lineup import lineup
+    by_event = {}
     for b in bookings:
-        entry = progress.setdefault(b.event_id, {'artists': 0, 'complete': 0})
-        entry['artists'] += 1
-        if not R.missing_items(booking_dict(b), artists[b.artist_id], acts.get(b.event_id, []), assets):
-            entry['complete'] += 1
+        by_event.setdefault(b.event_id, []).append(booking_dict(b))
+    for event_id, rows in by_event.items():
+        entry = progress.setdefault(event_id, {'artists': 0, 'complete': 0})
+        for a in lineup(event_id, rows, artists, acts.get(event_id, []), assets):
+            if a['status'] != 'cancelled':
+                entry['artists'] += 1
+                entry['complete'] += a['complete']
     from .models import EventStep
     steps = EventStep.objects.all() if event_ids is None else EventStep.objects.filter(event_id__in=list(event_ids))
     for st in steps.values('event_id', 'done'):
@@ -223,7 +229,8 @@ def advancing(event_id):
     bookings = list(Booking.objects.filter(event_id=event_id).select_related('artist'))
     artists = {b.artist_id: artist_dict(b.artist) for b in bookings}
     acts = sorted_acts(event_id)
-    assets = asset_index(artists, [b.id for b in bookings], event_id)
+    act_ids = list(LineupAct.objects.filter(event_id=event_id).values_list('id', flat=True))
+    assets = asset_index(artists, [b.id for b in bookings], event_id, act_ids)
     rows = []
     for b in bookings:
         bd = booking_dict(b)
@@ -234,12 +241,16 @@ def advancing(event_id):
     for act in acts:
         act['artists'] = [names[a] for a in act['artist_ids'] if a in names]
     checklist = [check_dict(c) for c in ChecklistItem.objects.filter(event_id=event_id)]
-    active = [r for r in rows if r['status'] != 'cancelled']
+    from .lineup import lineup
+    acts_lineup = lineup(event_id, [booking_dict(b) for b in bookings], artists, acts, assets)
+    for a in acts_lineup:
+        a['assets'] = assets.get(('act', a['id']), [])
+    active = [a for a in acts_lineup if a['status'] != 'cancelled']
     return {
-        'event': event_dict(e), 'bookings': rows, 'acts': acts, 'checklist': checklist,
+        'event': event_dict(e), 'bookings': rows, 'acts': acts, 'lineup': acts_lineup, 'checklist': checklist,
         'sends': [send_dict(s) for s in Send.objects.filter(event_id=event_id)[:50]],
         'assets': assets.get(('event', event_id), []),
-        'summary': {'artists': len(active), 'complete': sum(1 for r in active if r['complete']),
+        'summary': {'artists': len(active), 'complete': sum(1 for a in active if a['complete']),
                     'checklist': len([i for i in checklist if i['status'] != 'na']),
                     'checklist_done': len([i for i in checklist if i['status'] in ('done', 'sent')])},
     }
@@ -354,7 +365,7 @@ def artist_delete(ident, actor):
 # --- Bookings --------------------------------------------------------------
 
 def booking_detail(booking_id, private=True):
-    b = Booking.objects.filter(id=booking_id).select_related('artist', 'event').first()
+    b = Booking.objects.filter(id=booking_id).select_related('artist', 'event', 'lineup_act').first()
     if not b:
         raise ValueError('Onbekende boeking.')
     data = booking_dict(b)
@@ -366,7 +377,20 @@ def booking_detail(booking_id, private=True):
     for act in acts:
         act['artists'] = [names[a] for a in act['artist_ids'] if a in names]
     data['missing'] = [] if b.status == 'cancelled' else R.missing_items(data, artist, acts, assets)
-    data['complete'] = not data['missing']
+    data['act'] = None
+    if b.lineup_act_id:
+        # Act-level items (rider, EPK, contact, set time, travel choice) live on the act; here only what is personal.
+        from .lineup import act_state
+        act = b.lineup_act
+        members = list(Booking.objects.filter(lineup_act=act).select_related('artist'))
+        arts = {m.artist_id: artist_dict(m.artist) for m in members}
+        assets_all = asset_index(list(arts), [m.id for m in members], act_ids=[act.id])
+        act_missing, per_member = act_state(act, [(booking_dict(m), arts[m.artist_id]) for m in members], acts, assets_all)
+        data['missing'] = per_member.get(b.id, [])
+        data['act'] = {'id': act.id, 'name': act.name, 'travel': act.travel, 'members': [arts[m.artist_id]['name'] for m in members],
+                       'missing': [m for m in act_missing if m not in [f"{artist['name']}: {x}" for x in data['missing']] and m not in data['missing']],
+                       'complete': act.status != 'cancelled' and not act_missing}
+    data['complete'] = (data['act']['complete'] if data['act'] else not data['missing'])
     data['artist'] = R.mask(artist, private)
     data['event'] = {k: v for k, v in event_dict(b.event).items() if k in ('id', 'name', 'date', 'venue', 'doors', 'status')}
     data['acts'] = acts
@@ -397,7 +421,10 @@ def booking_add(event_id, payload, actor):
         if Booking.objects.filter(event_id=event_id, artist_id=artist_id).exists():
             raise ValueError('Deze artiest staat al op dit evenement.')
         sort = Booking.objects.filter(event_id=event_id).count()
-        b = Booking.objects.create(event_id=event_id, artist_id=artist_id, sort=sort)
+        act = LineupAct.objects.filter(id=payload.get('lineup_act'), event_id=event_id).first() if payload.get('lineup_act') else None
+        if not act:
+            act = LineupAct.objects.create(event_id=event_id, name=Artist.objects.get(id=artist_id).name, sort=LineupAct.objects.filter(event_id=event_id).count())
+        b = Booking.objects.create(event_id=event_id, artist_id=artist_id, lineup_act=act, sort=sort)
     audit(actor, 'Artiest geboekt', b.id, event_id)
     from .drive import queue
     if Event.objects.filter(id=event_id).exclude(drive_id='').exists():
@@ -455,7 +482,14 @@ def booking_remove(booking_id, actor):
                 act.artist_ids = [i for i in act.artist_ids if i != b.artist_id]
                 act.save(update_fields=['artist_ids'])
         Asset.objects.filter(id__in=files).delete()
+        act_id = b.lineup_act_id
         b.delete()
+        # An act without members is gone too (with its own rider/EPK rows).
+        if act_id and not Booking.objects.filter(lineup_act_id=act_id).exists():
+            act_files = list(Asset.objects.filter(owner_type='act', owner_id=act_id).values_list('id', flat=True))
+            Asset.objects.filter(id__in=act_files).delete()
+            LineupAct.objects.filter(id=act_id).delete()
+            files += act_files
     for f in files:
         (ASSETS / f).unlink(missing_ok=True)
     audit(actor, 'Boeking verwijderd', booking_id, b.event_id)
@@ -566,7 +600,7 @@ def checklist_delete(item_id, actor):
 # --- Files -----------------------------------------------------------------
 
 def _owner_exists(owner_type, owner_id):
-    model = {'artist': Artist, 'booking': Booking, 'event': Event}.get(owner_type)
+    model = {'artist': Artist, 'booking': Booking, 'event': Event, 'act': LineupAct}.get(owner_type)
     if not model:
         raise ValueError('Ongeldige eigenaar.')
     return model.objects.filter(id=owner_id).exists()
@@ -657,11 +691,16 @@ def asset_drive_path(asset):
         root = drive.conf('drive_artists_folder') if artist.in_roster else f"{drive.conf('drive_events_folder')}/_Artiesten"
         return f"{root}/{R.safe_name(artist.name, 'Artiest')}/{R.DRIVE_FOLDERS.get(kind, 'Overig')}/{name}"
     artist = ''
-    if asset['owner_type'] == 'booking':
-        b = Booking.objects.filter(id=asset['owner_id']).select_related('event', 'artist').first()
+    if asset['owner_type'] == 'act':
+        act = LineupAct.objects.filter(id=asset['owner_id']).select_related('event').first()
+        if not act:
+            raise ValueError('Act bestaat niet meer.')
+        event, artist = act.event, R.safe_name(act.name, 'Act')
+    elif asset['owner_type'] == 'booking':
+        b = Booking.objects.filter(id=asset['owner_id']).select_related('event', 'artist', 'lineup_act').first()
         if not b:
             raise ValueError('Boeking bestaat niet meer.')
-        event, artist = b.event, R.safe_name(b.artist.name, 'Artiest')
+        event, artist = b.event, R.safe_name(b.lineup_act.name if b.lineup_act else b.artist.name, 'Artiest')
     else:
         event = Event.objects.filter(id=asset['owner_id']).first()
         if not event:
@@ -715,7 +754,8 @@ def build_pack(event_id, payload, with_content=True):
     keys = {checklist[i]['key'] for i in item_ids if checklist[i]['key']}
     active = [b for b in data['bookings'] if b['status'] != 'cancelled']
     artists = {a.id: artist_dict(a) for a in Artist.objects.filter(id__in=[b['artist_id'] for b in active])}
-    index = asset_index(list(artists), [b['id'] for b in active], event_id)
+    act_ids = list({b['lineup_act_id'] for b in active if b.get('lineup_act_id')})
+    index = asset_index(list(artists), [b['id'] for b in active], event_id, act_ids)
     attachments, links, warnings = [], [], []
 
     def add_generated(name, producer, mime='application/pdf'):
@@ -741,6 +781,9 @@ def build_pack(event_id, payload, with_content=True):
         ev = Event.objects.get(id=event_id)
         if ev.crew.exists() or ev.guests.exists():
             add_generated(people.file_name(ev), lambda: people.export_xlsx(ev), people.XLSX)
+    if 'tech_riders' in keys:  # riders uploaded for a whole act (a duo) go once
+        for act_id in act_ids:
+            add_assets([a for a in index.get(('act', act_id), []) if a['kind'] in ('tech_rider', 'rider')])
     for b in active:
         artist = artists.get(b['artist_id'], {})
         own = index.get(('artist', artist.get('id')), [])

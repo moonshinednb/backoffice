@@ -34,6 +34,8 @@ import { ActivityPage, AdminHome, AdminLayout, IntegrationsPage, KeysPage, Setti
 import { RequestsPage } from './pages/Requests';
 import { Events } from './production/Events';
 import { EventPage } from './production/Event';
+import { ActPage } from './production/LineUp';
+import { ShowdayPage } from './production/Showday';
 import { BookingPage } from './production/Booking';
 import { ArtistPage, Artists } from './production/Artists';
 import { Label } from './production/Label';
@@ -85,6 +87,10 @@ const router = createBrowserRouter([{
     { path: 'events/past', element: <Events past /> },
     { path: 'events/:id', element: <EventPage tab="checklist" /> },
     { path: 'events/:id/advancing', element: <EventPage tab="advancing" /> },
+    { path: 'events/:id/line-up', element: <EventPage tab="advancing" /> },
+    { path: 'events/:id/people', element: <EventPage tab="crew" /> },
+    { path: 'events/:id/act/:act', element: <ActPage /> },
+    { path: 'events/:id/showday', element: <ShowdayPage /> },
     { path: 'events/:id/timetable', element: <EventPage tab="timetable" /> },
     { path: 'events/:id/venue', element: <EventPage tab="venue" /> },
     { path: 'events/:id/notes', element: <EventPage tab="notes" /> },

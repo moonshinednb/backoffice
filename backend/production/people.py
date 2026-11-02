@@ -22,7 +22,7 @@ def crew_dict(c):
 
 
 def guest_dict(g):
-    return {'id': g.id, 'name': g.name, 'plus': g.plus, 'relation': g.relation, 'added_by': g.added_by}
+    return {'id': g.id, 'name': g.name, 'plus': g.plus, 'relation': g.relation, 'added_by': g.added_by, 'arrived': g.arrived}
 
 
 def contact_dict(c):
@@ -67,7 +67,7 @@ def overview(event_id):
     crew, guests = list(e.crew.all()), list(e.guests.all())
     return {'crew': [crew_dict(c) for c in crew], 'guests': [guest_dict(g) for g in guests], 'file_url': e.lists_url, 'file_name': file_name(e),
             'totals': {'crew': len(crew), 'cars': sum(c.cars for c in crew), 'guests': len(guests),
-                       'people': len(guests) + sum(g.plus for g in guests)}}
+                       'people': len(guests) + sum(g.plus for g in guests), 'arrived': sum(min(g.arrived, 1 + g.plus) for g in guests)}}
 
 
 def _number(value, label, top):
@@ -123,6 +123,8 @@ def guest_save(event_id, payload, actor, ident=None):
         g.relation = R._text(payload.get('relation'), 200)
     if 'plus' in payload:
         g.plus = _number(payload.get('plus'), '+1s', 10)
+    if 'arrived' in payload:  # at the door: how many of this entry are in
+        g.arrived = min(_number(payload.get('arrived'), 'Binnen', 11), 1 + g.plus)
     if not ident:
         g.sort = (g.event.guests.order_by('-sort').values_list('sort', flat=True).first() or 0) + 1
     g.save()

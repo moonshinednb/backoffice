@@ -127,3 +127,31 @@ export function Avatar({ user, size = 36 }: { user: { name: string; avatar?: str
   const style = { width: size, height: size, fontSize: size * 0.36 };
   return user.avatar ? <img className="avatar avatar-img" src={user.avatar} alt="" style={style} /> : <span className="avatar" aria-hidden="true" style={style}>{user.name.slice(0, 2).toUpperCase()}</span>;
 }
+
+
+export type MenuItem = { label: string; icon?: string; onSelect: () => void; danger?: boolean; confirm?: { title: string; body: ReactNode; action: string } };
+
+/** "⋯" menu for less common and dangerous actions; a dangerous one always asks first. */
+export function MoreMenu({ items, label = 'Meer acties' }: { items: (MenuItem | null | false)[]; label?: string }) {
+  const [open, setOpen] = useState(false);
+  const [ask, setAsk] = useState<MenuItem | null>(null);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent | KeyboardEvent) => { if (e instanceof KeyboardEvent ? e.key === 'Escape' : !ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('mousedown', close); document.addEventListener('keydown', close);
+    return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', close); };
+  }, [open]);
+  const list = items.filter(Boolean) as MenuItem[];
+  if (!list.length) return null;
+  return <div className="more-menu" ref={ref}>
+    <button className="icon-btn" aria-haspopup="menu" aria-expanded={open} aria-label={label} title={label} onClick={() => setOpen(!open)}><Icon name="more" /></button>
+    {open ? <div className="more-pop" role="menu">{list.map((i) => <button key={i.label} role="menuitem" className={i.danger ? 'danger-item' : ''}
+      onClick={() => { setOpen(false); if (i.confirm) setAsk(i); else i.onSelect(); }}>{i.icon ? <Icon name={i.icon} /> : null}{i.label}</button>)}</div> : null}
+    <Modal title={ask?.confirm?.title || ''} open={!!ask} onClose={() => setAsk(null)} footer={<>
+      <button onClick={() => setAsk(null)}>Annuleren</button>
+      <button className="danger" onClick={() => { const a = ask; setAsk(null); a?.onSelect(); }}>{ask?.confirm?.action}</button></>}>
+      <p>{ask?.confirm?.body}</p>
+    </Modal>
+  </div>;
+}

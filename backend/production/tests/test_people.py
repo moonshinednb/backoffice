@@ -41,7 +41,8 @@ class PeopleTests(ApiTests):
         self.assertEqual(g['added_by'], 'peppy')
         self.assertEqual(self.send(c, 'patch', f"/api/guests/{g['id']}", {'plus': 11}).status_code, 400)
         o = c.get(f"/api/events/{e['id']}/people").json()
-        self.assertEqual(o['totals'], {'crew': 1, 'cars': 1, 'guests': 1, 'people': 3})
+        self.assertEqual(o['totals'], {'crew': 1, 'cars': 1, 'guests': 1, 'people': 3, 'arrived': 0})
+        self.assertEqual(self.send(c, 'patch', f"/api/guests/{g['id']}", {'arrived': 5}).json()['arrived'], 3)  # never more than guest + plus
         self.assertEqual(o['file_name'], 'CREWLIST + GUESTLIST 20-11-30.xlsx')
         # the export reads back as the same lists
         crew, guests = people.parse_xlsx(c.get(f"/api/events/{e['id']}/people.xlsx").content)

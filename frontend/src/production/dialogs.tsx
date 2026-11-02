@@ -7,32 +7,38 @@ import { FormDialog } from './common';
 export type Act = { id: string; name: string; start: string; end: string; stage: string; note: string; artist_ids: string[]; artists: string[] };
 
 /** Add or edit an act. `act` null = new. Calls `done` with the fresh overview. */
-export function ActDialog({ open, eventId, act, preset, lineup, onClose, done }: { open: boolean; eventId: string; act: Act | null; preset?: string; lineup: { artist_id: string; name: string }[]; onClose: () => void; done: () => void }) {
+export type LineupOption = { id: string; name: string; artist_ids: string[] };
+
+/** A timetable slot: pick one act, or several for a B2B; times and stage. */
+export function ActDialog({ open, eventId, act, lineup, onClose, done }: { open: boolean; eventId: string; act: Act | null; lineup: LineupOption[]; onClose: () => void; done: () => void }) {
   const toast = useToast();
-  const ids = new Set(act ? act.artist_ids : preset ? [preset] : []);
+  const chosen = new Set(act ? lineup.filter((o) => o.artist_ids.some((a) => act.artist_ids.includes(a))).map((o) => o.id) : []);
   return (
-    <FormDialog id="act-form" title={act ? 'Act bewerken' : 'Act toevoegen'} open={open} onClose={onClose} label={act ? 'Opslaan' : 'Toevoegen'} submit={async (form) => {
+    <FormDialog id="act-form" title={act ? 'Slot bewerken' : 'Slot toevoegen'} open={open} onClose={onClose} label={act ? 'Opslaan' : 'Toevoegen'} submit={async (form) => {
       const data = new FormData(form);
-      const body = { name: data.get('name') || '', start: data.get('start') || '', end: data.get('end') || '', stage: data.get('stage') || '', note: data.get('note') || '', artist_ids: data.getAll('artist_ids') };
+      const picked = lineup.filter((o) => data.getAll('acts').includes(o.id));
+      const body = { name: String(data.get('name') || '') || picked.map((o) => o.name).join(' b2b '), start: data.get('start') || '', end: data.get('end') || '',
+        stage: data.get('stage') || '', note: data.get('note') || '', artist_ids: picked.flatMap((o) => o.artist_ids) };
       if (act) await api(`/acts/${act.id}`, { method: 'PATCH', body });
       else await api(`/events/${eventId}/acts`, { method: 'POST', body });
       onClose();
-      toast(act ? 'Act bijgewerkt.' : 'Act toegevoegd.');
+      toast(act ? 'Slot bijgewerkt.' : 'Slot toegevoegd.');
       done();
     }}>
       <div key={act?.id || 'new'}>
+        <fieldset className="check-group"><legend>Welke act(s)? Meerdere = B2B</legend>
+          {lineup.length ? lineup.map((o) => <label key={o.id}><input type="checkbox" name="acts" value={o.id} defaultChecked={chosen.has(o.id)} /> {o.name}</label>)
+            : <p className="helper">Nog geen acts. Voeg ze eerst toe bij Line-up.</p>}
+        </fieldset>
         <div className="form-grid">
           <div className="field"><label htmlFor="act-start">Start</label><input id="act-start" name="start" type="time" defaultValue={act?.start} /></div>
           <div className="field"><label htmlFor="act-end">Eind</label><input id="act-end" name="end" type="time" defaultValue={act?.end} /></div>
         </div>
-        <fieldset className="check-group"><legend>Artiesten in deze act</legend>
-          {lineup.length ? lineup.map((p) => <label key={p.artist_id}><input type="checkbox" name="artist_ids" value={p.artist_id} defaultChecked={ids.has(p.artist_id)} /> {p.name}</label>) : <p className="helper">Nog geen artiesten op dit evenement.</p>}
-        </fieldset>
-        <div className="field"><label htmlFor="act-name">Naam van de act</label><input id="act-name" name="name" defaultValue={act?.name} placeholder="Leeg laten: namen van de artiesten, bijv. Dwonji B2B HDN" /></div>
         <div className="form-grid">
           <div className="field"><label htmlFor="act-stage">Stage</label><input id="act-stage" name="stage" defaultValue={act?.stage} placeholder="Main" /></div>
           <div className="field"><label htmlFor="act-note">Opmerking</label><input id="act-note" name="note" defaultValue={act?.note} /></div>
         </div>
+        <div className="field"><label htmlFor="act-name">Naam in de timetable</label><input id="act-name" name="name" defaultValue={act?.name} placeholder="Leeg laten: de namen van de acts, bijv. Atmos b2b Formula" /></div>
       </div>
     </FormDialog>
   );

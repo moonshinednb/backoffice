@@ -109,14 +109,19 @@ def sync_event(event_id):
 
 
 def sync_booking(booking_id):
-    b = Booking.objects.filter(id=booking_id).select_related('event', 'artist').first()
+    b = Booking.objects.filter(id=booking_id).select_related('event', 'artist', 'lineup_act').first()
     if not b or not enabled():
         return
     if not b.event.drive_id:
         return sync_event(b.event_id)
     base = event_base(b.event)
-    name = R.safe_name(b.artist.name, 'Artiest')
-    return _place(b, f"{base}/{section('epks')}/{name}", conf('drive_artist_tree'), name)
+    # One EPK folder per act (a duo shares it); the act remembers it, the members link to it.
+    owner = b.lineup_act or b
+    name = R.safe_name(b.lineup_act.name if b.lineup_act else b.artist.name, 'Artiest')
+    url = _place(owner, f"{base}/{section('epks')}/{name}", conf('drive_artist_tree'), name)
+    if b.lineup_act:
+        Booking.objects.filter(lineup_act=b.lineup_act).update(drive_id=owner.drive_id, drive_url=owner.drive_url)
+    return url
 
 
 def sync_release(release_id):

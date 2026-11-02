@@ -3,9 +3,9 @@ import { useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router';
 import { api } from '../lib/api';
 import { euroInput, longDate } from '../lib/format';
-import { BackLink, Badge, ErrorBox, Icon, Loading, PageTitle, formValues, useAction, useToast } from '../lib/ui';
-import { Act, ActDialog } from './dialogs';
-import { Area, Asset, AssetGroups, BOOKED_BY, ContactBlock, DriveButton, Field, SaveBar, Select, TravelId, YES_NO, useCanEdit, useDirty } from './common';
+import { BackLink, Badge, ErrorBox, Icon, Loading, MoreMenu, PageTitle, formValues, useAction, useToast } from '../lib/ui';
+import { Act } from './dialogs';
+import { Area, Asset, AssetGroups, BOOKED_BY, ContactBlock, Field, SaveBar, Select, TravelId, YES_NO, useCanEdit, useDirty } from './common';
 
 type Leg = { from: string; to: string; departure: string; arrival: string; number: string };
 type Detail = {
@@ -15,6 +15,7 @@ type Detail = {
   artist: Record<string, any> & { id: string; name: string; masked: boolean };
   event: { id: string; name: string; date: string };
   acts: Act[]; assets: Asset[]; artist_assets: Asset[]; lineup: { artist_id: string; name: string }[];
+  act: { id: string; name: string; travel: string; members: string[]; missing: string[]; complete: boolean } | null;
 };
 
 const SUB: Record<string, string> = { flight: 'flight', hotel: 'hotel', grounds: 'transport' };
@@ -32,8 +33,13 @@ export function BookingPage({ sub = '' }: { sub?: '' | 'flight' | 'hotel' | 'gro
 
 function Missing({ b }: { b: Detail }) {
   if (b.status === 'cancelled') return <div className="notice"><Icon name="info" /> Deze boeking is geannuleerd en telt niet mee voor de advancing.</div>;
-  if (b.complete) return <div className="notice notice-ok"><Icon name="ok" /> Advancing compleet. Alles wat de venue nodig heeft is binnen.</div>;
-  return <div className="notice notice-warn missing"><Icon name="warn" /><div><strong>Nog nodig voor deze artiest</strong><div className="chips">{b.missing.map((m) => <span key={m} className="chip warn">{m}</span>)}</div></div></div>;
+  const actOpen = b.act ? b.act.missing : [];
+  if (!b.missing.length && !actOpen.length) return <div className="notice notice-ok"><Icon name="ok" /> {b.act && b.act.members.length > 1 ? `Compleet voor ${b.artist.name}.` : 'Advancing compleet. Alles wat de venue nodig heeft is binnen.'}</div>;
+  return <div className="notice notice-warn missing"><Icon name="warn" /><div>
+    {b.missing.length ? <><strong>{`Nog nodig voor ${b.artist.name}`}</strong><div className="chips">{b.missing.map((m) => <span key={m} className="chip warn">{m}</span>)}</div></> : null}
+    {actOpen.length && b.act ? <><strong>{`Voor de act ${b.act.name}`}</strong><div className="chips">{actOpen.map((m) => <span key={m} className="chip warn">{m}</span>)}</div>
+      <Link className="text-link" to={`/events/${b.event.id}/act/${b.act.id}`}>Naar de act <Icon name="chevron" /></Link></> : null}
+  </div></div>;
 }
 
 function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload: () => void }) {
@@ -43,7 +49,6 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
   const navigate = useNavigate();
   const { setDirty, track, isDirty } = useDirty();
   const [yes, setYes] = useState({ flight: b.flight, grounds: b.grounds, hotel: b.hotel });
-  const [act, setAct] = useState<{ act: Act | null } | null>(null);
   const a = b.artist;
   const e = b.event;
   const mine = b.acts.filter((x) => x.artist_ids.includes(a.id));
@@ -72,13 +77,14 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
   );
 
   return <>
-    <BackLink to={`/events/${e.id}`}>{e.name}</BackLink>
-    <PageTitle eyebrow={`Artiest · ${e.name}`} title={a.name}
+    <BackLink to={b.act ? `/events/${e.id}/act/${b.act.id}` : `/events/${e.id}/line-up`}>{b.act && b.act.members.length > 1 ? `${b.act.name} · ${e.name}` : `Line-up · ${e.name}`}</BackLink>
+    <PageTitle title={a.name}
       sub={<>{b.status === 'cancelled' ? <Badge>Geannuleerd</Badge> : b.complete ? <Badge color="lime">Compleet</Badge> : <Badge color="amber">{`${b.missing.length} punten open`}</Badge>} <Link className="text-link" to={`/artists/${a.id}`}>Profiel en riders <Icon name="chevron" /></Link></>}
-      actions={<><DriveButton kind="booking" id={b.id} url={b.drive_url} onDone={reload} />{edit ? <><button className="ghost" onClick={() => {
-        if (!confirm(`${a.name} van ${e.name} halen? Acts blijven staan; facturen bij deze boeking worden verwijderd. Het artiestenprofiel blijft bestaan.`)) return;
-        run(async () => { await api(`/bookings/${b.id}`, { method: 'DELETE' }); setDirty(false); toast('Boeking verwijderd.'); navigate(`/events/${e.id}`); });
-      }}><Icon name="trash" /> Van evenement halen</button><button className="primary" type="submit" form="booking-main">Opslaan</button></> : null}</>} />
+      actions={<>{b.drive_url ? <a className="button ghost" href={b.drive_url} target="_blank" rel="noopener noreferrer"><Icon name="folder" /> EPK-map</a> : null}
+        {edit ? <><button className="primary" type="submit" form="booking-main">Opslaan</button>
+          <MoreMenu items={[{ label: b.act && b.act.members.length > 1 ? `${a.name} uit ${b.act.name} halen` : 'Van evenement halen', icon: 'trash', danger: true,
+            confirm: { title: `${a.name} van ${e.name} halen?`, action: 'Ja, weghalen', body: 'De boeking en de bestanden die alleen bij deze boeking horen verdwijnen. Het artiestprofiel blijft bestaan. Was dit het laatste lid, dan verdwijnt de act ook.' },
+            onSelect: () => run(async () => { await api(`/bookings/${b.id}`, { method: 'DELETE' }); setDirty(false); toast('Van het evenement gehaald.'); navigate(`/events/${e.id}/line-up`); }) }]} /></> : null}</>} />
     <Missing b={b} />
     <div className="booking-grid">
       <form id="booking-main" className="booking-form" {...track} onSubmit={(ev) => { ev.preventDefault(); run(() => save()); }}>
@@ -89,18 +95,16 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
         </section>
         <section className="card card-pad">
           <h2>Boeking</h2>
-          <Field name="b_fee" label="Gage (€)" value={euroInput(b.fee)} inputMode="decimal" placeholder="0,00" />
-          <Select name="b_status" label="Status" value={b.status} options={[['confirmed', 'Bevestigd'], ['option', 'Optie'], ['cancelled', 'Geannuleerd']]} />
+          {b.act ? <p className="helper">{`Fee, status, rider en EPK staan bij de act `}<Link className="text-link" to={`/events/${e.id}/act/${b.act.id}`}>{b.act.name}</Link>.</p>
+            : <Select name="b_status" label="Status" value={b.status} options={[['confirmed', 'Bevestigd'], ['option', 'Optie'], ['cancelled', 'Geannuleerd']]} />}
           {subField('flight', 'Vlucht', 'plane')}
           {subField('grounds', 'Grondvervoer', 'car')}
           {subField('hotel', 'Hotel', 'bed')}
           <Field name="a_rider_url" label="Riderlink" value={a.rider_url} type="url" placeholder="https://" />
           <Field name="a_epk_url" label="EPK-link" value={a.epk_url} type="url" placeholder="https://" />
-          <h2 className="sub">Acts</h2>
-          {mine.length ? <ul className="act-list">{mine.map((x) => <li key={x.id}><span><strong>{x.name}</strong><small>{x.start ? `${x.start} – ${x.end || '?'}` : 'Nog geen tijd'}{x.stage ? ' · ' + x.stage : ''}</small></span>
-            {edit ? <button type="button" className="icon-btn ghost tiny" aria-label={`${x.name} bewerken`} onClick={() => run(async () => { await autosave(); setAct({ act: x }); })}><Icon name="edit" /></button> : null}</li>)}</ul>
-            : <p className="helper">Nog niet ingepland in de timetable.</p>}
-          {edit ? <button type="button" className="small" onClick={() => run(async () => { await autosave(); setAct({ act: null }); })}><Icon name="plus" /> Act toevoegen</button> : null}
+          <h2 className="sub">Timetable</h2>
+          {mine.length ? <ul className="act-list">{mine.map((x) => <li key={x.id}><span><strong>{x.name}</strong><small>{x.start ? `${x.start} – ${x.end || '?'}` : 'Nog geen tijd'}{x.stage ? ' · ' + x.stage : ''}</small></span></li>)}</ul>
+            : <p className="helper">Nog niet ingepland. Dat doe je bij Line-up → Timetable.</p>}
           <h2 className="sub">Showdag</h2>
           <Field name="b_showday_contact" label="Contact op de dag (bijv. tourmanager)" value={b.showday_contact} />
           <Field name="b_showday_phone" label="Telefoon op de dag" value={b.showday_phone} type="tel" />
@@ -108,13 +112,11 @@ function Main({ b, set, reload }: { b: Detail; set: (d: Detail) => void; reload:
         </section>
       </form>
       <section className="card card-pad content-col">
-        <h2>Content</h2>
-        <AssetGroups ownerType="booking" ownerId={b.id} assets={b.assets} kinds={['invoice']} onChange={reload} before={autosave} />
-        <AssetGroups ownerType="artist" ownerId={a.id} assets={b.artist_assets} kinds={['logo', 'press_photo', 'press_video', 'bio', 'visual', 'tech_rider', 'hospitality_rider']} onChange={reload} before={autosave} />
-        <p className="field-hint">Logo’s, persfoto’s en riders horen bij de artiest en gaan mee naar elk volgend evenement. De technical rider bewerk je in het <Link className="text-link" to={`/artists/${a.id}/tech`}>profiel</Link>.</p>
+        <h2>Bestanden van deze artiest</h2>
+        <AssetGroups ownerType="artist" ownerId={a.id} assets={b.artist_assets} kinds={['tech_rider', 'hospitality_rider', 'press_photo', 'bio', 'logo']} onChange={reload} before={autosave} />
+        <p className="field-hint">Deze gaan mee naar elk volgend evenement van {a.name}. Een rider of EPK voor de hele act zet je bij de act. De technical rider bewerk je in het <Link className="text-link" to={`/artists/${a.id}/tech`}>profiel</Link>.</p>
       </section>
     </div>
-    <ActDialog open={!!act} eventId={e.id} act={act?.act || null} preset={a.id} lineup={b.lineup} onClose={() => setAct(null)} done={reload} />
     <SaveBar form="booking-main" />
   </>;
 }

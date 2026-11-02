@@ -115,7 +115,11 @@ def auto_check(e, files=None):
         return ticked
     files = files or drive.event_files(e)
     sections = {x['name']: x for x in files['sections']}
-    artists = [b.artist.name.lower() for b in Booking.objects.filter(event_id=e.id).exclude(status='cancelled').select_related('artist')]
+    # Every act needs a rider: the act name or one of its members in a file name is enough.
+    artists = {}
+    for b in Booking.objects.filter(event_id=e.id).exclude(status='cancelled').select_related('artist', 'lineup_act'):
+        key = b.lineup_act_id or b.id
+        artists.setdefault(key, {b.lineup_act.name.lower()} if b.lineup_act else set()).add(b.artist.name.lower())
     for s in open_steps:
         if not s.auto:
             continue
@@ -128,7 +132,7 @@ def auto_check(e, files=None):
             ok = bool(folder and folder['count'])
         elif key == 'riders' and artists:
             names = ' '.join(i['name'].lower() for i in section['items'])
-            ok = all(a in names for a in artists)
+            ok = all(any(n in names for n in act_names) for act_names in artists.values())
         else:
             ok = section['filled']
         if ok:

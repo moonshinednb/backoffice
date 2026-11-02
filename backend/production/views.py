@@ -79,6 +79,62 @@ def add_booking(request, ident: str):
     return {'booking_id': booking, **S.advancing(ident)}
 
 
+@router.post('/events/{ident}/lineup')
+def add_lineup_act(request, ident: str):
+    """New act (solo, duo, group) with its members."""
+    require(request, 'production', write=True)
+    from . import lineup
+    try:
+        act = lineup.act_create(ident, body(request), actor(request))
+    except ValueError as e:
+        raise HttpError(400, str(e))
+    return {'act_id': act.id, **S.advancing(ident)}
+
+
+@router.patch('/lineup/{ident}')
+def update_lineup_act(request, ident: str):
+    require(request, 'production', write=True)
+    from . import lineup
+    try:
+        act = lineup.act_update(ident, body(request), actor(request))
+    except ValueError as e:
+        raise HttpError(400, str(e))
+    return S.advancing(act.event_id)
+
+
+@router.delete('/lineup/{ident}')
+def remove_lineup_act(request, ident: str):
+    require(request, 'production', write=True)
+    from . import lineup
+    try:
+        return S.advancing(lineup.act_remove(ident, actor(request)))
+    except ValueError as e:
+        raise HttpError(400, str(e))
+
+
+@router.post('/lineup/{ident}/members')
+def add_lineup_member(request, ident: str):
+    require(request, 'production', write=True)
+    from . import lineup
+    try:
+        b = lineup.member_add(ident, body(request), actor(request))
+    except ValueError as e:
+        raise HttpError(400, str(e))
+    return {'booking_id': b.id, **S.advancing(b.event_id)}
+
+
+@router.post('/events/{ident}/crew/lineup')
+def crew_from_lineup(request, ident: str):
+    """Put the line-up on the crew list (role ARTIST, act in ACT)."""
+    require(request, 'production', write=True)
+    from . import lineup, people
+    try:
+        added = lineup.crew_from_lineup(ident, actor(request))
+    except ValueError as e:
+        raise HttpError(400, str(e))
+    return {**people.overview(ident), 'added': added}
+
+
 @router.post('/events/{ident}/acts')
 def add_act(request, ident: str):
     require(request, 'production', write=True)
