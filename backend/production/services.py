@@ -178,6 +178,12 @@ def event_progress(event_ids=None):
         entry['artists'] += 1
         if not R.missing_items(booking_dict(b), artists[b.artist_id], acts.get(b.event_id, []), assets):
             entry['complete'] += 1
+    from .models import EventStep
+    steps = EventStep.objects.all() if event_ids is None else EventStep.objects.filter(event_id__in=list(event_ids))
+    for st in steps.values('event_id', 'done'):
+        entry = progress.setdefault(st['event_id'], {'artists': 0, 'complete': 0})
+        entry['steps'] = entry.get('steps', 0) + 1
+        entry['steps_done'] = entry.get('steps_done', 0) + (1 if st['done'] else 0)
     checks = ChecklistItem.objects.all() if event_ids is None else ChecklistItem.objects.filter(event_id__in=list(event_ids))
     for c in checks:
         entry = progress.setdefault(c.event_id, {'artists': 0, 'complete': 0})

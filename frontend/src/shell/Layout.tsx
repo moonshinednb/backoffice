@@ -6,7 +6,7 @@ import { api } from '../lib/api';
 import { can, useAuth } from '../lib/auth';
 import { ROLE } from '../lib/format';
 import { Avatar, Icon, Modal } from '../lib/ui';
-import { ChatWidget } from './Chat';
+import { ChatButton, ChatWidget } from './Chat';
 import { NotificationBell } from './Notifications';
 import { ProfileDialog } from './Profile';
 import { PasswordDialog } from './PasswordDialog';
@@ -37,6 +37,7 @@ export function Layout() {
   const [install, setInstall] = useState(false);
   const [me, setMe] = useState(false);
   const [wish, setWish] = useState(false);
+  const [chat, setChat] = useState(false);
   const [theme, setThemeState] = useState<Theme>(storedTheme());
   const docs = useQuery({ queryKey: ['review-count'], queryFn: () => api<{ documents: { status: string }[] }>('/documents?limit=2000'), enabled: can.finance(user), refetchInterval: 30000 });
   const review = docs.data?.documents.filter((d) => d.status === 'review').length || 0;
@@ -73,6 +74,7 @@ export function Layout() {
           <div className="breadcrumb">{current ? current[0] : 'Werkplek'} <span>/ {current ? current[2] : 'Overzicht'}</span></div>
           <div className="top-actions">
             <span className="top-date">{new Date().toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'long' })}</span>
+            <ChatButton open={chat} onToggle={() => setChat(!chat)} />
             <NotificationBell />
             <div className="profile-control">
               <button className="profile-trigger" onClick={() => setProfile(!profile)} aria-expanded={profile} aria-label={`Profielmenu van ${user.name}`}>
@@ -99,7 +101,7 @@ export function Layout() {
       </main>
       <PasswordDialog open={password} onClose={() => setPassword(false)} />
       <ProfileDialog open={me} onClose={() => setMe(false)} onPassword={() => { setMe(false); setPassword(true); }} />
-      <ChatWidget />
+      <ChatWidget open={chat} onClose={() => setChat(false)} />
       <FeatureRequestDialog open={wish} onClose={() => setWish(false)} />
       <Modal title="Moonshine als app" open={install} onClose={() => setInstall(false)} footer={<button onClick={() => setInstall(false)}>Sluiten</button>}>
         {installSteps()}

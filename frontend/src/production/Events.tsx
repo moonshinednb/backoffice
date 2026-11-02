@@ -6,7 +6,7 @@ import { dayNumber, monthShort, shortDate, today } from '../lib/format';
 import { Empty, ErrorBox, Icon, Loading, PageTitle, Tabs, formValues, useToast } from '../lib/ui';
 import { FormDialog, StatusBadge, useCanEdit } from './common';
 
-export type EventRow = { id: string; name: string; date: string; venue: string; status: string; progress: { artists: number; complete: number; checklist?: number; checklist_done?: number } };
+export type EventRow = { id: string; name: string; date: string; venue: string; status: string; progress: { artists: number; complete: number; checklist?: number; checklist_done?: number; steps?: number; steps_done?: number } };
 
 export function Events({ past = false }: { past?: boolean }) {
   const navigate = useNavigate();

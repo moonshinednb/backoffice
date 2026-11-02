@@ -189,3 +189,47 @@ dialog::backdrop { background: var(--scrim); backdrop-filter: none; }
 .access-form button.primary { background: var(--accent) !important; border-color: var(--accent) !important; color: var(--on-accent) !important; box-shadow: none !important; }
 .access-form button.primary:hover { background: var(--accent-hover) !important; }
 [data-theme='light'] .access-logo { filter: invert(1); mix-blend-mode: multiply; }
+
+/* --- Overview: my work next to the coming events ------------------------------------- */
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.my-work .card-head, .dash-events .card-head { padding-bottom: 12px; }
+.work-group { padding: 0 20px 6px; }
+.work-group h3 { display: flex; gap: 8px; align-items: baseline; margin: 10px 0 4px; font-size: .8rem; font-weight: 600; color: var(--text-2); }
+.work-group h3 span { color: var(--text-3); font-weight: 500; }
+.work-group.is-late h3 { color: var(--bad); }
+.work-group ul { list-style: none; margin: 0; padding: 0; }
+.work-row { display: grid; grid-template-columns: 20px 1fr auto auto; gap: 12px; align-items: center; padding: 9px 0; border-top: 1px solid var(--line); }
+.work-row input[type=checkbox] { width: 16px; height: 16px; margin: 0; }
+.work-main { display: grid; gap: 2px; min-width: 0; text-decoration: none; color: inherit; }
+.work-main strong { font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.work-main:hover strong { text-decoration: underline; }
+.work-main small { display: flex; align-items: center; gap: 5px; color: var(--text-3); font-size: .76rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.work-main small .icon, .work-main small svg { width: 13px; height: 13px; flex: none; }
+.work-due { font-size: .78rem; color: var(--text-3); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.work-due.soon { color: var(--warn); } .work-due.late { color: var(--bad); font-weight: 600; }
+.work-more { margin: 4px 20px 16px; }
+.dash-event-list { display: grid; }
+.dash-event { display: grid; grid-template-columns: 52px 1fr auto; gap: 12px; align-items: center; padding: 10px 20px; border-top: 1px solid var(--line); text-decoration: none; color: inherit; }
+.dash-event:hover { background: var(--wash-1); }
+.dash-progress { display: grid; justify-items: end; gap: 3px; min-width: 86px; }
+.dash-progress .bar { width: 86px; height: 6px; border-radius: 3px; background: var(--wash-3); overflow: hidden; }
+.dash-progress .bar i { display: block; height: 100%; background: var(--ok); border-radius: 3px; }
+.dash-progress small { color: var(--text-3); font-size: .74rem; font-variant-numeric: tabular-nums; }
+.task-row.late strong { color: var(--text); } .due.late { color: var(--bad); font-weight: 600; }
+.toolbar .tabs + .tabs { margin-left: 4px; }
+@media (max-width: 1000px) { .dash-grid { grid-template-columns: 1fr; } }
+
+/* --- Chat opens from the top bar, under it on the right -------------------------------- */
+.top-chat { position: relative; }
+.top-chat.active { background: var(--accent-tint); border-color: var(--accent); }
+.chat-dock { top: 68px; bottom: auto; right: 24px; }
+.chat-panel { background: var(--surface); border: 1px solid var(--line); box-shadow: var(--shadow-pop); }
+.chat-badge { background: var(--accent); color: var(--on-accent); }
+@media (max-width: 760px) { .chat-dock { top: 0; right: 0; } }
+
+/* --- Segmented filters (.tabs): neutral, the chosen one raised ---------------------------- */
+.tabs { background: var(--sunken); border: 1px solid var(--line); border-radius: 9px; padding: 3px; gap: 2px; }
+.tabs button { background: transparent; border: 0; color: var(--text-2); min-height: 30px; padding: 4px 12px; border-radius: 6px; font-weight: 500; }
+.tabs button:hover { color: var(--text); background: var(--wash-2); }
+.tabs button.active { background: var(--raised); color: var(--text); box-shadow: 0 0 0 1px var(--line-strong) inset; }
+[data-theme='light'] .tabs button.active { background: var(--surface); }

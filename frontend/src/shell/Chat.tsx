@@ -12,15 +12,24 @@ const time = (t: number) => {
   return d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString(undefined, { day: 'numeric', month: 'short' });
 };
 
-/** Floating team chat, bottom right on every page (like Messenger). */
-export function ChatWidget() {
-  const { user } = useAuth();
-  const [open, setOpen] = useState(false);
-  const [active, setActive] = useState<Conv | null>(null);
-  const list = useQuery({ queryKey: ['chat'], queryFn: () => api<{ conversations: Conv[]; unread: number }>('/chat'), refetchInterval: open ? 5000 : 15000 });
-  const unread = list.data?.unread || 0;
+const useChatList = (open: boolean) => useQuery({ queryKey: ['chat'], queryFn: () => api<{ conversations: Conv[]; unread: number }>('/chat'), refetchInterval: open ? 5000 : 15000 });
+
+/** Chat button in the top bar, next to the notifications. */
+export function ChatButton({ open, onToggle }: { open: boolean; onToggle: () => void }) {
+  const unread = useChatList(open).data?.unread || 0;
   useEffect(() => { document.title = unread ? `(${unread}) Moonshine` : 'Moonshine'; }, [unread]);
-  if (!user) return null;
+  return <button className={`icon-btn top-chat ${open ? 'active' : ''}`} onClick={onToggle} aria-expanded={open}
+    aria-label={open ? 'Chat sluiten' : unread ? `Chat openen, ${unread} ongelezen` : 'Chat openen'}>
+    <Icon name="chat" />{unread && !open ? <span className="chat-badge">{unread > 9 ? '9+' : unread}</span> : null}</button>;
+}
+
+/** Team chat panel, opened from the top bar; it never covers the page until you open it. */
+export function ChatWidget({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const { user } = useAuth();
+  const [active, setActive] = useState<Conv | null>(null);
+  const list = useChatList(open);
+  if (!user || !open) return null;
+  const setOpen = (v: boolean) => { if (!v) onClose(); };
   return <div className="chat-dock">
     {open ? <section className="chat-panel" aria-label="Chat">
       {active ? <Thread conv={active} onBack={() => setActive(null)} /> : <>
@@ -32,9 +41,6 @@ export function ChatWidget() {
         </button></li>)}</ul>
       </>}
     </section> : null}
-    <button className="chat-fab" onClick={() => setOpen(!open)} aria-label={open ? 'Chat sluiten' : unread ? `Chat openen, ${unread} ongelezen` : 'Chat openen'} aria-expanded={open}>
-      <Icon name={open ? 'close' : 'chat'} />{unread && !open ? <span className="chat-badge">{unread > 9 ? '9+' : unread}</span> : null}
-    </button>
   </div>;
 }
 
