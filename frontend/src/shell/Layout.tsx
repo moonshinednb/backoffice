@@ -12,6 +12,7 @@ import { ProfileDialog } from './Profile';
 import { PasswordDialog } from './PasswordDialog';
 import { installSteps } from './pwa';
 import { FeatureRequestDialog } from './FeatureRequest';
+import { Theme, setTheme, storedTheme } from '../lib/theme';
 
 type Item = [path: string, label: string, icon: string];
 const FINANCE = ['/invoices', '/odoo', '/bank', '/vat', '/documents'];
@@ -36,6 +37,7 @@ export function Layout() {
   const [install, setInstall] = useState(false);
   const [me, setMe] = useState(false);
   const [wish, setWish] = useState(false);
+  const [theme, setThemeState] = useState<Theme>(storedTheme());
   const docs = useQuery({ queryKey: ['review-count'], queryFn: () => api<{ documents: { status: string }[] }>('/documents?limit=2000'), enabled: can.finance(user), refetchInterval: 30000 });
   const review = docs.data?.documents.filter((d) => d.status === 'review').length || 0;
   useEffect(() => { setMenu(false); setProfile(false); }, [location.pathname]);
@@ -48,7 +50,7 @@ export function Layout() {
   return (
     <div className="layout">
       <aside className={`sidebar ${menu ? 'open' : ''}`}>
-        <Link className="brand" to="/"><img src="/assets/moonshine-logo.svg" alt="Moonshine" /><div><div className="brand-name">Workspace</div><small>MOONSHINE TEAM</small></div></Link>
+        <Link className="brand" to="/"><img src="/assets/moonshine-logo.svg" alt="Moonshine" /><div><div className="brand-name">Backoffice</div></div></Link>
         {nav.map(([section, items]) => (
           <div key={section}>
             <div className="nav-label">{section}</div>
@@ -83,6 +85,8 @@ export function Layout() {
                     <button onClick={() => { setProfile(false); setMe(true); }}><Icon name="user" /> Mijn profiel</button>
                     <button onClick={() => { setProfile(false); setPassword(true); }}><Icon name="lock" /> Wachtwoord wijzigen</button>
                     <button onClick={() => { setProfile(false); setInstall(true); }}><Icon name="download" /> Installeer als app</button>
+                    <div className="theme-pick" role="group" aria-label="Weergave">{([['dark', 'Nacht'], ['light', 'Dag'], ['system', 'Systeem']] as [Theme, string][]).map(([k, l]) =>
+                      <button key={k} className={theme === k ? 'active' : ''} aria-pressed={theme === k} onClick={() => { setTheme(k); setThemeState(k); }}>{l}</button>)}</div>
                     {user.role === 'admin' ? <button onClick={() => navigate('/admin/instellingen')}><Icon name="settings" /> Werkplekinstellingen</button> : null}
                   </div>
                   <div className="profile-signout"><button onClick={logout}><Icon name="logout" /> Uitloggen</button></div>

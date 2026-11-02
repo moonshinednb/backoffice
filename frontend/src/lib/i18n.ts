@@ -894,6 +894,10 @@ const D: Record<string, string> = {
   'Eigenaar': 'Owner',
   'Anders': 'Other',
   'Vul minstens een naam, e-mail of telefoonnummer in.': 'Fill in at least a name, e-mail or phone number.',
+  'Nacht': 'Night',
+  'Dag': 'Day',
+  'Systeem': 'System',
+  'Weergave': 'Appearance',
   // Server messages
   'Geen verbinding met de server. Controleer of Tailscale aan staat.': 'No connection to the server. Check that Tailscale is on.',
   'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.': 'Your session expired or the page is outdated. Refresh the page and try again.',

@@ -58,3 +58,9 @@ webhooks: `/webhooks/{bank,outlook,opensign}`
 - Gebruikers: peppy + luc = admin, de rest staff. Tijdelijke wachtwoorden → `must_change_password`.
 - Nieuwe koppeling: sleutel in `SECRET_KEYS`, instelling in `SETTING_KEYS` (core/views.py), provider in `connections()`, test in integrations/checks.py, formulier in pages/Admin.tsx (`PROVIDERS`, `TEXT`, `KEYS`).
 - Lokaal draaien: `MOONSHINE_DATA=<map> python manage.py runserver`, frontend `npm run build` (of `npm run dev` met proxy).
+
+
+## Ontwerp (frontend)
+- `frontend/src/styles/system.css` is het designsysteem en wordt als laatste geladen: tokens (`--bg`, `--surface`, `--raised`, `--sunken`, `--line`, `--line-strong`, `--text`, `--text-2`, `--text-3`, `--accent*`, `--ok/warn/bad/moon/violet` met `-bg`/`-tint`, `--wash-1..3`) voor de thema's Nacht (standaard) en Dag (`<html data-theme>`, keuze in het profielmenu, `lib/theme.ts`), plus de definitieve basiscomponenten (knoppen, velden, tabs, tabellen, badges, dialogen, sidebar).
+- Geen vaste kleuren in andere CSS: gebruik altijd tokens. Tekst dimmen met `--text-2/--text-3`, niet met opacity. Geen hoofdletter-labels, geen verlopen.
+- Lettertypen (lokaal via @fontsource): IBM Plex Sans voor alles; IBM Plex Sans Condensed voor paginatitels, eventnamen, datums en tijden.

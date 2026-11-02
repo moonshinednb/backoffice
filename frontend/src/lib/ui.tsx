@@ -11,10 +11,10 @@ export function Badge({ children, color = '' }: { children: ReactNode; color?: s
   return <span className={`badge ${color}`}>{children}</span>;
 }
 
-export function PageTitle({ title, sub, actions, eyebrow = 'Moonshine backoffice' }: { title: ReactNode; sub?: ReactNode; actions?: ReactNode; eyebrow?: string }) {
+export function PageTitle({ title, sub, actions }: { title: ReactNode; sub?: ReactNode; actions?: ReactNode; eyebrow?: string }) {
   return (
     <header className="page-title">
-      <div><p className="eyebrow">{eyebrow}</p><h1>{title}</h1>{sub ? <p>{sub}</p> : null}</div>
+      <div><h1>{title}</h1>{sub ? <p>{sub}</p> : null}</div>
       <div className="row-actions">{actions}</div>
     </header>
   );
