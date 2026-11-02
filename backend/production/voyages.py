@@ -106,7 +106,7 @@ def update(request, ident: str):
         for key, done in body(request)['deliver'].items():
             if key in labels:
                 v.deliverables[key] = {'done': bool(done), 'at': __import__('time').time(), 'by': actor(request)}
-                VoyageNote.objects.create(voyage=v, kind='status', body=('✓ ' if done else '✗ ') + labels[key], author=actor(request))
+                VoyageNote.objects.create(voyage=v, kind='status', body=('Afgevinkt: ' if done else 'Weer open: ') + labels[key], author=actor(request))
     v.save()
     if v.status != before[0]:
         VoyageNote.objects.create(voyage=v, kind='status', body=f'Status: {STATUS[before[0]]} → {STATUS[v.status]}', author=actor(request))

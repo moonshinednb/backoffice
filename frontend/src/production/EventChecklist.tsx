@@ -4,7 +4,7 @@ import { Link } from 'react-router';
 import { api } from '../lib/api';
 import { useAuth } from '../lib/auth';
 import { fullDate, today } from '../lib/format';
-import { Empty, Icon, Loading, Orb, ErrorBox, formValues, useAction } from '../lib/ui';
+import { Empty, Icon, Loading, MoreMenu, Orb, ErrorBox, formValues, useAction } from '../lib/ui';
 import { useUsers } from '../pages/shared';
 import { useCanEdit } from './common';
 
@@ -30,8 +30,8 @@ export function relative(due: string) {
 
 function Owner({ s, names, edit, onChange }: { s: Step; names: [string, string][]; edit: boolean; onChange: (owner: string) => void }) {
   const label = names.find(([u]) => u === s.owner)?.[1] || (s.owner || 'Team');
-  if (!edit) return <span className={`owner-chip o-${s.owner || 'team'}`}>{label}</span>;
-  return <select className={`owner-chip o-${s.owner || 'team'}`} value={s.owner} aria-label="Wie" onChange={(e) => onChange(e.target.value)}>
+  if (!edit) return <span className="owner-chip">{label}</span>;
+  return <select className="owner-chip" value={s.owner} aria-label="Wie" onChange={(e) => onChange(e.target.value)}>
     <option value="">Team</option>{names.map(([u, n]) => <option key={u} value={u}>{n}</option>)}</select>;
 }
 
@@ -67,41 +67,45 @@ export function EventChecklist({ eventId, hasDrive }: { eventId: string; hasDriv
   return <>
     <div className="steps-head">
       <div className="steps-progress"><strong>{`${done}/${d.steps.length} klaar`}</strong><progress max={d.steps.length || 1} value={done} />
-        {checking ? <span className="helper"><Orb state="searching" size={20} /> OneDrive controleren…</span> : null}</div>
+        {checking ? <span className="helper"><Orb /> OneDrive controleren…</span> : null}</div>
       <div className="steps-filters">
-        <button className={!who ? 'chip-btn active' : 'chip-btn'} onClick={() => setWho('')}>Iedereen</button>
-        {user ? <button className={who === user.username ? 'chip-btn active' : 'chip-btn'} onClick={() => setWho(who === user.username ? '' : user.username)}>Alleen ik</button> : null}
-        <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Filter op persoon"><option value="">Per persoon…</option>{names.map(([u, n]) => <option key={u} value={u}>{n}</option>)}</select>
+        <div className="seg">
+          <button className={!who ? 'active' : ''} onClick={() => setWho('')}>Iedereen</button>
+          {user ? <button className={who === user.username ? 'active' : ''} onClick={() => setWho(who === user.username ? '' : user.username)}>Alleen ik</button> : null}
+        </div>
+        <select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Filter op persoon"><option value="">Per persoon</option>{names.map(([u, n]) => <option key={u} value={u}>{n}</option>)}</select>
         <label className="check-inline"><input type="checkbox" checked={hideDone} onChange={(e) => setHideDone(e.target.checked)} /> Verberg afgerond</label>
       </div>
     </div>
-    <div className="steps-board">{d.phases.map(([phase, title]) => {
+    {d.phases.map(([phase, title]) => {
       const rows = shown.filter((s) => s.phase === phase);
       const all = d.steps.filter((s) => s.phase === phase);
-      return <section key={phase} className={`steps-col phase-${phase}`}>
-        <h3>{title} <span>{`${all.filter((s) => s.done).length}/${all.length}`}</span></h3>
-        {rows.length ? <ul>{rows.map((s) => {
-          const r = relative(s.due);
-          return <li key={s.id} className={`step ${s.done ? 'done' : ''} ${!s.done && r.late ? 'late' : ''}`}>
-            <label><input type="checkbox" checked={s.done} disabled={!edit} onChange={(e) => patch(s, { done: e.target.checked })} /><span>{s.label}</span></label>
-            <div className="step-meta">
+      return <section key={phase} className="block steps-phase">
+        <div className="block-head"><h2>{title}</h2><span className="n">{`${all.filter((s) => s.done).length}/${all.length}`}</span></div>
+        <div className="panel">
+          {rows.length ? <ul className="rows">{rows.map((s) => {
+            const r = relative(s.due);
+            return <li key={s.id} className={`step-row ${s.done ? 'done' : ''} ${!s.done && r.late ? 'late' : ''}`}>
+              <input type="checkbox" checked={s.done} disabled={!edit} onChange={(e) => patch(s, { done: e.target.checked })} aria-label={`${s.label} afvinken`} />
+              <span className="step-text"><span>{s.label}</span>
+                {s.auto && !s.done ? <small className="step-auto" title={`Vinkt vanzelf af zodra er bestanden staan in ${autoFolder(s.auto)}`}><Icon name="folder" />{autoFolder(s.auto)}</small> : null}</span>
               <Owner s={s} names={names} edit={edit} onChange={(owner) => patch(s, { owner })} />
-              {s.done ? <small className="step-by">{s.done_by === 'OneDrive' ? '✓ staat op OneDrive' : s.done_by === 'Advancingmail' ? '✓ advancing verstuurd' : '✓ ' + (names.find(([u]) => u === s.done_by)?.[1] || s.done_by)}</small>
+              {s.done ? <small className="step-by">{s.done_by === 'OneDrive' ? 'staat op OneDrive' : s.done_by === 'Advancingmail' ? 'advancing verstuurd' : s.done_by && s.done_by !== s.owner ? names.find(([u]) => u === s.done_by)?.[1] || s.done_by : ''}</small>
                 : <small className={r.late ? 'due late' : r.soon ? 'due soon' : 'due'} title={s.due ? fullDate(s.due) : ''}>{r.text}</small>}
-              {s.auto && !s.done ? <small className="step-auto" title={`Vinkt vanzelf af zodra er bestanden staan in ${autoFolder(s.auto)}`}><Icon name="folder" />{autoFolder(s.auto)}</small> : null}
-              {edit && !s.done ? (s.task_id ? <small className="step-task">in Taken</small> : <button className="text-link" onClick={() => run(async () => { await api(`/event-steps/${s.id}/task`, { method: 'POST' }); refresh(); }, 'Staat bij Taken.')}>Maak taak</button>) : null}
-              {edit ? <button className="icon-btn ghost tiny" aria-label="Verwijderen" onClick={() => { if (confirm(`“${s.label}” van de checklist halen?`)) run(async () => { await api(`/event-steps/${s.id}`, { method: 'DELETE' }); refresh(); }); }}><Icon name="close" /></button> : null}
-            </div>
-          </li>;
-        })}</ul> : <p className="helper">{all.length ? 'Niets te tonen met dit filter.' : 'Nog geen punten.'}</p>}
-        {edit ? <form className="step-add" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => { await api(`/events/${eventId}/steps`, { method: 'POST', body: { ...formValues(f), phase } }); f.reset(); refresh(); }); }}>
-          <input name="label" required placeholder="Punt toevoegen" aria-label={`Punt toevoegen aan ${title}`} />
-          <select name="owner" aria-label="Wie" defaultValue=""><option value="">Team</option>{names.map(([u, n]) => <option key={u} value={u}>{n}</option>)}</select>
-          <button className="ghost small" type="submit" aria-label="Toevoegen"><Icon name="plus" /></button>
-        </form> : null}
+              {edit ? <MoreMenu label={`Meer bij ${s.label}`} items={[
+                !s.done && !s.task_id && { label: 'Maak taak', onSelect: () => run(async () => { await api(`/event-steps/${s.id}/task`, { method: 'POST' }); refresh(); }, 'Staat bij Taken.') },
+                { label: 'Van de checklist halen', danger: true, confirm: { title: 'Punt verwijderen', body: `“${s.label}” van de checklist halen?`, action: 'Verwijderen' },
+                  onSelect: () => run(async () => { await api(`/event-steps/${s.id}`, { method: 'DELETE' }); refresh(); }) }]} /> : null}
+            </li>;
+          })}</ul> : <p className="empty-line">{all.length ? 'Niets met dit filter.' : 'Nog geen punten.'}</p>}
+          {edit ? <form className="step-add" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => { await api(`/events/${eventId}/steps`, { method: 'POST', body: { ...formValues(f), phase } }); f.reset(); refresh(); }); }}>
+            <input name="label" required placeholder="Punt toevoegen" aria-label={`Punt toevoegen aan ${title}`} />
+            <select name="owner" aria-label="Wie" defaultValue=""><option value="">Team</option>{names.map(([u, n]) => <option key={u} value={u}>{n}</option>)}</select>
+            <button className="ghost small" type="submit" aria-label="Toevoegen"><Icon name="plus" /></button>
+          </form> : null}
+        </div>
       </section>;
-    })}</div>
-    <p className="helper steps-help">Deadlines schuiven mee met de eventdatum. Een punt met een mapje vinkt zichzelf af zodra er bestanden in die OneDrive-map staan. Wie wat standaard doet, staat bij Admin → Instellingen.</p>
+    })}
   </>;
 }
 

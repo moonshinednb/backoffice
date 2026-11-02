@@ -15,7 +15,6 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router": "^7.18.5",
-    "thinking-orbs": "^0.3.2",
     "three": "^0.180.0"
   },
   "devDependencies": {

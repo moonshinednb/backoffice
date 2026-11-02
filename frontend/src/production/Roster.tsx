@@ -21,7 +21,7 @@ export function RosterPage() {
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   return <>
-    <PageTitle eyebrow="Productie" title="Artists" sub="Onze eigen Moonshine-artiesten: profiel, foto, socials, EPK, releases en komende shows."
+    <PageTitle title="Artists"
       actions={edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Artiest toevoegen</button> : null} />
     <FormDialog id="roster-add" title="Moonshine-artiest toevoegen" open={open} onClose={() => setOpen(false)} label="Toevoegen" submit={async (form) => {
       const r = await api<{ id: string }>('/roster', { method: 'POST', body: formValues(form) });

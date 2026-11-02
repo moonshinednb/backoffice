@@ -1,6 +1,6 @@
 /* Shared pieces for the production pages: labels, form fields, files and
    the unsaved-changes guard. */
-import { ChangeEvent, ReactNode, useEffect, useRef, useState } from 'react';
+import { ReactNode, useEffect, useRef, useState } from 'react';
 import { useBlocker } from 'react-router';
 import { api } from '../lib/api';
 import { can, useAuth } from '../lib/auth';
@@ -17,7 +17,6 @@ export const BOOKED_BY: [string, string][] = [['', 'Nog onbekend'], ['artist', '
 export const YES_NO: [string, string][] = [['', 'Nog onbekend'], ['yes', 'Ja'], ['no', 'Nee']];
 
 export function StatusBadge({ status }: { status: string }) {
-  if (status === 'live') return <span className="status-orb"><Orb state="listening" tone="accent" label="Live" /><Badge color="purple">Live</Badge></span>;
   const [label, color] = STATUS[status] || [status || 'Onbekend', ''];
   return <Badge color={color}>{label}</Badge>;
 }
@@ -94,57 +93,61 @@ function AssetRow({ a, onChange }: { a: Asset; onChange: () => void }) {
   );
 }
 
-/** Files grouped by kind, with upload and link buttons. `before` runs first
+/** Files grouped by kind (only kinds that have files), with one upload area:
+    pick the kind, then upload, drop files or add a link. `before` runs first
     (autosave of the surrounding form). */
 export function AssetGroups({ ownerType, ownerId, assets, kinds, onChange, before }: { ownerType: string; ownerId: string; assets: Asset[]; kinds: string[]; onChange: () => void; before?: () => Promise<void> }) {
   const edit = useCanEdit();
   const toast = useToast();
-  const [busy, setBusy] = useState('');
+  const [kind, setKind] = useState(() => kinds.find((k) => !assets.some((a) => a.kind === k)) || kinds[0]);
+  const [busy, setBusy] = useState(false);
+  const [over, setOver] = useState(false);
   const [link, setLink] = useState('');
   const [error, setError] = useState('');
-  async function upload(kind: string, e: ChangeEvent<HTMLInputElement>) {
-    const input = e.target;
-    const file = input.files?.[0];
-    if (!file) return;
-    if (file.size > 20 * 1024 * 1024) { toast('Maximaal 20 MB per bestand. Zet grotere bestanden (video) als link.', true); input.value = ''; return; }
-    const body = new FormData();
-    body.append('owner_type', ownerType); body.append('owner_id', ownerId); body.append('kind', kind); body.append('file', file);
-    setBusy(kind);
+  async function upload(files: File[]) {
+    if (!files.length) return;
+    setBusy(true);
     try {
       await before?.();
-      await api('/assets', { method: 'POST', body });
-      toast(`${file.name} opgeslagen.`);
+      for (const file of files) {
+        if (file.size > 20 * 1024 * 1024) { toast(`${file.name}: maximaal 20 MB. Zet video als link.`, true); continue; }
+        const body = new FormData();
+        body.append('owner_type', ownerType); body.append('owner_id', ownerId); body.append('kind', kind); body.append('file', file);
+        await api('/assets', { method: 'POST', body });
+      }
       onChange();
-    } catch (err) { toast((err as Error).message, true); } finally { setBusy(''); input.value = ''; }
+    } catch (err) { toast((err as Error).message, true); } finally { setBusy(false); }
   }
   async function saveLink(form: HTMLFormElement) {
     try {
       await before?.();
       await api('/assets/link', { method: 'POST', body: { ...formValues(form), owner_type: ownerType, owner_id: ownerId, kind: link } });
-      setLink(''); setError(''); toast('Link opgeslagen.'); onChange();
+      setLink(''); setError(''); onChange();
     } catch (err) { setError((err as Error).message); }
   }
-  return <>
-    {kinds.map((kind) => {
-      const rows = assets.filter((a) => a.kind === kind);
-      return (
-        <div className="asset-group" key={kind}>
-          <div className="asset-head"><span>{KIND[kind] || kind}</span>{edit ? <span className="asset-tools">
-            <label className={`small-btn ${busy === kind ? 'busy' : ''}`}>{busy === kind ? <Orb state="weaving" label="Uploaden" /> : null}<Icon name="upload" /> Upload<input type="file" className="visually-hidden" onChange={(e) => upload(kind, e)} /></label>
-            <button type="button" className="small-btn" onClick={() => setLink(kind)}><Icon name="link" /> Link</button></span> : null}</div>
-          {rows.length ? <ul className="asset-list">{rows.map((a) => <AssetRow key={a.id} a={a} onChange={onChange} />)}</ul> : <p className="asset-empty">Nog niets</p>}
-        </div>
-      );
-    })}
+  const filled = kinds.filter((k) => assets.some((a) => a.kind === k));
+  return <div className={`asset-box ${over ? 'drop' : ''}`} onDragOver={edit ? (e) => { e.preventDefault(); setOver(true); } : undefined}
+    onDragLeave={() => setOver(false)} onDrop={edit ? (e) => { e.preventDefault(); setOver(false); upload(Array.from(e.dataTransfer.files)); } : undefined}>
+    {filled.map((k) => <div className="asset-group" key={k}>
+      {kinds.length > 1 ? <div className="asset-head"><span>{KIND[k] || k}</span></div> : null}
+      <ul className="asset-list">{assets.filter((a) => a.kind === k).map((a) => <AssetRow key={a.id} a={a} onChange={onChange} />)}</ul>
+    </div>)}
+    {!filled.length ? <p className="asset-empty">Nog geen bestanden.</p> : null}
+    {edit ? <div className="asset-add">
+      {kinds.length > 1 ? <select value={kind} onChange={(e) => setKind(e.target.value)} aria-label="Soort bestand">{kinds.map((k) => <option key={k} value={k}>{KIND[k] || k}</option>)}</select> : null}
+      <label className={`small-btn ${busy ? 'busy' : ''}`}>{busy ? <Orb label="Uploaden" /> : <Icon name="upload" />} Upload<input type="file" multiple className="visually-hidden" disabled={busy} onChange={(e) => { upload(Array.from(e.target.files || [])); e.target.value = ''; }} /></label>
+      <button type="button" className="small-btn" onClick={() => setLink(kind)}><Icon name="link" /> Link</button>
+      <small className="asset-hint">of sleep bestanden hierheen</small>
+    </div> : null}
     <Modal title={`Link toevoegen: ${KIND[link] || ''}`} open={!!link} onClose={() => setLink('')} error={error}
       footer={<><button className="ghost" onClick={() => setLink('')}>Annuleren</button><button className="primary" type="submit" form="link-form">Opslaan</button></>}>
       <form id="link-form" onSubmit={(e) => { e.preventDefault(); saveLink(e.currentTarget); }}>
         <div className="field"><label htmlFor="link-url">Link</label><input id="link-url" name="url" type="url" required placeholder="https://" /></div>
-        <div className="field"><label htmlFor="link-name">Naam (optioneel)</label><input id="link-name" name="name" placeholder="Bijv. EPK 2026 of persvideo Dekmantel" /></div>
-        <p className="helper">Handig voor grote video’s of mappen in WeTransfer, Dropbox of Google Drive. De link gaat mee in de mail naar de venue.</p>
+        <div className="field"><label htmlFor="link-name">Naam (optioneel)</label><input id="link-name" name="name" placeholder="Bijv. EPK 2026" /></div>
+        <p className="helper">Voor grote video’s of mappen in WeTransfer, Dropbox of Google Drive.</p>
       </form>
     </Modal>
-  </>;
+  </div>;
 }
 
 /** A simple one-form dialog: submit returns a promise; errors show inline. */

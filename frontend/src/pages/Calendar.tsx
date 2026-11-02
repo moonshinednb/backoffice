@@ -79,7 +79,7 @@ export function CalendarPage() {
   const today = iso(new Date());
   const title = month.toLocaleDateString(locale(), { month: 'long', year: 'numeric' });
   return <>
-    <PageTitle title="Agenda" sub={q.data ? `Outlook-agenda van ${q.data.mailbox} plus onze planning: events, posts, voyages, releases en meetings.` : 'Onze planning en de Outlook-agenda.'}
+    <PageTitle title="Agenda"
       actions={edit ? <><button className="ghost" onClick={() => setAppt(null)}><Icon name="calendar" /> Afspraak</button><button className="primary" onClick={() => { setPresetDate(''); setContent(null); }}><Icon name="plus" /> Post plannen</button></> : null} />
     {q.data?.outlook_error ? <div className="notice"><Icon name="warn" /> {q.data.outlook_error}</div> : null}
     {q.data && !q.data.sync ? <div className="notice"><Icon name="info" /> Synchronisatie naar Outlook staat uit. Zet hem aan bij Admin → Koppelingen → Agenda zodra de app agenda-rechten heeft.</div> : null}

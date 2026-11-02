@@ -210,6 +210,16 @@ def event_listing(only=None):
     counts = {}
     for b in Booking.objects.exclude(status='cancelled').values_list('event_id', flat=True):
         counts[b] = counts.get(b, 0) + 1
+    from .models import EventStep
+    from .steps import due
+    today = timezone.localdate().isoformat()
+    dates = {e.id: e.date for e in events}
+    for s in EventStep.objects.filter(event_id__in=list(dates)).only('event_id', 'done', 'due', 'offset'):
+        entry = progress.setdefault(s.event_id, {'artists': 0, 'complete': 0})
+        entry['steps'] = entry.get('steps', 0) + 1
+        entry['steps_done'] = entry.get('steps_done', 0) + (1 if s.done else 0)
+        d = due(s, dates.get(s.event_id, ''))
+        entry['steps_late'] = entry.get('steps_late', 0) + (1 if not s.done and d and d < today else 0)
     return [{**event_dict(e), 'booking_count': counts.get(e.id, 0), 'progress': progress.get(e.id, {'artists': 0, 'complete': 0})} for e in events]
 
 

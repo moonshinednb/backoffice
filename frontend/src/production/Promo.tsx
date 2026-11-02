@@ -87,7 +87,7 @@ export function PromoCampaign() {
   const queuedOrSelected = c.recipients.filter((r) => r.channel === 'email' && ['selected', 'failed'].includes(r.status)).length;
   return <>
     <BackLink to="/label/promo">Campagnes</BackLink>
-    <PageTitle eyebrow="Promo" title={c.name} sub={<>{KIND[c.kind]}{c.release ? ' · ' + c.release : ''} <Badge color={(STATUS[c.status] || ['', ''])[1]}>{(STATUS[c.status] || [c.status])[0]}</Badge></>}
+    <PageTitle title={c.name} sub={<>{KIND[c.kind]}{c.release ? ' · ' + c.release : ''} <Badge color={(STATUS[c.status] || ['', ''])[1]}>{(STATUS[c.status] || [c.status])[0]}</Badge></>}
       actions={edit ? <>
         <button className="ghost" disabled={!!busy} onClick={() => run(async () => { await save(); setPreview(await api(`/promo/campaigns/${id}/preview`, { method: 'POST', body: { contact_id: [...chosen][0] || '' } })); })}><Icon name="eye" /> Voorbeeld</button>
         <button className="ghost" disabled={!!busy || locked} onClick={() => run(async () => { setBusy('test'); try { await save(); const r = await api<{ to: string }>(`/promo/campaigns/${id}/test`, { method: 'POST' }); toast(`Testmail verstuurd naar ${r.to}.`); } finally { setBusy(''); } })}>{busy === 'test' ? <Orb state="composing" /> : <Icon name="send" />} Testmail</button>

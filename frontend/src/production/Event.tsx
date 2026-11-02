@@ -37,7 +37,7 @@ export function EventPage({ tab = 'checklist' }: { tab?: string }) {
   const [send, setSend] = useState(false);
   const q = useOverview(id);
   if (q.isPending) return <Loading />;
-  if (q.error) return <><BackLink to="/events">Evenementen</BackLink><ErrorBox error={q.error} /></>;
+  if (q.error) return <><BackLink to="/events">Events</BackLink><ErrorBox error={q.error} /></>;
   const o = q.data;
   const e = o.event;
   const s = o.summary;
@@ -47,7 +47,7 @@ export function EventPage({ tab = 'checklist' }: { tab?: string }) {
   const facts = [longDate(e.date), e.venue, e.doors ? `deuren ${e.doors}` : '', s.artists ? `${s.artists} acts, ${s.complete} compleet` : 'nog geen line-up'].filter(Boolean);
   const active = TAB_OF[tab] ?? '';
   return <>
-    <BackLink to={e.date && e.date < today() ? '/events/past' : '/events'}>Alle evenementen</BackLink>
+    <BackLink to={e.date && e.date < today() ? '/events/past' : '/events'}>Events</BackLink>
     <header className="event-head">
       <div><h1>{e.name}</h1><p>{facts.map((f, i) => <span key={i}>{f}</span>)}<StatusBadge status={e.status} /></p></div>
       <div className="row-actions">

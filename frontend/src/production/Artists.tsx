@@ -23,7 +23,7 @@ export function Artists() {
   const rows = q.data.artists.filter((a) => !term || [a.name, a.full_name, a.agency, a.agent].join(' ').toLowerCase().includes(term));
   const button = edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Nieuwe artiest</button> : null;
   return <>
-    <PageTitle eyebrow="Evenementen" title="Artiesten" sub="Eén profiel per artiest: contact, riders, EPK en promo. Herbruikbaar voor elk evenement en het label." actions={button} />
+    <PageTitle title="Artiesten" actions={button} />
     <EventTabs />
     <section className="card">{q.data.artists.length ? <>
       <div className="card-head"><div className="search-field"><label className="visually-hidden" htmlFor="artist-search">Zoek artiest</label><input id="artist-search" type="search" placeholder="Zoek op naam, agent of agency" value={search} onChange={(e) => setSearch(e.target.value)} /></div></div>
@@ -117,14 +117,14 @@ export function ArtistPage({ tab = 'info' }: { tab?: 'info' | 'tech' | 'hospital
   const submit = (ev: React.FormEvent<HTMLFormElement>) => { ev.preventDefault(); const f = ev.currentTarget; run(() => save(f)); };
   return <>
     <BackLink to="/events/artiesten">Alle artiesten</BackLink>
-    <PageTitle eyebrow="Artiest" title={a.name} sub={[a.full_name, a.agency].filter(Boolean).join(' · ') || 'Profiel'}
+    <PageTitle title={a.name} sub={[a.full_name, a.agency].filter(Boolean).join(' · ') || 'Profiel'}
       actions={<>{tab === 'tech' || tab === 'hospitality' ? <button className="ghost" onClick={() => run(async () => { await autosave(); await download(`/artists/${a.id}/rider.pdf?kind=${tab}`); })}><Icon name="pdf" /> PDF</button> : null}
         {edit && form ? <button className="primary" type="submit" form={form}>Opslaan</button> : null}</>} />
     <Tabs items={[{ to: base, label: 'Gegevens' }, { to: base + '/tech', label: 'Technical rider' }, { to: base + '/hospitality', label: 'Hospitality rider' },
       { to: base + '/files', label: <>Bestanden <span className="count">{a.assets.length}</span></> }, { to: base + '/shows', label: <>Optredens <span className="count">{a.bookings.length}</span></> }]} />
     {tab === 'tech' || tab === 'hospitality' ? <Rider key={tab} a={a} tab={tab} track={track} submit={submit} reload={reload} before={autosave} setDirty={setDirty} />
-      : tab === 'files' ? <section className="card card-pad"><h2>Bestanden van {a.name}</h2><p className="helper">Riders, EPK, logo’s, persfoto’s en video’s. Lokaal bewaard en, als de koppeling aan staat, in OneDrive onder Artiesten/{a.name}.</p>
-        <div className="asset-columns"><AssetGroups ownerType="artist" ownerId={a.id} assets={a.assets} kinds={['tech_rider', 'hospitality_rider', 'rider', 'epk', 'logo', 'press_photo', 'press_video', 'bio', 'visual', 'contract', 'other']} onChange={reload} /></div></section>
+      : tab === 'files' ? <section className="panel card-pad">
+        <div><AssetGroups ownerType="artist" ownerId={a.id} assets={a.assets} kinds={['tech_rider', 'hospitality_rider', 'rider', 'epk', 'logo', 'press_photo', 'press_video', 'bio', 'visual', 'contract', 'other']} onChange={reload} /></div></section>
         : tab === 'shows' ? <section className="card">{a.bookings.length ? <div className="table-wrap"><table className="shows-table"><thead><tr><th>Datum</th><th>Evenement</th><th>Locatie</th><th>Status</th><th /></tr></thead><tbody>
           {a.bookings.map((b) => <tr key={b.id} className="clickable" tabIndex={0} onClick={() => navigate(`/events/${b.event_id}/artist/${b.id}`)} onKeyDown={(k) => k.key === 'Enter' && navigate(`/events/${b.event_id}/artist/${b.id}`)}>
             <td>{shortDate(b.event_date)}</td><td><strong>{b.event_name}</strong></td><td>{b.venue}</td>
@@ -185,7 +185,7 @@ function Rider({ a, tab, track, submit, reload, before, setDirty }: { a: Artist;
   }
   return <div className="rider-layout">
     <form id="rider-form" className="card card-pad" {...track} onSubmit={submit}>
-      <div className="rider-head"><h2>{tab === 'tech' ? 'Technical rider' : 'Hospitality rider'}</h2>{edit ? <button type="button" className="small ghost" onClick={template}><Icon name="spark" /> {filled ? 'Sjabloon onderaan toevoegen' : 'Begin met sjabloon'}</button> : null}</div>
+      <div className="rider-head"><h2>{tab === 'tech' ? 'Technical rider' : 'Hospitality rider'}</h2>{edit ? <button type="button" className="small ghost" onClick={template}>{filled ? 'Sjabloon onderaan toevoegen' : 'Begin met sjabloon'}</button> : null}</div>
       <label className="visually-hidden" htmlFor={`f-${key}`}>Ridertekst</label>
       <textarea ref={area} id={`f-${key}`} name={key} className="rider-editor" rows={22} spellCheck defaultValue={a[key] || ''} disabled={!edit} placeholder={'# DJ-setup\n- 3x CDJ-3000\n- DJM-V10'} onInput={(e) => setFilled(!!e.currentTarget.value.trim())} />
       <p className="field-hint">Begin een regel met <code>#</code> voor een kop en met <code>-</code> voor een opsomming. De PDF en de mail naar de venue worden hieruit gemaakt.</p>

@@ -11,7 +11,7 @@ export type Work = { items: WorkItem[]; focus: string[]; counts: { late: number;
 
 export const useMyWork = () => useQuery({ queryKey: ['my-work'], queryFn: () => api<Work>('/my-work'), refetchInterval: 60000 });
 
-const KIND: Record<WorkItem['kind'], [string, string]> = { task: ['Taak', 'tasks'], step: ['Event', 'calendar'], action: ['Meeting', 'users'], content: ['Content', 'spark'] };
+const KIND: Record<WorkItem['kind'], [string, string]> = { task: ['Taak', 'tasks'], step: ['Event', 'calendar'], action: ['Meeting', 'users'], content: ['Content', 'calendar'] };
 const CONTENT_STATUS: Record<string, string> = { idea: 'Idee', making: 'In de maak', review: 'Ter controle', ready: 'Klaar om te posten' };
 
 function done(item: WorkItem) {
@@ -21,7 +21,7 @@ function done(item: WorkItem) {
   return Promise.resolve();
 }
 
-function Row({ item }: { item: WorkItem }) {
+export function WorkRow({ item, onTask }: { item: WorkItem; onTask?: (id: string) => void }) {
   const qc = useQueryClient();
   const run = useAction();
   const [gone, setGone] = useState(false);
@@ -34,7 +34,7 @@ function Row({ item }: { item: WorkItem }) {
         setGone(true); await done(item);
         for (const k of ['my-work', 'tasks', 'event-steps', 'meeting-board', 'meeting', 'dashboard']) qc.invalidateQueries({ queryKey: [k] });
       }, 'Afgevinkt.')} />}
-    <Link to={item.link} className="work-main"><strong>{item.title}</strong>
+    <Link to={item.link} className="work-main" onClick={(ev) => { if (onTask && item.kind === 'task') { ev.preventDefault(); onTask(item.id); } }}><strong>{item.title}</strong>
       <small><Icon name={icon} /> {item.context ? `${label} · ${item.context}` : label}{item.kind === 'content' && item.status ? ` · ${CONTENT_STATUS[item.status] || item.status}` : ''}</small></Link>
     {item.high ? <span className="badge amber">Prioriteit</span> : null}
     <span className={`work-due ${r.late ? 'late' : r.soon ? 'soon' : ''}`} title={item.due ? fullDate(item.due) : ''}>{r.text}</span>
@@ -66,7 +66,7 @@ export function MyWork() {
       shown += take.length;
       return <div key={name} className={`work-group ${name === 'Te laat' ? 'is-late' : ''}`}>
         <h3>{name} <span>{rows.length}</span></h3>
-        <ul>{take.map((i) => <Row key={i.kind + i.id} item={i} />)}</ul>
+        <ul className="rows">{take.map((i) => <WorkRow key={i.kind + i.id} item={i} />)}</ul>
       </div>;
     }) : <Empty title="Niets dat op jou wacht" sub="Nieuwe taken, eventpunten en meeting-acties voor jou verschijnen hier." icon="check" />}
     {items.length > 12 ? <button className="ghost small work-more" onClick={() => setAll(!all)}>{all ? 'Minder tonen' : `Alles tonen (${items.length})`}</button> : null}

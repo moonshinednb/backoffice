@@ -26,7 +26,7 @@ export function RequestsPage() {
   const rows = all.filter((r) => filter === 'all' || (filter === 'open' ? !['done', 'declined'].includes(r.status) : r.status === filter));
   const patch = (r: FeatureRequest, body: object) => run(async () => { await api(`/feature-requests/${r.id}`, { method: 'PATCH', body }); qc.invalidateQueries({ queryKey: ['feature-requests'] }); });
   return <>
-    <PageTitle title="Feature requests" sub="Wensen en fouten van het team, met waar in de app het over gaat." />
+    <PageTitle title="Feature requests" />
     <div className="status-chips">{[['open', 'Open'], ['all', 'Alles'], ...STATUS.map(([k, l]) => [k, l])].map(([k, l]) =>
       <button key={k} className={`chip-btn ${filter === k ? 'active' : ''}`} onClick={() => setFilter(k)}>{l}<span>{all.filter((r) => k === 'all' || (k === 'open' ? !['done', 'declined'].includes(r.status) : r.status === k)).length}</span></button>)}</div>
     {rows.length ? <div className="fr-list">{rows.map((r) => {
@@ -56,6 +56,6 @@ export function RequestsPage() {
           </div>
         </div> : null}
       </section>;
-    })}</div> : <section className="card"><Empty title="Geen verzoeken" sub="Het team stuurt ze via ‘Feature request’ linksonder in het menu." icon="spark" /></section>}
+    })}</div> : <section className="card"><Empty title="Geen verzoeken" sub="Het team stuurt ze via ‘Feature request’ linksonder in het menu." icon="chat" /></section>}
   </>;
 }

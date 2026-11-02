@@ -34,7 +34,7 @@ export function VoyagesPage() {
   const confirmed = all.filter((v) => ['confirmed', 'contracted', 'advanced'].includes(v.status) && (!v.date || v.date >= now));
   const button = edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Nieuwe voyage</button> : null;
   return <>
-    <PageTitle eyebrow="Productie" title="Voyages" sub="Shows buiten het Moonshine-programma: andere events, buitenland. Van eerste contact tot gespeeld." actions={button} />
+    <PageTitle title="Voyages" actions={button} />
     <div className="stats">
       <Stat label="In de pijplijn" value={all.filter((v) => OPEN.includes(v.status)).length} sub="Aanvraag, voorstel of onderhandeling" icon="send" />
       <Stat label="Bevestigd" value={confirmed.length} sub="Komende shows" icon="check" />
@@ -84,7 +84,7 @@ export function VoyagePage() {
     <div className="field"><label htmlFor={`vy-${name}`}>{text}</label><input id={`vy-${name}`} name={name} type={type} defaultValue={String(v[name] ?? '')} disabled={!edit} {...extra} /></div>;
   return <>
     <BackLink to="/voyages">Alle voyages</BackLink>
-    <PageTitle eyebrow="Voyage" title={`${v.event_name} — ${v.performer}`} sub={<>{v.date ? fullDate(v.date) : 'Datum onbekend'}{v.city ? ' · ' + [v.city, v.country].filter(Boolean).join(', ') : ''} <Badge color={color}>{label}</Badge></>}
+    <PageTitle title={`${v.event_name} — ${v.performer}`} sub={<>{v.date ? fullDate(v.date) : 'Datum onbekend'}{v.city ? ' · ' + [v.city, v.country].filter(Boolean).join(', ') : ''} <Badge color={color}>{label}</Badge></>}
       actions={<><DriveButton kind="voyage" id={v.id} url={v.drive_url} onDone={reload} />{v.mail_link ? <a className="button ghost" href={v.mail_link} target="_blank" rel="noopener noreferrer"><Icon name="mail" /> Mailcontact</a> : null}
         {edit ? <button className="primary" type="submit" form="voyage-form">Opslaan</button> : null}</>} />
     <div className="promo-grid">

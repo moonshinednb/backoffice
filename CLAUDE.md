@@ -28,6 +28,7 @@ sh deploy/deploy.sh            # backup, code kopiëren, herbouwen, controleren 
 
 ## Code
 Lees eerst `ARCHITECTURE.md` (projectkaart: modules, modellen, endpoints, routes, afspraken) in plaats van de hele code. Werk die kaart bij als de structuur verandert.
+Volg bij elke UI-wijziging `DESIGN.md` (secties zonder kaders, één filter en één primaire knop per scherm, alleen tokens, geen gradients/glyphs/orbs). `core/tests/test_design.py` blokkeert de harde regels.
 
 ## Werkwijze bij wijzigingen
 1. Wijzig de code hier en test: `cd backend && python manage.py test` en `cd frontend && npm run build`.

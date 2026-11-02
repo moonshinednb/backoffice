@@ -2,7 +2,6 @@
    design carries over unchanged. */
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { Link, NavLink } from 'react-router';
-import { ThinkingOrb } from 'thinking-orbs';
 import { Icon } from './icons';
 
 export { Icon };
@@ -40,12 +39,11 @@ export function Tabs({ items }: { items: { to: string; label: ReactNode; end?: b
   );
 }
 
-const TONES: Record<string, string | undefined> = { ink: undefined, ok: '#a996e8', warn: '#f0b35a', accent: '#ec4860' };
 type OrbState = 'working' | 'searching' | 'solving' | 'listening' | 'connecting' | 'weaving' | 'composing' | 'breathing' | 'shaping';
 
-/** Dotted thought-orb (thinking-orbs) for loading and live status. */
-export function Orb({ state = 'working', size = 20, tone = 'ink', paused, label }: { state?: OrbState; size?: 20 | 32 | 64; tone?: string; paused?: boolean; label?: string }) {
-  return <span className="moon-orb"><ThinkingOrb state={state} size={size} theme="dark" color={TONES[tone]} paused={paused} aria-label={label} /></span>;
+/** A plain spinner for loading and busy buttons. (Name kept from the old animated orb; the props are ignored.) */
+export function Orb({ size = 20, label }: { state?: OrbState; size?: 20 | 32 | 64; tone?: string; paused?: boolean; label?: string }) {
+  return <span className="spin" style={{ width: Math.min(size, 24), height: Math.min(size, 24) }} role="status" aria-label={label || 'Bezig'} />;
 }
 
 export function Loading({ text = 'Laden…', state = 'working' as OrbState }) {

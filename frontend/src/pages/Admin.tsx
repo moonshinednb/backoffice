@@ -47,7 +47,7 @@ export function IntegrationsPage() {
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   return <>
-    <PageTitle title="Koppelingen" sub="Accounts en administratiestromen" />
+    <PageTitle title="Koppelingen" />
     <div className="panel-grid">{q.data.connections.map((c: Connection) => {
       const [logo, sub, desc] = TEXT[c.id] || [c.name.slice(0, 2), '', ''];
       return <section key={c.id} className="card integration-card">
@@ -199,7 +199,7 @@ export function UsersPage() {
   if (q.error) return <ErrorBox error={q.error} />;
   const u = dialog || null;
   return <>
-    <PageTitle title="Gebruikers" sub="Team, toegang en rechten" actions={<button className="primary" onClick={() => setDialog(null)}><Icon name="plus" /> Gebruiker toevoegen</button>} />
+    <PageTitle title="Gebruikers" actions={<button className="primary" onClick={() => setDialog(null)}><Icon name="plus" /> Gebruiker toevoegen</button>} />
     <section className="card"><div className="table-wrap"><table><thead><tr><th>Gebruiker</th><th>Gebruikersnaam</th><th>Rol</th><th>Status</th><th /></tr></thead><tbody>
       {q.data.users.map((x) => <tr key={x.id}><td><div className="supplier"><span className="avatar">{x.name.slice(0, 2).toUpperCase()}</span><strong>{x.name}</strong></div></td><td>{x.username}</td><td>{ROLE[x.role]}</td>
         <td>{!x.active ? <Badge>Inactief</Badge> : x.must_change_password ? <Badge color="amber">Tijdelijk wachtwoord</Badge> : <Badge color="lime">Actief</Badge>}</td>
@@ -244,7 +244,7 @@ export function SettingsPage() {
   if (q.error) return <ErrorBox error={q.error} />;
   const s = q.data.settings;
   return <>
-    <PageTitle title="Instellingen" sub="Bedrijfsgegevens, verwerking en beveiliging" />
+    <PageTitle title="Instellingen" />
     <div className="settings-wide">
       <section className="card card-pad"><h2>Moonshine</h2>
         <form key={key} onSubmit={async (e) => {
@@ -338,13 +338,13 @@ export function KeysPage() {
     if (!provider) return { badge: <Badge color="lime">Ingesteld</Badge>, note: 'Wordt alleen door de backoffice zelf gebruikt; niet te testen.' };
     const live = fresh[provider];
     const saved = conns.data?.connections.find((c) => c.id === provider);
-    if (live) return { badge: live.ok ? <Badge color="lime">✓ Werkt</Badge> : <Badge color="red">✗ Werkt niet</Badge>, note: live.message };
-    if (saved?.status === 'verified') return { badge: <Badge color="lime">✓ Werkt</Badge>, note: `${saved.message || 'Getest'}${saved.checked ? ' · ' + stamp(saved.checked) : ''}` };
-    if (saved?.status === 'failed') return { badge: <Badge color="red">✗ Werkt niet</Badge>, note: `${saved.error || ''}${saved.checked ? ' · ' + stamp(saved.checked) : ''}` };
+    if (live) return { badge: live.ok ? <Badge color="lime">Werkt</Badge> : <Badge color="red">Werkt niet</Badge>, note: live.message };
+    if (saved?.status === 'verified') return { badge: <Badge color="lime">Werkt</Badge>, note: `${saved.message || 'Getest'}${saved.checked ? ' · ' + stamp(saved.checked) : ''}` };
+    if (saved?.status === 'failed') return { badge: <Badge color="red">Werkt niet</Badge>, note: `${saved.error || ''}${saved.checked ? ' · ' + stamp(saved.checked) : ''}` };
     return { badge: <Badge color="amber">Nog niet getest</Badge>, note: '' };
   };
   return <>
-    <PageTitle title="Sleutels" sub="API-sleutels en tokens van alle koppelingen" actions={<button onClick={testAll} disabled={!!testing}><Icon name="refresh" /> Alles testen</button>} />
+    <PageTitle title="Sleutels" actions={<button onClick={testAll} disabled={!!testing}><Icon name="refresh" /> Alles testen</button>} />
     <div className="notice"><Icon name="lock" /> Sleutels worden alleen op de server bewaard. Na het opslaan zijn ze hier niet meer te zien; je kunt ze alleen vervangen of verwijderen. “Testen” doet één onschuldige aanroep bij de dienst.</div>
     <section className="card"><div className="table-wrap"><table><thead><tr><th>Sleutel</th><th>Gebruikt voor</th><th>Status</th><th /></tr></thead><tbody>
       {KEYS.map((k) => { const st = state(k[0]); const provider = KEY_PROVIDER[k[0]]; return <tr key={k[0]}>
@@ -381,7 +381,7 @@ export function AdminHome() {
   const q = useQuery({ queryKey: ['dashboard'], queryFn: () => api<any>('/dashboard') });
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
-  return <><PageTitle eyebrow="Admin" title="Beheer" sub="Koppelingen, sleutels, gebruikers en de gezondheid van het systeem. Alleen voor beheerders." />{q.data.admin ? <AdminPanel d={q.data} /> : null}</>;
+  return <><PageTitle title="Beheer" />{q.data.admin ? <AdminPanel d={q.data} /> : null}</>;
 }
 
 export function ActivityPage() {
@@ -392,7 +392,7 @@ export function ActivityPage() {
   const actors = [...new Set(q.data.audit.map((a) => a.actor))].sort();
   const rows = q.data.audit.filter((a) => !actor || a.actor === actor);
   return <>
-    <PageTitle eyebrow="Admin" title="Activiteit" sub="Wie wat wanneer deed: logins, wijzigingen, boekingen en verzendingen." />
+    <PageTitle title="Activiteit" />
     <div className="toolbar"><label htmlFor="act-actor">Gebruiker</label><select id="act-actor" className="vat-select" value={actor} onChange={(e) => setActor(e.target.value)}><option value="">Iedereen</option>{actors.map((a) => <option key={a}>{a}</option>)}</select></div>
     <section className="card">{rows.length ? <div className="table-wrap"><table><thead><tr><th>Moment</th><th>Gebruiker</th><th>Handeling</th><th>Details</th></tr></thead><tbody>
       {rows.map((a) => <tr key={a.id}><td>{stamp(a.created)}</td><td>{a.actor}</td><td>{a.action}</td><td className="helper">{[a.entity, a.detail].filter(Boolean).join(' · ')}</td></tr>)}

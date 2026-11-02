@@ -30,7 +30,7 @@ export function InvoicesPage() {
     && [d.name, d.details.supplier, d.details.number].some((v) => String(v || '').toLowerCase().includes(term)));
   const clear = () => { setSearch(''); setParams({}); };
   return <>
-    <PageTitle title="Facturen" sub="Ontvangst, controle en boeking" actions={<><a className="button ghost" href="/api/export"><Icon name="download" /> Export</a><button className="primary" onClick={() => upload()}><Icon name="plus" /> Factuur toevoegen</button></>} />
+    <PageTitle title="Facturen" actions={<><a className="button ghost" href="/api/export"><Icon name="download" /> Export</a><button className="primary" onClick={() => upload()}><Icon name="plus" /> Factuur toevoegen</button></>} />
     <div className="toolbar"><div className="search"><Icon name="search" /><input aria-label="Zoek facturen" placeholder="Zoek crediteur of factuurnummer" value={search} onChange={(e) => setSearch(e.target.value)} /></div>
       <div className="tabs">{FILTERS.map(([v, t]) => <button key={v} className={filter === v ? 'active' : ''} onClick={() => setParams(v === 'all' ? {} : { status: v })}>{t}</button>)}</div></div>
     <section className="card"><InvoiceTable docs={docs} onOpen={setDoc} empty={filter !== 'all' || search
@@ -100,7 +100,7 @@ export function InvoiceDialog({ id, onClose }: { id: string | null; onClose: () 
       footer={locked ? <button onClick={onClose}>Sluiten</button> : <><button onClick={saveOnly} disabled={busy}>Opslaan</button><button className="primary" onClick={post} disabled={busy}><Icon name="check" /> Opslaan & boeken</button></>}>
       {d.error ? <div className="notice">{d.error}</div> : null}
       <div className="row-actions"><DocumentBadge d={d} /><a className="button small" href={`/api/documents/${d.id}/file`}><Icon name="download" /> Origineel</a>
-        {!locked ? <><button className="small ghost" onClick={retry}><Icon name="spark" /> Opnieuw uitlezen</button><button className="small ghost" onClick={print}><Icon name="download" /> Afdrukken</button></> : null}</div>
+        {!locked ? <><button className="small ghost" onClick={retry}><Icon name="refresh" /> Opnieuw uitlezen</button><button className="small ghost" onClick={print}><Icon name="download" /> Afdrukken</button></> : null}</div>
       <p className="helper">{d.name}{i.confidence ? ' · ' + Math.round(i.confidence * 100) + '% herkenningszekerheid' : ''}</p>
       <form id="invoice-form" ref={form} key={d.id} onSubmit={(e) => { e.preventDefault(); saveOnly(); }}>
         <fieldset disabled={locked} className="plain-fieldset">
@@ -148,7 +148,7 @@ export function OdooPage() {
   const q = useOdoo();
   const money = (v: number, cur: string) => { try { return new Intl.NumberFormat('nl-NL', { style: 'currency', currency: cur }).format(v || 0); } catch { return (v || 0) + ' ' + cur; } };
   const admin = user?.role === 'admin';
-  const title = <PageTitle title="Odoo-administratie" sub="Live gegevens uit jouw Odoo-account" actions={<><button onClick={() => q.refetch()} disabled={q.isFetching}><Icon name="refresh" /> Vernieuwen</button>{admin ? <Link className="button" to="/admin/koppelingen?config=odoo">Koppeling instellen</Link> : null}</>} />;
+  const title = <PageTitle title="Odoo-administratie" actions={<><button onClick={() => q.refetch()} disabled={q.isFetching}><Icon name="refresh" /> Vernieuwen</button>{admin ? <Link className="button" to="/admin/koppelingen?config=odoo">Koppeling instellen</Link> : null}</>} />;
   if (q.isPending || (q.isFetching && !q.data)) return <>{title}<Loading text="Odoo-administratie ophalen…" state="searching" /></>;
   if (q.error) return <>{title}<ErrorBox error={q.error} /><p className="helper">Controleer de koppeling onder Koppelingen en probeer opnieuw.</p></>;
   const r = q.data, c = r.catalog, m = r.mapping;
@@ -203,7 +203,7 @@ export function BankPage() {
   const settle = (t: Tx) => confirm('SumUp-uitbetaling verwerken?\n\nDit boekt omzet, kosten en de uitbetaling in Odoo en lettert de groep af.')
     && run(async () => { await api('/sumup/settle', { method: 'POST', body: { transaction_id: t.id } }); refreshFinance(qc); }, 'SumUp-omzet, kosten en uitbetaling geboekt en afgeletterd.');
   return <>
-    <PageTitle title="Bank & pin" sub="Transacties, pinomzet en aflettering" actions={<><button className="ghost" onClick={template}><Icon name="download" /> CSV-template</button>{edit ? <button className="primary" onClick={() => setImporting(true)}><Icon name="upload" /> Bankexport importeren</button> : null}</>} />
+    <PageTitle title="Bank & pin" actions={<><button className="ghost" onClick={template}><Icon name="download" /> CSV-template</button>{edit ? <button className="primary" onClick={() => setImporting(true)}><Icon name="upload" /> Bankexport importeren</button> : null}</>} />
     <div className="stats"><Stat label="Banktransacties" value={tx.filter((t) => t.source === 'ING').length} sub="Geïmporteerd of ontvangen" icon="bank" />
       <Stat label="Te matchen" value={tx.filter((t) => t.amount < 0 && t.status === 'open').length} sub="Openstaande afschrijvingen" icon="refresh" />
       <Stat label="Pinomzet" value={eur(gross)} sub="Geclassificeerde SumUp-omzet" icon="wallet" /><Stat label="Transactiekosten" value={eur(fees)} sub="Apart van de omzet" icon="invoice" /></div>
@@ -269,7 +269,7 @@ export function VatPage() {
     saveBlob(new Blob([rows.map((x) => x.join(';')).join('\r\n')], { type: 'text/csv' }), `btw-${y}-Q${qn}.csv`);
   }
   return <>
-    <PageTitle title="Btw-overzicht" sub="Kwartaalcijfers per aangifterubriek" actions={<button className="ghost" onClick={exportCsv} disabled={!q.data}><Icon name="download" /> Download overzicht</button>} />
+    <PageTitle title="Btw-overzicht" actions={<button className="ghost" onClick={exportCsv} disabled={!q.data}><Icon name="download" /> Download overzicht</button>} />
     <div className="toolbar"><label htmlFor="vat-year">Jaar</label><select id="vat-year" className="vat-select" value={y} onChange={(e) => set(+e.target.value, qn)}>{[y - 1, y, y + 1].map((n) => <option key={n}>{n}</option>)}</select>
       <label htmlFor="vat-quarter">Kwartaal</label><select id="vat-quarter" className="vat-select" value={qn} onChange={(e) => set(y, +e.target.value)}>{[1, 2, 3, 4].map((n) => <option key={n} value={n}>Q{n}</option>)}</select></div>
     <div className="notice"><Icon name="info" /> Dit is een voorlopig werkoverzicht. Vergelijk het vóór indiening met het volledige btw-rapport in Odoo. Buitenlandse diensten worden gesplitst in EU (4b) en buiten EU (4a).</div>
@@ -292,7 +292,7 @@ export function DocumentsPage() {
   if (q.error) return <ErrorBox error={q.error} />;
   const docs: Doc[] = q.data.documents;
   return <>
-    <PageTitle title="Documenten" sub="Originele facturen en bonnen" actions={<button className="primary" onClick={() => upload()}><Icon name="plus" /> Bestand toevoegen</button>} />
+    <PageTitle title="Documenten" actions={<button className="primary" onClick={() => upload()}><Icon name="plus" /> Bestand toevoegen</button>} />
     <div className="notice"><Icon name="info" /> Je bestanden worden op de server bewaard en bij boeking aan Odoo gekoppeld. OneDrive-archivering kun je aanzetten bij Koppelingen.</div>
     {docs.length ? <div className="file-list">{docs.map((d) => <article key={d.id} className="card file-card"><Icon name="invoice" /><h3>{d.name}</h3><p>{size(d.size)} · {shortDate(d.created)} · {d.source}</p>
       <footer><DocumentBadge d={d} /><a className="icon-btn button" href={`/api/documents/${d.id}/file`} aria-label={`${d.name} downloaden`}><Icon name="download" /></a></footer>

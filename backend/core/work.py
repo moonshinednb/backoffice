@@ -53,3 +53,26 @@ def my_work(request):
     return {'items': items, 'focus': focus(request.auth),
             'counts': {'late': sum(1 for i in items if i['due'] and i['due'] < today),
                        'week': sum(1 for i in items if i['due'] and today <= i['due'] <= week), 'all': len(items)}}
+
+
+@router.get('/attention')
+def attention(request):
+    """For the overview: the coming events with what blocks them (late or next
+    checklist points, with who), and the next meeting."""
+    from production.models import Event, EventStep
+    from production.steps import due, seed
+    from meetings.services import next_meeting
+    from .models import User
+    today = date.today()
+    names = {u.username: u.display_name for u in User.objects.all()}
+    events = []
+    for e in Event.objects.exclude(status='cancelled').exclude(date='').filter(date__gte=today.isoformat()).order_by('date')[:4]:
+        seed(e)
+        steps = list(EventStep.objects.filter(event=e))
+        open_steps = sorted((s for s in steps if not s.done), key=lambda s: due(s, e.date) or '9999')
+        top = [{'label': s.label, 'owner': names.get(s.owner, s.owner or 'Team'), 'due': due(s, e.date),
+                'late': bool(due(s, e.date)) and due(s, e.date) < today.isoformat()} for s in open_steps[:3]]
+        events.append({'id': e.id, 'name': e.name, 'date': e.date, 'venue': e.venue, 'days': (date.fromisoformat(e.date) - today).days,
+                       'steps': len(steps), 'done': sum(1 for s in steps if s.done),
+                       'late': sum(1 for s in open_steps if due(s, e.date) and due(s, e.date) < today.isoformat()), 'next': top})
+    return {'events': events, 'meeting': next_meeting()}

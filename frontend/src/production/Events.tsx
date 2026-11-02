@@ -1,12 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { useState } from 'react';
 import { api } from '../lib/api';
-import { dayNumber, monthShort, shortDate, today } from '../lib/format';
-import { Empty, ErrorBox, Icon, Loading, PageTitle, Tabs, formValues, useToast } from '../lib/ui';
+import { dayNumber, monthShort, today } from '../lib/format';
+import { ErrorBox, Icon, Loading, PageTitle, Tabs, formValues, useToast } from '../lib/ui';
 import { FormDialog, StatusBadge, useCanEdit } from './common';
 
-export type EventRow = { id: string; name: string; date: string; venue: string; status: string; progress: { artists: number; complete: number; checklist?: number; checklist_done?: number; steps?: number; steps_done?: number } };
+export type EventRow = { id: string; name: string; date: string; venue: string; status: string; progress: { artists: number; complete: number; checklist?: number; checklist_done?: number; steps?: number; steps_done?: number; steps_late?: number } };
 
 export function Events({ past = false }: { past?: boolean }) {
   const navigate = useNavigate();
@@ -20,36 +20,26 @@ export function Events({ past = false }: { past?: boolean }) {
   const upcoming = q.data.events.filter((e) => !e.date || e.date >= now).sort((a, b) => (a.date || '9999').localeCompare(b.date || '9999'));
   const done = q.data.events.filter((e) => e.date && e.date < now).sort((a, b) => b.date.localeCompare(a.date));
   const list = past ? done : upcoming;
-  const button = edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Nieuw evenement</button> : null;
+  const button = edit ? <button className="primary" onClick={() => setOpen(true)}><Icon name="plus" /> Nieuw event</button> : null;
   return <>
-    <PageTitle eyebrow="Productie" title="Evenementen" sub="Advancing per avond: artiesten, reis, riders en wat de venue heeft ontvangen." actions={button} />
+    <PageTitle title="Events" actions={button} />
     <EventTabs upcoming={upcoming.length} past={done.length} />
-    <section className="card">
-      {list.length ? (
-        <div className="table-wrap"><table className="events-table">
-          <thead><tr><th>Datum</th><th>Evenement</th><th>Status</th><th>Advancing</th><th>Venue</th><th aria-label="Openen" /></tr></thead>
-          <tbody>{list.map((e) => {
-            const p = e.progress || { artists: 0, complete: 0 };
-            const go = () => navigate(`/events/${e.id}`);
-            return (
-              <tr key={e.id} className="clickable" tabIndex={0} onClick={go} onKeyDown={(k) => k.key === 'Enter' && go()}>
-                <td className="date-cell">{e.date ? <div className="date-block"><strong>{dayNumber(e.date)}</strong><span>{monthShort(e.date)}</span></div> : <div className="date-block muted"><strong>?</strong><span>datum</span></div>}</td>
-                <td><div className="event-name"><strong>{e.name}</strong><small>{e.venue || 'Locatie nog onbekend'}{e.date ? ' · ' + shortDate(e.date) : ''}</small></div></td>
-                <td><StatusBadge status={e.status} /></td>
-                <td>{p.artists ? <div className="progress-line"><progress max={p.artists} value={p.complete} /><span>{p.complete}/{p.artists} artiesten compleet</span></div> : <span className="helper">Nog geen artiesten</span>}</td>
-                <td className="nowrap">{p.checklist ? `${p.checklist_done}/${p.checklist} venue` : '—'}</td>
-                <td><Icon name="chevron" /></td>
-              </tr>
-            );
-          })}</tbody>
-        </table></div>
-      ) : past ? <Empty title="Nog geen afgelopen evenementen" sub="Evenementen verschijnen hier zodra hun datum voorbij is." icon="calendar" />
-        : <Empty title="Geen komende evenementen" sub="Maak een evenement aan en zet de line-up erin. De advancing-checklist komt er automatisch bij." action={button} icon="calendar" />}
-    </section>
-    <FormDialog id="event-new-form" title="Nieuw evenement" open={open} onClose={() => setOpen(false)} label="Aanmaken" submit={async (form) => {
+    {list.length ? <div className="panel"><ul className="rows ev-list">{list.map((e) => {
+      const p = e.progress || { artists: 0, complete: 0 };
+      const steps = p.steps || 0;
+      return <li key={e.id}><Link to={`/events/${e.id}`} className="ev-row">
+        {e.date ? <span className="att-date"><strong>{dayNumber(e.date)}</strong><span>{monthShort(e.date)}</span></span> : <span className="att-date muted"><strong>?</strong><span>datum</span></span>}
+        <span className="att-name"><strong>{e.name}</strong><small>{[e.venue || 'Venue nog onbekend', p.artists ? `${p.artists} ${p.artists === 1 ? 'act' : 'acts'}` : ''].filter(Boolean).join(' · ')}</small></span>
+        {e.status === 'live' || e.status === 'cancelled' ? <StatusBadge status={e.status} /> : <span />}
+        <span className="ev-progress">{steps ? <><span className="bar" aria-hidden="true"><i style={{ width: `${Math.round(((p.steps_done || 0) / steps) * 100)}%` }} /></span>
+          <small className={p.steps_late && !past ? 'late' : ''}>{p.steps_late && !past ? `${p.steps_late} te laat` : `${p.steps_done || 0}/${steps}`}</small></> : null}</span>
+      </Link></li>;
+    })}</ul></div>
+      : <div className="panel"><p className="empty-line">{past ? 'Nog geen afgelopen events.' : 'Geen komende events.'}</p></div>}
+    <FormDialog id="event-new-form" title="Nieuw event" open={open} onClose={() => setOpen(false)} label="Aanmaken" submit={async (form) => {
       const created = await api<{ id: string }>('/events', { method: 'POST', body: formValues(form) });
       setOpen(false);
-      toast('Evenement aangemaakt. De venue-checklist staat klaar.');
+      toast('Event aangemaakt.');
       navigate(`/events/${created.id}`);
     }}>
       <div className="field"><label htmlFor="ne-name">Naam *</label><input id="ne-name" name="name" required placeholder="Moonshine 10YRS" /></div>

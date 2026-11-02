@@ -29,7 +29,7 @@ export function Label({ tab }: { tab: Tab }) {
   const r = dialog?.r;
   const button = edit ? <button className="primary" onClick={() => setDialog({ r: null })}><Icon name="plus" /> Nieuwe release</button> : null;
   return <>
-    <PageTitle eyebrow="Productie" title="Label" sub="Releases van het Moonshine-label: planning, taken, artiesten en royalty’s." actions={button} />
+    <PageTitle title="Label" actions={button} />
     <Tabs items={[{ to: '/label', label: 'Releases' }, { to: '/label/planning', label: 'Planning' }, { to: '/label/tasks', label: 'Taken' },
       { to: '/label/feedback', label: 'Track feedback', end: false }, { to: '/label/promo', label: 'Promo', end: false }, { to: '/label/artists', label: 'Artiesten' }, { to: '/label/statements', label: 'Afrekeningen' }]} />
     {tab === 'feedback' ? <FeedbackList /> : tab === 'feedback-track' ? <><FeedbackList /><FeedbackTrack /></> : tab === 'promo' ? <PromoCampaigns /> : tab === 'promo-campaign' ? <PromoCampaign /> : tab === 'promo-contacts' ? <PromoContacts />

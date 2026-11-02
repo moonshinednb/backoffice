@@ -9,7 +9,8 @@ export function storedTheme(): Theme {
 export function applyTheme(t: Theme = storedTheme()) {
   const light = t === 'light' || (t === 'system' && window.matchMedia?.('(prefers-color-scheme: light)').matches);
   document.documentElement.dataset.theme = light ? 'light' : 'dark';
-  document.querySelector('meta[name=theme-color]')?.setAttribute('content', light ? '#F2F3F6' : '#14181F');
+  const bg = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim();
+  if (bg) document.querySelector('meta[name=theme-color]')?.setAttribute('content', bg);
 }
 
 export function setTheme(t: Theme) {

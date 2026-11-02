@@ -47,14 +47,14 @@ def our_items(start, end):
             out.append(item('event', e.id, f'🎛 {e.name}', e.date, link=f'/events/{e.id}', color='event', detail=e.venue, location=e.venue))
     for v in Voyage.objects.filter(date__gte=start, date__lte=end).exclude(status__in=['declined', 'cancelled']):
         where = ', '.join(x for x in (v.venue, v.city, v.country) if x)
-        out.append(item('voyage', v.id, f'✈ {v.performer} @ {v.event_name}', v.date, link=f'/voyages/{v.id}', color='voyage', detail=v.get_status_display(), location=where))
+        out.append(item('voyage', v.id, f'{v.performer} @ {v.event_name}', v.date, link=f'/voyages/{v.id}', color='voyage', detail=v.get_status_display(), location=where))
     for r in Release.objects.filter(release_date__gte=start, release_date__lte=end):
         out.append(item('release', r.id, f'💿 Release: {r.catalog + " " if r.catalog else ""}{r.title}', r.release_date, link='/label', color='release', detail=r.artist))
     for s in ReleaseStep.objects.filter(due__gte=start, due__lte=end, done=False).select_related('release'):
         out.append(item('step', s.id, f'{s.label} · {s.release.title}', s.due, link='/label/planning', color='step'))
     for c in ContentItem.objects.filter(date__gte=start, date__lte=end).select_related('event', 'release'):
         about = c.event.name if c.event else c.release.title if c.release else ''
-        title = f'📣 {KIND.get(c.kind, c.kind)}: {c.title}' + (f' · {about}' if about else '')
+        title = f'{KIND.get(c.kind, c.kind)}: {c.title}' + (f' · {about}' if about else '')
         if c.time:
             out.append(item('content', c.id, title, f'{c.date}T{c.time}', f'{c.date}T{c.time}', False, f'/calendar?content={c.id}', 'content', c.get_status_display()))
         else:
@@ -62,7 +62,7 @@ def our_items(start, end):
     for m in Meeting.objects.filter(date__gte=start, date__lte=end):
         out.append(item('meeting', m.id, f'👥 {m.title}', m.date, link=f'/meetings/{m.id}', color='meeting'))
     for t in Task.objects.filter(done=False, due__gte=start, due__lte=end).select_related('assignee').prefetch_related('assignees'):
-        out.append(item('task', t.id, f'☐ {t.title}', t.due.isoformat(), link='/tasks', color='task', detail=', '.join(u.display_name for u in t.people())))
+        out.append(item('task', t.id, f'Taak: {t.title}', t.due.isoformat(), link='/tasks', color='task', detail=', '.join(u.display_name for u in t.people())))
     return out
 
 

@@ -20,7 +20,7 @@ const FINANCE = ['/invoices', '/odoo', '/bank', '/vat', '/documents'];
 export function sections(role: string): [string, Item[]][] {
   const all: [string, Item[]][] = [
     ['Werkplek', [['/', 'Overzicht', 'dashboard'], ['/calendar', 'Agenda', 'calendar'], ['/tasks', 'Taken', 'tasks'], ['/meetings', 'Meetings', 'users']]],
-    ['Productie', [['/events', 'Evenementen', 'calendar'], ['/artists', 'Artists', 'user'], ['/voyages', 'Voyages', 'plane'], ['/label', 'Label', 'music']]],
+    ['Productie', [['/events', 'Events', 'calendar'], ['/artists', 'Artists', 'user'], ['/voyages', 'Voyages', 'plane'], ['/label', 'Label', 'music']]],
     ['Financiën', [['/invoices', 'Financiën', 'wallet']]],
     ['Beheer', [['/admin', 'Admin', 'settings']]],
   ];
@@ -65,7 +65,7 @@ export function Layout() {
           </div>
         ))}
         <div className="side-bottom">
-          <button className="feature-btn" onClick={() => { setMenu(false); setWish(true); }}><Icon name="spark" /><span><strong>Feature request</strong><small>Iets missen of anders willen?</small></span></button>
+          <button className="feature-btn" onClick={() => { setMenu(false); setWish(true); }}><Icon name="chat" /><span><strong>Feature request</strong><small>Iets missen of anders willen?</small></span></button>
           <div className="connection-mini"><Icon name="lock" /> Besloten Moonshine-omgeving{version ? <span className="app-version">{version}</span> : null}</div></div>
       </aside>
       <main className="main">
@@ -99,6 +99,11 @@ export function Layout() {
         </header>
         <div className="content" id="content"><Outlet /></div>
       </main>
+      <nav className="bottom-nav" aria-label="Hoofdmenu">
+        {([['/', 'Overzicht', 'dashboard'], ['/tasks', 'Taken', 'tasks'], ['/events', 'Events', 'calendar'], ['/meetings', 'Meetings', 'users']] as const).map(([to, label, icon]) =>
+          <NavLink key={to} to={to} end={to === '/'} className={({ isActive }) => (isActive ? 'active' : '')}><Icon name={icon} />{label}</NavLink>)}
+        <button className={menu ? 'active' : ''} onClick={() => setMenu(!menu)} aria-expanded={menu}><Icon name="menu" />Meer</button>
+      </nav>
       <PasswordDialog open={password} onClose={() => setPassword(false)} />
       <ProfileDialog open={me} onClose={() => setMe(false)} onPassword={() => { setMe(false); setPassword(true); }} />
       <ChatWidget open={chat} onClose={() => setChat(false)} />

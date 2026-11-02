@@ -35,3 +35,29 @@ class MyWorkTests(ApiTests):
         self.assertEqual(r['counts']['late'], len(late))
         self.assertIn('admin', r['focus'])
         self.assertIn('bookings', r['focus'])
+
+
+class AttentionTests(ApiTests):
+    def test_events_with_blockers(self):
+        from datetime import date, timedelta
+        c, _ = self.login('peppy', 'admin-pass-1')
+        d = (date.today() + timedelta(days=20)).isoformat()
+        e = self.send(c, 'post', '/api/events', {'name': 'Inner Orbit', 'date': d}).json()
+        r = c.get('/api/attention').json()
+        ev = next(x for x in r['events'] if x['id'] == e['id'])
+        self.assertEqual(ev['days'], 20)
+        self.assertEqual(len(ev['next']), 3)
+        self.assertTrue(ev['next'][0]['late'])  # costing is due 56 days before
+        self.assertGreater(ev['late'], 0)
+        self.assertIn('meeting', r)
+
+    def test_event_list_shows_checklist_progress(self):
+        from datetime import date, timedelta
+        c, _ = self.login('peppy', 'admin-pass-1')
+        d = (date.today() + timedelta(days=20)).isoformat()
+        e = self.send(c, 'post', '/api/events', {'name': 'Inner Orbit', 'date': d}).json()
+        c.get('/api/attention')  # seeds the checklist
+        row = next(x for x in c.get('/api/events').json()['events'] if x['id'] == e['id'])
+        self.assertGreater(row['progress']['steps'], 0)
+        self.assertEqual(row['progress']['steps_done'], 0)
+        self.assertGreater(row['progress']['steps_late'], 0)
