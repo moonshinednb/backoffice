@@ -9,6 +9,8 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent
 REPO_DIR = BASE_DIR.parent
 DATA_DIR = Path(os.environ.get('MOONSHINE_DATA', REPO_DIR / 'data')).resolve()
+# Written by deploy/deploy.sh (git describe of the deployed version).
+APP_VERSION = (BASE_DIR / 'VERSION').read_text().strip() if (BASE_DIR / 'VERSION').exists() else 'dev'
 FRONTEND_DIST = Path(os.environ.get('MOONSHINE_FRONTEND', REPO_DIR / 'frontend' / 'dist')).resolve()
 
 

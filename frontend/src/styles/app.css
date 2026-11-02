@@ -405,3 +405,4 @@ dialog .dialog-foot button.danger { background: #8f1f30; border-color: #b8303f; 
 .vc-lines span { display: flex; gap: 10px; flex-wrap: wrap; } .vc-lines a { color: #ffb3bf; } .vc-lines em { font-size: .76rem; opacity: .65; }
 .vc-tag { font-style: normal; font-size: .66rem; justify-self: start; padding: 1px 7px; border-radius: 999px; background: #3a2329; color: #ffb3bf; }
 @media (max-width: 900px) { .vc-main { grid-template-columns: 1fr 1fr; } .vc-adv { grid-column: span 1; } }
+.app-version { margin-left: auto; font-size: .7rem; opacity: .6; font-variant-numeric: tabular-nums; }

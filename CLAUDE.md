@@ -19,6 +19,13 @@ sh deploy/deploy.sh            # backup, code kopiëren, herbouwen, controleren 
 ```
 `TS_AUTHKEY` moet een **herbruikbare** sleutel zijn (een eenmalige is na één sessie ongeldig). Na de eerste keer inloggen blijft de status in `~/ts/state` bewaard.
 
+## Versies en terugrollen
+- Elke versie staat op GitHub als branch `versie/vX.Y` (tags laat de git-proxy niet toe). Een versie-branch wordt nooit meer gewijzigd; maak hem na een afgeronde fase met de GitHub-koppeling (create_branch vanaf de sessie-branch).
+- `sh deploy/versions.sh`: versies en de laatste deploys (met de backup die vlak ervoor is gemaakt).
+- `sh deploy/deploy.sh [vX.Y|commit]`: deployt HEAD of een versie; ruimt oude codebestanden op en zet de versie linksonder in de app.
+- `sh deploy/rollback.sh vX.Y --ja`: backup, database terug naar de migraties van die versie, code van die versie. Nieuwere onderdelen verdwijnen uit de app maar staan in de backup.
+- `sh deploy/restore.sh <backup> --ja`: zet een backup terug (maakt eerst zelf een backup). Alleen op verzoek.
+
 ## Code
 Lees eerst `ARCHITECTURE.md` (projectkaart: modules, modellen, endpoints, routes, afspraken) in plaats van de hele code. Werk die kaart bij als de structuur verandert.
 

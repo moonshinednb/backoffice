@@ -7,6 +7,7 @@ export type User = { id: string; username: string; name: string; role: 'admin' |
 type Auth = {
   user: User | null;
   ready: boolean;
+  version: string;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   setUser: (user: User) => void;
@@ -25,8 +26,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUserState] = useState<User | null>(null);
   const setUser = useCallback((u: User | null) => { if (u?.language) setLang(u.language); setUserState(u); }, []);
   const [ready, setReady] = useState(false);
+  const [version, setVersion] = useState('');
   useEffect(() => {
-    api<{ user: User | null; csrf: string }>('/auth/me').then((r) => { setCsrf(r.csrf); setUser(r.user); }).catch(() => setUser(null)).finally(() => setReady(true));
+    api<{ user: User | null; csrf: string; version?: string }>('/auth/me').then((r) => { setCsrf(r.csrf); setUser(r.user); setVersion(r.version || ''); }).catch(() => setUser(null)).finally(() => setReady(true));
     const out = () => setUser(null);
     window.addEventListener('moonshine:logged-out', out);
     return () => window.removeEventListener('moonshine:logged-out', out);
@@ -42,5 +44,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setCsrf(r.csrf);
     setUser(null);
   }, []);
-  return <AuthContext.Provider value={{ user, ready, login, logout, setUser }}>{children}</AuthContext.Provider>;
+  return <AuthContext.Provider value={{ user, ready, version, login, logout, setUser }}>{children}</AuthContext.Provider>;
 }

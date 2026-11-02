@@ -66,10 +66,11 @@ def do_login(request):
 
 @router.get('/auth/me', auth=None)
 def me(request):
+    from django.conf import settings as dj
     csrf = get_token(request)
     if not request.user.is_authenticated:
-        return {'user': None, 'csrf': csrf}
-    return {'user': user_dict(request.user), 'csrf': csrf}
+        return {'user': None, 'csrf': csrf, 'version': dj.APP_VERSION}
+    return {'user': user_dict(request.user), 'csrf': csrf, 'version': dj.APP_VERSION}
 
 
 @router.post('/auth/logout')

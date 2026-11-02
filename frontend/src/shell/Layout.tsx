@@ -27,7 +27,7 @@ export function sections(role: string): [string, Item[]][] {
 }
 
 export function Layout() {
-  const { user, logout } = useAuth();
+  const { user, logout, version } = useAuth();
   const location = useLocation();
   const navigate = useNavigate();
   const [menu, setMenu] = useState(false);
@@ -63,7 +63,7 @@ export function Layout() {
         ))}
         <div className="side-bottom">
           <button className="feature-btn" onClick={() => { setMenu(false); setWish(true); }}><Icon name="spark" /><span><strong>Feature request</strong><small>Iets missen of anders willen?</small></span></button>
-          <div className="connection-mini"><Icon name="lock" /> Besloten Moonshine-omgeving</div></div>
+          <div className="connection-mini"><Icon name="lock" /> Besloten Moonshine-omgeving{version ? <span className="app-version">{version}</span> : null}</div></div>
       </aside>
       <main className="main">
         <header className="topbar">
