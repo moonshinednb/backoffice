@@ -528,9 +528,9 @@
     "semantic_hash": "88665a71f676b3f813024f176b24d2f9"
   },
   "frontend/src/lib/i18n.ts": {
-    "mtime": 1793610822.6805358,
-    "seen": 1793611501.5091512,
-    "ast_hash": "4bce7d05ea1e9761e151e14637b43060",
+    "mtime": 1793733291.1845062,
+    "seen": 1793733514.1520557,
+    "ast_hash": "5d56211a9ca5ea10d11aece841d49608",
     "semantic_hash": ""
   },
   "frontend/src/lib/icons.tsx": {
@@ -588,9 +588,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Work.tsx": {
-    "mtime": 1793729009.696198,
-    "seen": 1793729291.8652818,
-    "ast_hash": "3d17aabf0844e5f071ab7b7e2f2c87bd",
+    "mtime": 1793733284.5544484,
+    "seen": 1793733514.1520736,
+    "ast_hash": "1f80dd43c8b450382c5f982cbd424138",
     "semantic_hash": ""
   },
   "frontend/src/pages/shared.tsx": {
@@ -1254,15 +1254,15 @@
     "semantic_hash": ""
   },
   "backend/core/tests/test_work.py": {
-    "mtime": 1793610992.9023383,
-    "seen": 1793611501.5089295,
-    "ast_hash": "c7f0d325f8097766f362d844a6866424",
+    "mtime": 1793733238.0083904,
+    "seen": 1793733514.1518888,
+    "ast_hash": "c12bdb91843b9fce4cf6e5680d32219f",
     "semantic_hash": ""
   },
   "backend/core/work.py": {
-    "mtime": 1793609924.9050143,
-    "seen": 1793611501.5089378,
-    "ast_hash": "cc2dc9c6d1a4d7eee7bcaf5d5ff8ad42",
+    "mtime": 1793733234.1123903,
+    "seen": 1793733514.1518955,
+    "ast_hash": "143430b425c0d09c0068d1e6ddce2377",
     "semantic_hash": ""
   },
   "frontend/src/pages/MyWork.tsx": {

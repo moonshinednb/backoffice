@@ -74,7 +74,6 @@ export function Layout() {
           <div className="breadcrumb">{current ? current[0] : 'Werkplek'} <span>/ {current ? current[2] : 'Overzicht'}</span></div>
           <div className="top-actions">
             <span className="top-date">{new Date().toLocaleDateString(locale(), { weekday: 'short', day: 'numeric', month: 'long' })}</span>
-            <ChatButton open={chat} onToggle={() => setChat(!chat)} />
             <NotificationBell />
             <div className="profile-control">
               <button className="profile-trigger" onClick={() => setProfile(!profile)} aria-expanded={profile} aria-label={`Profielmenu van ${user.name}`}>
@@ -106,6 +105,7 @@ export function Layout() {
       </nav>
       <PasswordDialog open={password} onClose={() => setPassword(false)} />
       <ProfileDialog open={me} onClose={() => setMe(false)} onPassword={() => { setMe(false); setPassword(true); }} />
+      <div className="chat-fab-wrap"><ChatButton open={chat} onToggle={() => setChat(!chat)} /></div>
       <ChatWidget open={chat} onClose={() => setChat(false)} />
       <FeatureRequestDialog open={wish} onClose={() => setWish(false)} />
       <Modal title="Moonshine als app" open={install} onClose={() => setInstall(false)} footer={<button onClick={() => setInstall(false)}>Sluiten</button>}>
