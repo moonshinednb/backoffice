@@ -12,6 +12,16 @@ from .models import KINDS, ContentItem, OutlookLink
 
 TZ = 'Europe/Amsterdam'
 CATEGORY = 'Moonshine'
+# Kind of an Outlook appointment made in the backoffice, stored as an Outlook category 'Moonshine: <name>'.
+APPT_KINDS = {'meeting': 'Meeting', 'event': 'Event', 'release': 'Release', 'voyage': 'Voyage', 'content': 'Post'}
+
+
+def appt_kind(categories):
+    for c in categories or []:
+        for k, name in APPT_KINDS.items():
+            if c.lower() == f'moonshine: {name}'.lower():
+                return k
+    return ''
 KIND = dict(KINDS)
 SOURCES = ('event', 'voyage', 'release', 'content', 'meeting', 'step', 'task')
 DEFAULT_PUSH = ['event', 'voyage', 'release', 'content', 'meeting']
@@ -97,7 +107,8 @@ def outlook_items(start, end):
         if e.get('isAllDay'):
             s, f = s[:10], _day(f[:10], -1)
         out.append({**item('outlook', e['id'], e.get('subject') or '(geen onderwerp)', s, f, bool(e.get('isAllDay')), e.get('webLink', ''), 'outlook',
-                           e.get('bodyPreview', '')[:300], (e.get('location') or {}).get('displayName', '')), 'editable': True})
+                           e.get('bodyPreview', '')[:300], (e.get('location') or {}).get('displayName', '')), 'editable': True,
+                    'kind': appt_kind(e.get('categories')), 'categories': e.get('categories') or []})
     return out
 
 
@@ -171,7 +182,12 @@ def outlook_save(d, ident=None):
     it = {'title': subject, 'start': start[:16], 'end': str(d.get('end') or start)[:16], 'all_day': all_day,
           'detail': R._text(d.get('detail'), 4000), 'location': R._text(d.get('location'), 300)}
     body = _payload(it)
-    body.pop('categories'); body.pop('showAs')
+    body.pop('showAs')
+    kind = str(d.get('kind') or '')
+    if kind and kind not in APPT_KINDS:
+        raise ValueError('Onbekende soort afspraak.')
+    keep = [c for c in (d.get('categories') or []) if isinstance(c, str) and not c.lower().startswith('moonshine')]
+    body['categories'] = keep + ([f'Moonshine: {APPT_KINDS[kind]}'] if kind else [])
     body['body']['content'] = it['detail']
     if ident:
         if OutlookLink.objects.filter(outlook_id=ident).exists():

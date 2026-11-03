@@ -1042,6 +1042,9 @@ const D: Record<string, string> = {
   'Open in totaal': 'Open in total',
   'Komende events': 'Upcoming events',
   'Facturen te controleren': 'Invoices to review',
+  'Afspraak (Outlook)': 'Appointment (Outlook)',
+  'Post': 'Post',
+  'Voyage': 'Voyage',
   // Server messages
   'Geen verbinding met de server. Controleer of Tailscale aan staat.': 'No connection to the server. Check that Tailscale is on.',
   'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.': 'Your session expired or the page is outdated. Refresh the page and try again.',

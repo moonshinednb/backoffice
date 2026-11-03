@@ -7,10 +7,12 @@ import { locale } from '../lib/i18n';
 import { Icon, Loading, Modal, PageTitle, formValues, useAction, useToast } from '../lib/ui';
 import { FormDialog, useCanEdit } from '../production/common';
 
-type Item = { id: string; source: string; source_id: string; title: string; start: string; end: string; all_day: boolean; link: string; detail: string; location: string; editable?: boolean };
+type Item = { id: string; source: string; source_id: string; title: string; start: string; end: string; all_day: boolean; link: string; detail: string; location: string; editable?: boolean; kind?: string; categories?: string[] };
 export type Content = { id: string; event_id: string | null; event: string; release_id: string | null; release: string; title: string; kind: string; platforms: string[];
   date: string; time: string; caption: string; status: string; assignee: string; file_url: string; notes: string };
 const MAX = 4;
+/** Kind of an appointment; decides its colour in the legend (saved as an Outlook category). */
+const APPT_KINDS: [string, string][] = [['', 'Afspraak (Outlook)'], ['meeting', 'Meeting'], ['event', 'Event'], ['release', 'Release'], ['voyage', 'Voyage'], ['content', 'Post']];
 const SOURCES: [string, string][] = [['outlook', 'Outlook'], ['event', 'Events'], ['content', 'Posts'], ['voyage', 'Voyages'], ['release', 'Releases'], ['step', 'Releasestappen'], ['meeting', 'Meetings'], ['task', 'Taken']];
 export const KINDS: [string, string][] = [['post', 'Post'], ['reel', 'Reel'], ['tiktok', 'TikTok'], ['story', 'Story'], ['announcement', 'Announcement'], ['video', 'Video'], ['other', 'Overig']];
 export const CONTENT_STATUS: [string, string][] = [['idea', 'Idee'], ['making', 'In de maak'], ['review', 'Ter review'], ['ready', 'Klaar om te posten'], ['posted', 'Gepost']];
@@ -68,7 +70,7 @@ export function CalendarPage() {
   const byDay = useMemo(() => {
     const m: Record<string, Item[]> = {};
     for (const it of q.data?.items || []) {
-      if (hidden.includes(it.source)) continue;
+      if (hidden.includes(it.kind || it.source)) continue;
       const s = new Date(it.start.slice(0, 10) + 'T12:00:00'), e = new Date(it.end.slice(0, 10) + 'T12:00:00');
       for (let d = new Date(s); d <= e && (+d - +s) < 40 * 864e5; d.setDate(d.getDate() + 1)) (m[iso(d)] ||= []).push(it);
     }
@@ -103,7 +105,7 @@ export function CalendarPage() {
         return <div key={key} className={`cal-day ${d.getMonth() !== month.getMonth() ? 'other' : ''} ${key === today ? 'today' : ''} ${weekend ? 'weekend' : ''} ${all ? 'open' : ''}`}
         onDoubleClick={() => { if (edit) { setPresetDate(key); setContent(null); } }}>
         <span className="cal-num">{d.getDate()}</span>
-        {shown.map((it) => <button key={it.id + key} className={`cal-item src-${it.source}`} onClick={() => open(it)} title={[it.title, it.detail, it.location].filter(Boolean).join(' · ')}>
+        {shown.map((it) => <button key={it.id + key} className={`cal-item src-${it.kind || it.source}`} onClick={() => open(it)} title={[it.title, it.detail, it.location].filter(Boolean).join(' · ')}>
           {!it.all_day && it.start.slice(0, 10) === key ? <time>{it.start.slice(11, 16)}</time> : null}<span>{it.title}</span></button>)}
         {items.length > MAX ? <button className="cal-more" onClick={() => setOpenDay(all ? '' : key)}>{all ? 'Minder' : `+${items.length - MAX} meer`}</button> : null}
       </div>; })}
@@ -129,11 +131,15 @@ function AppointmentDialog({ item, onClose, onDelete }: { item: Item | null | un
   return <FormDialog id="appt-form" title={a ? 'Afspraak bewerken' : 'Nieuwe afspraak in Outlook'} open onClose={onClose} submit={async (form) => {
     const v = formValues(form);
     const allDay = 'all_day' in v;
-    const body = { title: v.title, location: v.location, detail: v.detail, all_day: allDay, start: allDay ? v.date : `${v.date}T${v.from || '09:00'}`, end: allDay ? (v.date_end || v.date) : `${v.date_end || v.date}T${v.to || v.from || '10:00'}` };
+    const body = { title: v.title, location: v.location, detail: v.detail, kind: v.kind || '', categories: a?.categories || [], all_day: allDay, start: allDay ? v.date : `${v.date}T${v.from || '09:00'}`, end: allDay ? (v.date_end || v.date) : `${v.date_end || v.date}T${v.to || v.from || '10:00'}` };
     await api(a ? `/calendar/outlook/${encodeURIComponent(a.source_id)}` : '/calendar/outlook', { method: a ? 'PATCH' : 'POST', body });
     qc.invalidateQueries({ queryKey: ['calendar'] }); toast('Opgeslagen in Outlook.'); onClose();
   }}><div key={a?.id || 'new'}>
-    <div className="field"><label htmlFor="ap-title">Titel</label><input id="ap-title" name="title" required defaultValue={a?.title} /></div>
+    <div className="form-grid">
+      <div className="field"><label htmlFor="ap-title">Titel</label><input id="ap-title" name="title" required defaultValue={a?.title} /></div>
+      <div className="field"><label htmlFor="ap-kind">Soort</label><select id="ap-kind" name="kind" defaultValue={a?.kind || ''}>
+        {APPT_KINDS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></div>
+    </div>
     <div className="form-grid">
       <div className="field"><label htmlFor="ap-date">Datum</label><input id="ap-date" name="date" type="date" required defaultValue={a?.start.slice(0, 10)} /></div>
       <div className="field"><label htmlFor="ap-date2">Tot en met</label><input id="ap-date2" name="date_end" type="date" defaultValue={a?.end.slice(0, 10)} /></div>

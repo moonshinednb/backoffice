@@ -588,9 +588,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Work.tsx": {
-    "mtime": 1793738948.0240452,
-    "seen": 1793739208.8567395,
-    "ast_hash": "899d6b4638e416adcd575804e9298143",
+    "mtime": 1793741493.6178117,
+    "seen": 1793741555.3864172,
+    "ast_hash": "7245a9914e8f61e87b4a895379e725a0",
     "semantic_hash": ""
   },
   "frontend/src/pages/shared.tsx": {
@@ -1308,15 +1308,15 @@
     "semantic_hash": ""
   },
   "backend/core/tests/test_design.py": {
-    "mtime": 1793610739.1903234,
-    "seen": 1793611501.5089188,
-    "ast_hash": "ef0402841482a3c4aeddea6b10b5d99b",
+    "mtime": 1793741501.5577264,
+    "seen": 1793741555.3862424,
+    "ast_hash": "5d31dc430d6e08fff4c1d59e9ce78227",
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1793729285.2467914,
-    "seen": 1793729291.8653169,
-    "ast_hash": "ea9793c1eb2adc8561fea6d44aae3872",
+    "mtime": 1793741551.2290225,
+    "seen": 1793741555.3864527,
+    "ast_hash": "96e7054fc96d6be8361d44412dbddba1",
     "semantic_hash": ""
   },
   "frontend/package-lock.json": {

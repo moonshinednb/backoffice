@@ -35,3 +35,15 @@ class PlanningTests(ApiTests):
         self.assertEqual(calls[-1][0], 'DELETE')
         r = self.send(c, 'patch', f'/api/calendar/outlook/{OutlookLink.objects.first().outlook_id}', {'title': 'x', 'start': '2030-11-02'})
         self.assertEqual(r.status_code, 400)
+
+    def test_appointment_kind_as_category(self):
+        calls = []
+
+        def fake(path, payload=None, method=None):
+            calls.append((method, path, payload))
+            return {'id': 'x'}
+        with mock.patch.object(S, '_graph', side_effect=fake):
+            S.outlook_save({'title': 'Teammeeting', 'start': '2030-11-02T19:00', 'kind': 'meeting', 'categories': ['Rood', 'Moonshine: Event']})
+        self.assertEqual(calls[0][2]['categories'], ['Rood', 'Moonshine: Meeting'])
+        self.assertEqual(S.appt_kind(['Moonshine: Meeting']), 'meeting')
+        self.assertEqual(S.appt_kind(['Rood']), '')
