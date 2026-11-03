@@ -13,10 +13,12 @@ const NAMES: Record<string, string> = { peppy: 'Pepijn', bram: 'Bram', shoroy: '
 function ActionRow({ a, onChange }: { a: Action; onChange: () => void }) {
   const run = useAction();
   const edit = useCanEdit();
+  const late = !a.done && !!a.due && a.due < today();
   return <li className={`mt-row ${a.done ? 'done' : ''}`}>
     <input type="checkbox" checked={a.done} disabled={!edit} aria-label={`${a.text} afvinken`} onChange={(e) => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'PATCH', body: { done: e.target.checked } }); onChange(); })} />
-    <span className="act-text"><span>{a.text}</span><small>{a.due ? `voor ${shortDate(a.due)} · meeting ${shortDate(a.meeting_date)}` : `meeting ${shortDate(a.meeting_date)}`}</small></span>
-    {a.task_id ? <small className="act-task">In Taken</small> : edit ? <button className="text-link" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); })}>Maak taak</button> : <span />}
+    <span className="act-text"><span>{a.text}</span><small>{`meeting ${shortDate(a.meeting_date)}`}{a.task_id ? ' · in Taken' : ''}</small></span>
+    <span className={`mt-due ${late ? 'late' : ''}`}>{a.due ? shortDate(a.due) : ''}</span>
+    {!a.task_id && edit ? <button className="small ghost mt-task" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); })}>Maak taak</button> : <span />}
   </li>;
 }
 

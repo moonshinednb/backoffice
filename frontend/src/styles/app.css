@@ -153,22 +153,6 @@ label.button { display: inline-flex; align-items: center; gap: 8px; margin: 0; c
 .deliver-list label { margin: 0; display: flex; gap: 9px; align-items: center; } .deliver-list li.done label { opacity: .7; }
 .deliver-list small { color: var(--text-3); white-space: nowrap; }
 /* Calendar */
-.cal-toolbar { justify-content: space-between; } .cal-title { min-width: 160px; text-align: center; text-transform: capitalize; }
-.cal-filters { display: flex; flex-wrap: wrap; gap: 6px; }
-.cal-chip { margin: 0; padding: 5px 10px; border-radius: 999px; font-size: .76rem; cursor: pointer; border: 1px solid var(--line); background: var(--surface); }
-.cal-chip.off { color: var(--text-3); text-decoration: line-through; }
-.cal-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
-.cal-head { padding: 8px; font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--text-3); background: var(--surface); border-bottom: 1px solid var(--line); }
-.cal-day { min-height: 118px; padding: 6px; border-right: 1px solid var(--raised); border-bottom: 1px solid var(--raised); display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.cal-day.other { color: var(--text-3); } .cal-day.today { background: var(--surface); } .cal-day.today .cal-num { background: var(--accent-text); color: var(--text); border-radius: 999px; padding: 0 6px; }
-.cal-num { font-size: .75rem; color: var(--text-3); align-self: flex-start; }
-.cal-item { display: block; width: 100%; text-align: left; font-size: .72rem; font-weight: 500; padding: 3px 6px; border-radius: 5px; border: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; justify-content: flex-start; background: var(--line); }
-.src-outlook.cal-item, .cal-chip.src-outlook { background: var(--moon-bg); } .src-event.cal-item, .cal-chip.src-event { background: var(--accent-bg); }
-.src-content.cal-item, .cal-chip.src-content { background: var(--line); } .src-voyage.cal-item, .cal-chip.src-voyage { background: var(--line); }
-.src-release.cal-item, .cal-chip.src-release { background: var(--violet-bg); } .src-meeting.cal-item, .cal-chip.src-meeting { background: var(--line); }
-.src-step.cal-item, .src-task.cal-item { background: var(--raised); }
-.cal-more { font-size: .7rem; color: var(--text-3); }
-@media (max-width: 760px) { .cal-day { min-height: 70px; } .cal-item { font-size: .62rem; padding: 2px 4px; } }
 /* Roster */
 .roster-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 16px; }
 .roster-card { display: grid; grid-template-columns: 96px 1fr; gap: 14px; padding: 16px; cursor: pointer; }

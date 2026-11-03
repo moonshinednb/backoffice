@@ -20,7 +20,7 @@ export function PageTitle({ title, sub, actions }: { title: ReactNode; sub?: Rea
 }
 
 export function Empty({ title, sub, action, icon = 'folder' }: { title: string; sub?: ReactNode; action?: ReactNode; icon?: string }) {
-  return <div className="empty"><Icon name={icon} /><strong>{title}</strong>{sub ? <p>{sub}</p> : null}{action ? <div>{action}</div> : null}</div>;
+  return <div className="empty"><span className="empty-icon"><Icon name={icon} /></span><div className="empty-text"><strong>{title}</strong>{sub ? <p>{sub}</p> : null}</div>{action ? <div className="empty-action">{action}</div> : null}</div>;
 }
 
 export function Stat({ label, value, sub, icon }: { label: string; value: ReactNode; sub: ReactNode; icon: string }) {

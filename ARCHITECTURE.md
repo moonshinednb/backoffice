@@ -65,6 +65,7 @@ webhooks: `/webhooks/{bank,outlook,opensign}`
 ## Ontwerp (frontend)
 - `frontend/src/styles/system.css` is het designsysteem en wordt als laatste geladen: tokens (`--bg`, `--surface`, `--raised`, `--sunken`, `--line`, `--line-strong`, `--text`, `--text-2`, `--text-3`, `--accent*`, `--ok/warn/bad/moon/violet` met `-bg`/`-tint`, `--wash-1..3`) voor de thema's Nacht (standaard) en Dag (`<html data-theme>`, keuze in het profielmenu, `lib/theme.ts`), plus de definitieve basiscomponenten (knoppen, velden, tabs, tabellen, badges, dialogen, sidebar).
 - Regels staan in `DESIGN.md` (secties zonder kaders, kleurbudget, geen gradients/glyphs/orbs/eyebrows) en worden bewaakt door `backend/core/tests/test_design.py`.
+- v1.6 (onderaan system.css): componentmaten via `--ctl/--ctl-s/--r-ctl/--r-panel/--ease`, `.kpis` (cijferstrook Overzicht), agenda (`.cal-*`, max 4 items per dag + uitklappen), compacte `<Empty>`. Fonts worden niet ge-inlined (vite `assetsInlineLimit`) vanwege CSP.
 - Bouwstenen v1.5 (system.css): `.block`/`.block-head` (sectie), `.panel` + `.rows` (items als rijen), `.seg` (één filter), `.empty-line`, `.att-*` (eventkaart), `.ev-row` (eventrij met voortgang), `.bottom-nav`, `.spin`.
 - Geen vaste kleuren in andere CSS: gebruik altijd tokens. Tekst dimmen met `--text-2/--text-3`, niet met opacity. Geen hoofdletter-labels, geen verlopen.
 - Lettertypen (lokaal via @fontsource): IBM Plex Sans voor alles; IBM Plex Sans Condensed voor paginatitels, eventnamen, datums en tijden.

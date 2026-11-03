@@ -10,6 +10,15 @@ Een werktool voor zes mensen, vaak op de telefoon. Rustig, compact, taakgericht.
 - Filters: één `.seg` per scherm. Eén primaire knop per scherm.
 - Lege staat: één regel (`.empty-line`), geen groot paneel met icoon en uitleg.
 
+## Componenten (v1.6, `system.css` onderaan)
+- Maten: knoppen/invoer 34px (klein 28px), icoonknoppen 32px, radius 7px voor controls en 10px voor panelen. Eén transitie (120 ms).
+- Kleur: charcoal (`--bg #121214`), bordeaux accent (`--accent`). Focus = lichte ring, geen blauw.
+- Status = neutrale badge met een gekleurde stip (`.badge.lime/amber/red/blue/purple`).
+- Tabellen: stille kopregel, rijen 44px, hover `--wash-1`, chevron pas bij hover (`td.row-go`).
+- Lege staat: één rij (icoon, wat ontbreekt, één actie) via `<Empty>`; meldingen inline en klein.
+- Cijfers bovenaan een pagina in één strook (`.kpis`, `.stats`), niet in losse kaarten.
+- Agenda is de enige plek met een kleur per soort: alleen als dun streepje/blokje (`--c` per `.src-*`).
+
 ## Mobiel
 - Onderbalk met Overzicht, Taken, Events, Meetings en Meer. Knoppen in de kop worden iconen.
 - Eerst de inhoud: kop zo laag mogelijk, geen uitleg boven de lijst.

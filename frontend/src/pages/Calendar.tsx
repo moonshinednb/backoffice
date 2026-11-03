@@ -1,6 +1,7 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Link, useNavigate } from 'react-router';
+import { can, useAuth } from '../lib/auth';
 import { api } from '../lib/api';
 import { locale } from '../lib/i18n';
 import { Icon, Loading, Modal, PageTitle, formValues, useAction, useToast } from '../lib/ui';
@@ -9,6 +10,7 @@ import { FormDialog, useCanEdit } from '../production/common';
 type Item = { id: string; source: string; source_id: string; title: string; start: string; end: string; all_day: boolean; link: string; detail: string; location: string; editable?: boolean };
 export type Content = { id: string; event_id: string | null; event: string; release_id: string | null; release: string; title: string; kind: string; platforms: string[];
   date: string; time: string; caption: string; status: string; assignee: string; file_url: string; notes: string };
+const MAX = 4;
 const SOURCES: [string, string][] = [['outlook', 'Outlook'], ['event', 'Events'], ['content', 'Posts'], ['voyage', 'Voyages'], ['release', 'Releases'], ['step', 'Releasestappen'], ['meeting', 'Meetings'], ['task', 'Taken']];
 export const KINDS: [string, string][] = [['post', 'Post'], ['reel', 'Reel'], ['tiktok', 'TikTok'], ['story', 'Story'], ['announcement', 'Announcement'], ['video', 'Video'], ['other', 'Overig']];
 export const CONTENT_STATUS: [string, string][] = [['idea', 'Idee'], ['making', 'In de maak'], ['review', 'Ter review'], ['ready', 'Klaar om te posten'], ['posted', 'Gepost']];
@@ -53,6 +55,8 @@ export function CalendarPage() {
   const toast = useToast();
   const [month, setMonth] = useState(() => { const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 1); });
   const [hidden, setHidden] = useState<string[]>(['step', 'task']);
+  const [openDay, setOpenDay] = useState('');
+  const { user } = useAuth();
   const [content, setContent] = useState<Content | null | undefined>(undefined);
   const [presetDate, setPresetDate] = useState('');
   const [appt, setAppt] = useState<Item | null | undefined>(undefined);
@@ -81,26 +85,35 @@ export function CalendarPage() {
   return <>
     <PageTitle title="Agenda"
       actions={edit ? <><button className="ghost" onClick={() => setAppt(null)}><Icon name="calendar" /> Afspraak</button><button className="primary" onClick={() => { setPresetDate(''); setContent(null); }}><Icon name="plus" /> Post plannen</button></> : null} />
-    {q.data?.outlook_error ? <div className="notice"><Icon name="warn" /> {q.data.outlook_error}</div> : null}
-    {q.data && !q.data.sync ? <div className="notice"><Icon name="info" /> Synchronisatie naar Outlook staat uit. Zet hem aan bij Admin → Koppelingen → Agenda zodra de app agenda-rechten heeft.</div> : null}
-    <div className="toolbar cal-toolbar">
-      <div className="row-actions"><button className="icon-btn ghost" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} aria-label="Vorige maand"><Icon name="back" /></button>
-        <strong className="cal-title">{title}</strong>
-        <button className="icon-btn ghost" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} aria-label="Volgende maand"><Icon name="chevron" /></button>
-        <button className="small ghost" onClick={() => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}>Vandaag</button></div>
-      <div className="cal-filters">{SOURCES.map(([k, l]) => <label key={k} className={`cal-chip src-${k} ${hidden.includes(k) ? 'off' : ''}`}><input type="checkbox" className="visually-hidden" checked={!hidden.includes(k)} onChange={() => setHidden(hidden.includes(k) ? hidden.filter((x) => x !== k) : [...hidden, k])} />{l}</label>)}</div>
+    <div className="cal-toolbar">
+      <div className="cal-nav">
+        <h2 className="cal-title">{title}</h2>
+        <div className="cal-step">
+          <button className="icon-btn ghost" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() - 1, 1))} aria-label="Vorige maand"><Icon name="back" /></button>
+          <button className="small ghost" onClick={() => { const d = new Date(); setMonth(new Date(d.getFullYear(), d.getMonth(), 1)); }}>Vandaag</button>
+          <button className="icon-btn ghost" onClick={() => setMonth(new Date(month.getFullYear(), month.getMonth() + 1, 1))} aria-label="Volgende maand"><Icon name="chevron" /></button>
+        </div>
+      </div>
+      <div className="cal-filters" role="group" aria-label="Wat tonen">{SOURCES.map(([k, l]) => <label key={k} className={`cal-chip src-${k} ${hidden.includes(k) ? 'off' : ''}`}><input type="checkbox" className="visually-hidden" checked={!hidden.includes(k)} onChange={() => setHidden(hidden.includes(k) ? hidden.filter((x) => x !== k) : [...hidden, k])} /><i aria-hidden="true" />{l}</label>)}</div>
     </div>
     {q.isPending ? <Loading /> : <div className="cal-grid" role="grid">
       {['ma', 'di', 'wo', 'do', 'vr', 'za', 'zo'].map((d) => <div key={d} className="cal-head">{d}</div>)}
-      {days.map((d) => { const key = iso(d); const items = byDay[key] || []; return <div key={key} className={`cal-day ${d.getMonth() !== month.getMonth() ? 'other' : ''} ${key === today ? 'today' : ''}`}
+      {days.map((d) => { const key = iso(d); const items = byDay[key] || []; const all = openDay === key; const shown = all ? items : items.slice(0, MAX);
+        const weekend = d.getDay() === 0 || d.getDay() === 6;
+        return <div key={key} className={`cal-day ${d.getMonth() !== month.getMonth() ? 'other' : ''} ${key === today ? 'today' : ''} ${weekend ? 'weekend' : ''} ${all ? 'open' : ''}`}
         onDoubleClick={() => { if (edit) { setPresetDate(key); setContent(null); } }}>
         <span className="cal-num">{d.getDate()}</span>
-        {items.slice(0, 5).map((it) => <button key={it.id + key} className={`cal-item src-${it.source}`} onClick={() => open(it)} title={[it.title, it.detail, it.location].filter(Boolean).join(' · ')}>
-          {!it.all_day && it.start.slice(0, 10) === key ? <b>{it.start.slice(11, 16)}</b> : null} {it.title}</button>)}
-        {items.length > 5 ? <small className="cal-more">+{items.length - 5} meer</small> : null}
+        {shown.map((it) => <button key={it.id + key} className={`cal-item src-${it.source}`} onClick={() => open(it)} title={[it.title, it.detail, it.location].filter(Boolean).join(' · ')}>
+          {!it.all_day && it.start.slice(0, 10) === key ? <time>{it.start.slice(11, 16)}</time> : null}<span>{it.title}</span></button>)}
+        {items.length > MAX ? <button className="cal-more" onClick={() => setOpenDay(all ? '' : key)}>{all ? 'Minder' : `+${items.length - MAX} meer`}</button> : null}
       </div>; })}
     </div>}
-    <p className="helper">Dubbelklik op een dag om daar een post te plannen. Items uit de backoffice komen in Outlook met de categorie “Moonshine”; afspraken die je in Outlook maakt, verschijnen hier en kun je hier bewerken.</p>
+    <p className="cal-foot">
+      {q.data?.outlook_error ? <span className="cal-warn"><i aria-hidden="true" />Outlook niet bereikbaar</span> : q.data ? <span><i className="ok" aria-hidden="true" />{`Outlook: ${q.data.mailbox}`}</span> : null}
+      {q.data && !q.data.sync ? <span>Synchronisatie naar Outlook staat uit</span> : null}
+      {q.data && (q.data.outlook_error || !q.data.sync) && can.admin(user) ? <Link className="text-link" to="/integrations">Koppelingen</Link> : null}
+      <span className="cal-tip">Dubbelklik op een dag om een post te plannen.</span>
+    </p>
     <ContentDialog item={content || null} preset={{ date: presetDate }} open={content !== undefined} onClose={() => setContent(undefined)} />
     <AppointmentDialog item={appt} onClose={() => setAppt(undefined)} onDelete={(id) => run(async () => { await api(`/calendar/outlook/${encodeURIComponent(id)}`, { method: 'DELETE' }); qc.invalidateQueries({ queryKey: ['calendar'] }); setAppt(undefined); toast('Afspraak verwijderd.'); })} />
   </>;

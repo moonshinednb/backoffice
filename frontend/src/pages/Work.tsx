@@ -5,7 +5,7 @@ import { Link, useNavigate } from 'react-router';
 import { api } from '../lib/api';
 import { can, useAuth } from '../lib/auth';
 import { dayNumber, eur, monthShort, ROLE, shortDate, stamp, today } from '../lib/format';
-import { Badge, Empty, ErrorBox, Icon, Loading, PageTitle, formValues, useToast } from '../lib/ui';
+import { Badge, ErrorBox, Icon, Loading, PageTitle, formValues, useToast } from '../lib/ui';
 import { FormDialog } from '../production/common';
 import { EventRow } from '../production/Events';
 import { Connection, Doc, DocumentBadge, Task, useDocuments, useTasks, useUpload, useUsers } from './shared';
@@ -48,9 +48,17 @@ export function DashboardPage() {
   const verified = d ? d.connections.filter((x) => x.status === 'verified').length : 0;
   const m = att.data?.meeting;
   return <>
-    <PageTitle title="Overzicht" sub={`${new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' })}${c ? ` · ${c.late ? `${c.late} te laat` : 'niets te laat'}` : ''}`}
+    <PageTitle title="Overzicht" sub={new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' })}
       actions={<><button onClick={() => setTask(null)}><Icon name="plus" /> Taak</button>
         {finance ? <button className="primary" onClick={() => upload()}><Icon name="invoice" /> Factuur</button> : null}</>} />
+    <div className="kpis" role="list">
+      <Link role="listitem" to="/tasks" className={`kpi ${c?.late ? 'is-late' : ''}`}><span>Te laat</span><strong>{c ? c.late : '–'}</strong><small>van jouw punten</small></Link>
+      <Link role="listitem" to="/tasks" className="kpi"><span>Deze week</span><strong>{c ? c.week : '–'}</strong><small>{c ? `${c.all} open in totaal` : ''}</small></Link>
+      <Link role="listitem" to="/events" className="kpi"><span>Komende events</span><strong>{att.data ? att.data.events.length : '–'}</strong>
+        <small>{att.data?.events[0] ? `eerste ${days(att.data.events[0].days)}` : 'geen gepland'}</small></Link>
+      {finance ? <Link role="listitem" to="/invoices" className={`kpi ${review.length ? 'is-warn' : ''}`}><span>Facturen te controleren</span><strong>{docs.data ? review.length : '–'}</strong><small>{`${all.length} in totaal`}</small></Link>
+        : m ? <Link role="listitem" to={m.meeting_id ? `/meetings/${m.meeting_id}` : '/meetings'} className="kpi"><span>Volgende meeting</span><strong className="kpi-date">{shortDate(m.date)}</strong><small>{m.time || (m.source === 'expected' ? 'verwacht' : '')}</small></Link> : null}
+    </div>
     <div className="dash">
       <section className="block dash-now">
         <div className="block-head"><h2>Nu doen</h2>{c?.late ? <span className="n late">{`${c.late} te laat`}</span> : <span className="n">{urgent.length || ''}</span>}
@@ -107,12 +115,12 @@ export function AdminPanel({ d }: { d: Dashboard }) {
 }
 
 export function InvoiceTable({ docs, compact = false, onOpen, empty }: { docs: Doc[]; compact?: boolean; onOpen: (id: string) => void; empty?: React.ReactNode }) {
-  if (!docs.length) return <>{empty || <Empty title="Je inbox staat klaar" sub="Upload je eerste factuur of sluit finance@ aan." icon="invoice" />}</>;
+  if (!docs.length) return <>{empty || <p className="empty-line">Nog geen facturen. Upload er een of mail ze naar het finance-adres.</p>}</>;
   return <div className="table-wrap"><table><thead><tr><th>Crediteur / factuur</th>{compact ? null : <><th>Datum</th><th>Kanaal</th></>}<th className="amount">Bedrag</th><th>Status</th><th aria-label="Details" /></tr></thead><tbody>
     {docs.map((d) => <tr key={d.id} className="clickable" tabIndex={0} role="button" onClick={() => onOpen(d.id)} onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && (e.preventDefault(), onOpen(d.id))}>
       <td><div className="supplier"><div className="supplier-icon"><Icon name="invoice" /></div><div><strong>{d.details.supplier || d.name}</strong><small>{d.details.number || 'Nog niet uitgelezen'}</small></div></div></td>
-      {compact ? null : <><td>{shortDate(d.details.date)}</td><td>{d.source}</td></>}
-      <td className="amount">{d.details.total ? eur(d.details.total) : '—'}</td><td><DocumentBadge d={d} /></td><td><Icon name="chevron" /></td></tr>)}
+      {compact ? null : <><td className="muted-cell">{shortDate(d.details.date)}</td><td className="muted-cell">{d.source}</td></>}
+      <td className="amount">{d.details.total ? eur(d.details.total) : '—'}</td><td><DocumentBadge d={d} /></td><td className="row-go"><Icon name="chevron" /></td></tr>)}
   </tbody></table></div>;
 }
 

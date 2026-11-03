@@ -20,7 +20,6 @@ const STATUS: Record<string, [string, string]> = { posted: ['Geboekt', 'lime'], 
 export function DocumentBadge({ d }: { d: Doc }) {
   const [label, color] = STATUS[d.status] || [d.status, ''];
   const badge = <Badge color={color}>{label}</Badge>;
-  if (d.status === 'processing' || d.status === 'awaiting_ai') return <span className="status-orb"><Orb state={d.status === 'processing' ? 'solving' : 'working'} label={label} />{badge}</span>;
   return badge;
 }
 
