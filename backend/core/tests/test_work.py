@@ -61,3 +61,11 @@ class AttentionTests(ApiTests):
         self.assertGreater(row['progress']['steps'], 0)
         self.assertEqual(row['progress']['steps_done'], 0)
         self.assertGreater(row['progress']['steps_late'], 0)
+
+    def test_team_work_lists_everyone(self):
+        c, _ = self.login('peppy', 'admin-pass-1')
+        self.send(c, 'post', '/api/tasks', {'title': 'Zonder eigenaar'})
+        r = c.get('/api/team-work').json()
+        self.assertIn('peppy', [p['username'] for p in r['people']])
+        self.assertTrue(all('items' in p and 'late' in p for p in r['people']))
+        self.assertIsInstance(r['unassigned'], list)

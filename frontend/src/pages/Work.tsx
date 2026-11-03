@@ -10,7 +10,7 @@ import { FormDialog } from '../production/common';
 import { EventRow } from '../production/Events';
 import { Connection, Doc, DocumentBadge, Task, useDocuments, useTasks, useUpload, useUsers } from './shared';
 import { InvoiceDialog } from './Finance';
-import { WorkRow, useMyWork } from './MyWork';
+import { WorkRow, useMyWork, type WorkItem } from './MyWork';
 
 type Dashboard = {
   upcoming_events: EventRow[]; finance_email: string; tasks_open: number; connections: Connection[];
@@ -177,7 +177,6 @@ export function TasksPage() {
   if (q.isPending) return <Loading />;
   if (q.error) return <ErrorBox error={q.error} />;
   const tasks = q.data.tasks;
-  const open = tasks.filter((t) => !t.done).sort((a, b) => (a.due || '9999').localeCompare(b.due || '9999'));
   const done = tasks.filter((t) => t.done).slice(0, 100);
   const items = work.data?.items || [];
   const now = today();
@@ -187,14 +186,42 @@ export function TasksPage() {
   const edit = (id: string) => setTask(tasks.find((t) => t.id === id) || undefined);
   return <>
     <PageTitle title="Taken" actions={<button className="primary" onClick={() => setTask(null)}><Icon name="plus" /> Nieuwe taak</button>} />
-    <div className="seg tasks-seg" role="tablist">{([['mine', 'Van mij', items.length], ['team', 'Team', open.length], ['done', 'Afgerond', null]] as const).map(([k, l, n]) =>
+    <div className="seg tasks-seg" role="tablist">{([['mine', 'Van mij', items.length], ['team', 'Team', null], ['done', 'Afgerond', null]] as const).map(([k, l, n]) =>
       <button key={k} role="tab" aria-selected={view === k} className={view === k ? 'active' : ''} onClick={() => setView(k)}>{l}{n ? <span className="count">{n}</span> : null}</button>)}</div>
     {view === 'mine' ? (items.length ? groups.filter(([, rows]) => rows.length).map(([name, rows]) => <section key={name} className="block">
       <div className="block-head"><h2 className={name === 'Te laat' ? 'late-head' : ''}>{name}</h2><span className="n">{rows.length}</span></div>
       <div className="panel"><ul className="rows">{rows.map((i) => <WorkRow key={i.kind + i.id} item={i} onTask={edit} />)}</ul></div>
     </section>) : <div className="panel block"><p className="empty-line">{work.isPending ? 'Laden…' : 'Niets dat op jou wacht.'}</p></div>)
-      : <section className="block"><div className="panel"><ul className="rows">{(view === 'team' ? open : done).map((t) => <TaskRow key={t.id} t={t} onEdit={setTask} />)}</ul>
-        {!(view === 'team' ? open : done).length ? <p className="empty-line">{view === 'team' ? 'Geen open taken.' : 'Nog niets afgerond.'}</p> : null}</div></section>}
+      : view === 'team' ? <TeamWork onTask={edit} />
+      : <section className="block"><div className="panel"><ul className="rows">{done.map((t) => <TaskRow key={t.id} t={t} onEdit={setTask} />)}</ul>
+        {!done.length ? <p className="empty-line">Nog niets afgerond.</p> : null}</div></section>}
     <TaskDialog task={task} onClose={() => setTask(undefined)} />
   </>;
+}
+
+type TeamWorkData = { people: { username: string; name: string; late: number; items: WorkItem[] }[]; unassigned: WorkItem[] };
+const TEAM_SHOWN = 6;
+
+/** Everyone's open work side by side: tasks, event points, meeting actions and content, per person. */
+function TeamWork({ onTask }: { onTask: (id: string) => void }) {
+  const { user } = useAuth();
+  const [who, setWho] = useState('');
+  const [all, setAll] = useState<Record<string, boolean>>({});
+  const q = useQuery({ queryKey: ['team-work'], queryFn: () => api<TeamWorkData>('/team-work') });
+  if (q.isPending) return <Loading />;
+  if (q.error) return <ErrorBox error={q.error} />;
+  const groups = [...q.data.people.filter((p) => p.username !== user?.username && p.items.length), ...(q.data.unassigned.length ? [{ username: '', name: 'Niet toegewezen', late: 0, items: q.data.unassigned }] : [])]
+    .filter((p) => !who || p.username === who);
+  return <section className="block">
+    <div className="block-head"><h2>Wat de rest open heeft</h2>
+      <span className="act"><select value={who} onChange={(e) => setWho(e.target.value)} aria-label="Persoon"><option value="">Iedereen</option>
+        {q.data.people.filter((p) => p.username !== user?.username).map((p) => <option key={p.username} value={p.username}>{p.name}</option>)}</select></span></div>
+    {groups.length ? <div className="person-grid">{groups.map((p) => {
+      const key = p.username || '_';
+      const rows = all[key] || who ? p.items : p.items.slice(0, TEAM_SHOWN);
+      return <div key={key} className="panel person-list"><h3>{p.name}<span>{p.late ? <em className="late-count">{`${p.late} te laat`}</em> : null}{` ${p.items.length}`}</span></h3>
+        <ul className="rows">{rows.map((i) => <WorkRow key={i.kind + i.id} item={i} onTask={onTask} />)}</ul>
+        {!who && p.items.length > TEAM_SHOWN ? <button className="text-link person-more" onClick={() => setAll({ ...all, [key]: !all[key] })}>{all[key] ? 'Minder' : `+${p.items.length - TEAM_SHOWN} meer`}</button> : null}</div>;
+    })}</div> : <div className="panel"><p className="empty-line">Niemand anders heeft iets open.</p></div>}
+  </section>;
 }

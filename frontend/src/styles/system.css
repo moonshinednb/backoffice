@@ -762,3 +762,5 @@ tr:hover td.row-go svg, tr:focus-visible td.row-go svg { opacity: 1; }
   .kpis { margin-bottom: 20px; } .kpi { padding: 12px 14px; } .kpi strong { font-size: 1.35rem; }
   .work-due { font-size: .72rem; }
 }
+.person-list h3 em.late-count { font-style: normal; color: var(--bad); font-weight: 500; margin-right: 8px; }
+.person-list .work-row { padding: 8px 14px; }

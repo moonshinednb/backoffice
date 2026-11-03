@@ -540,9 +540,9 @@
     "semantic_hash": ""
   },
   "frontend/src/lib/ui.tsx": {
-    "mtime": 1793610504.737247,
-    "seen": 1793611501.5091553,
-    "ast_hash": "aba19de50295014a0c92d8610b030e16",
+    "mtime": 1793729016.6579092,
+    "seen": 1793729291.8652694,
+    "ast_hash": "3016ea932558ab33a868acc33e4657ea",
     "semantic_hash": ""
   },
   "frontend/src/login/Login.tsx": {
@@ -588,15 +588,15 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Work.tsx": {
-    "mtime": 1793611083.9225109,
-    "seen": 1793611501.5091732,
-    "ast_hash": "a7827606f2bb9ed0e6d28d7807e4f97c",
+    "mtime": 1793729009.696198,
+    "seen": 1793729291.8652818,
+    "ast_hash": "3d17aabf0844e5f071ab7b7e2f2c87bd",
     "semantic_hash": ""
   },
   "frontend/src/pages/shared.tsx": {
-    "mtime": 1793454727.5845633,
-    "seen": 1793455212.674426,
-    "ast_hash": "c202f6fc180aae24ec143f26d22ba46e",
+    "mtime": 1793728999.2780747,
+    "seen": 1793729291.8652828,
+    "ast_hash": "8b0a919e1a1a492d920ee5b301cdb821",
     "semantic_hash": ""
   },
   "frontend/src/production/Artists.tsx": {
@@ -690,10 +690,10 @@
     "semantic_hash": "958b2f60359b0a0f98d2108c4fd8ad23"
   },
   "frontend/vite.config.ts": {
-    "mtime": 1793391178.7615957,
-    "seen": 1793401037.4695652,
-    "ast_hash": "643caf59975b154f5b5edc687cc3d8f7",
-    "semantic_hash": "643caf59975b154f5b5edc687cc3d8f7"
+    "mtime": 1793728808.7937458,
+    "seen": 1793729291.8653135,
+    "ast_hash": "7e9b51fdc5d04026695eacaed6916667",
+    "semantic_hash": ""
   },
   ".claude/settings.json": {
     "mtime": 1793401071.7715526,
@@ -702,9 +702,9 @@
     "semantic_hash": ""
   },
   "ARCHITECTURE.md": {
-    "mtime": 1793611495.4770038,
-    "seen": 1793611501.509213,
-    "ast_hash": "d1def5ab5c08db79007e363e538c26bb",
+    "mtime": 1793729285.2473474,
+    "seen": 1793729291.8653145,
+    "ast_hash": "a0a2c533a7d0e4fd83f9e89e286d106a",
     "semantic_hash": ""
   },
   "CLAUDE.md": {
@@ -1002,9 +1002,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Meetings.tsx": {
-    "mtime": 1793611191.070201,
-    "seen": 1793611501.509169,
-    "ast_hash": "9f288ab11e401e246e07bfa899dc1f49",
+    "mtime": 1793728889.7987127,
+    "seen": 1793729291.8652787,
+    "ast_hash": "05cb1028ac07b81d5142966a5aff2a19",
     "semantic_hash": ""
   },
   "backend/planning/__init__.py": {
@@ -1038,9 +1038,9 @@
     "semantic_hash": ""
   },
   "backend/planning/services.py": {
-    "mtime": 1793610549.4815807,
-    "seen": 1793611501.509047,
-    "ast_hash": "7503191c015355158cbc8c5d5789457a",
+    "mtime": 1793728838.8895497,
+    "seen": 1793729291.8651938,
+    "ast_hash": "cc143a177d012a8655193b3518c36778",
     "semantic_hash": ""
   },
   "backend/planning/tests/__init__.py": {
@@ -1074,9 +1074,9 @@
     "semantic_hash": ""
   },
   "frontend/src/pages/Calendar.tsx": {
-    "mtime": 1793610421.6710138,
-    "seen": 1793611501.509166,
-    "ast_hash": "13d765555426ca077c3bbcede0a86c99",
+    "mtime": 1793728870.9180493,
+    "seen": 1793729291.8652766,
+    "ast_hash": "34d262442bc43a607548c69e6fd976fc",
     "semantic_hash": ""
   },
   "frontend/src/production/EventContent.tsx": {
@@ -1314,9 +1314,9 @@
     "semantic_hash": ""
   },
   "DESIGN.md": {
-    "mtime": 1793610769.154325,
-    "seen": 1793611501.5092158,
-    "ast_hash": "9d19a5eafbb03d82e10379af322c44b8",
+    "mtime": 1793729285.2467914,
+    "seen": 1793729291.8653169,
+    "ast_hash": "ea9793c1eb2adc8561fea6d44aae3872",
     "semantic_hash": ""
   },
   "frontend/package-lock.json": {

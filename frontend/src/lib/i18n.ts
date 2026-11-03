@@ -1032,6 +1032,7 @@ const D: Record<string, string> = {
   'Meer': 'More',
   'Werkt': 'Works',
   'Uploaden': 'Uploading',
+  'Wat de rest open heeft': 'What the others have open', 'Niemand anders heeft iets open.': 'Nobody else has anything open.',
   // Server messages
   'Geen verbinding met de server. Controleer of Tailscale aan staat.': 'No connection to the server. Check that Tailscale is on.',
   'Je sessie is verlopen of de pagina is verouderd. Ververs de pagina en probeer opnieuw.': 'Your session expired or the page is outdated. Refresh the page and try again.',

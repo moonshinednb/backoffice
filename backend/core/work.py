@@ -76,3 +76,20 @@ def attention(request):
                        'steps': len(steps), 'done': sum(1 for s in steps if s.done),
                        'late': sum(1 for s in open_steps if due(s, e.date) and due(s, e.date) < today.isoformat()), 'next': top})
     return {'events': events, 'meeting': next_meeting()}
+
+
+@router.get('/team-work')
+def team_work(request):
+    """What every active team member still has open (same sources as /my-work), plus tasks nobody owns."""
+    from core.models import User
+    today = date.today().isoformat()
+    people = []
+    for u in User.objects.filter(is_active=True).order_by('first_name', 'username'):
+        items = items_for(u)
+        people.append({'username': u.username, 'name': u.display_name, 'items': items,
+                       'late': sum(1 for i in items if i['due'] and i['due'] < today)})
+    nobody = [{'kind': 'task', 'id': t.id, 'title': t.title, 'due': t.due.isoformat() if t.due else '', 'context': '',
+               'link': '/tasks', 'high': t.priority == 'high'}
+              for t in Task.objects.filter(done=False).prefetch_related('assignees') if not t.people()]
+    nobody.sort(key=lambda i: i['due'] or '9999-99-99')
+    return {'people': people, 'unassigned': nobody}
