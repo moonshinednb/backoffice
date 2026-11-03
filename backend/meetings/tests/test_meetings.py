@@ -37,6 +37,11 @@ class MeetingTests(ApiTests):
         r = self.send(c, 'post', f'/api/meeting-actions/{a.id}/task').json()
         t = Task.objects.get(id=r['task_id'])
         self.assertEqual(t.assignee.username, 'bram')
+        self.assertEqual(r['for'], 'Bram')
+        self.assertEqual([u.username for u in t.assignees.all()], ['bram'])
+        self.send(c, 'patch', f'/api/meeting-actions/{a.id}', {'due': '2030-01-20', 'owner': 'peppy'})
+        t.refresh_from_db()
+        self.assertEqual((t.due.isoformat(), t.assignee.username), ('2030-01-20', 'peppy'))
         self.send(c, 'patch', f'/api/meeting-actions/{a.id}', {'done': True})
         self.assertTrue(Task.objects.get(id=t.id).done)
 

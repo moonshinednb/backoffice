@@ -654,9 +654,9 @@
     "semantic_hash": ""
   },
   "frontend/src/shell/Layout.tsx": {
-    "mtime": 1793610549.4774265,
-    "seen": 1793611501.5092037,
-    "ast_hash": "e38529a5a29f48893257061a090464ee",
+    "mtime": 1793733904.8697057,
+    "seen": 1793734075.9568264,
+    "ast_hash": "aed3c01c0b829bbfd8f87c40c016b6a8",
     "semantic_hash": ""
   },
   "frontend/src/shell/Notifications.tsx": {

@@ -17,8 +17,10 @@ function ActionRow({ a, onChange }: { a: Action; onChange: () => void }) {
   return <li className={`mt-row ${a.done ? 'done' : ''}`}>
     <input type="checkbox" checked={a.done} disabled={!edit} aria-label={`${a.text} afvinken`} onChange={(e) => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'PATCH', body: { done: e.target.checked } }); onChange(); })} />
     <span className="act-text"><span>{a.text}</span><small>{`meeting ${shortDate(a.meeting_date)}`}{a.task_id ? ' · in Taken' : ''}</small></span>
-    <span className={`mt-due ${late ? 'late' : ''}`}>{a.due ? shortDate(a.due) : ''}</span>
-    {!a.task_id && edit ? <button className="small ghost mt-task" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); })}>Maak taak</button> : <span />}
+    {edit ? <input type="date" className={`due-input ${late ? 'late' : ''} ${a.due ? '' : 'empty'}`} value={a.due || ''} aria-label={`Deadline voor ${a.text}`} title="Deadline"
+      onChange={(e) => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'PATCH', body: { due: e.target.value } }); onChange(); })} />
+      : <span className={`mt-due ${late ? 'late' : ''}`}>{a.due ? shortDate(a.due) : ''}</span>}
+    {!a.task_id && edit ? <button className="small ghost mt-task" onClick={() => run(async () => { const r = await api<{ for: string }>(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); return r; }, (r) => r?.for ? `Staat nu bij Taken van ${r.for}.` : 'Staat nu bij Taken (nog niemand toegewezen).')}>Maak taak</button> : <span />}
   </li>;
 }
 
@@ -55,8 +57,9 @@ function MiniAction({ a, onChange }: { a: Action; onChange: () => void }) {
     <div className="mini-meta">
       <select value={a.owner} disabled={!edit} aria-label="Voor wie" onChange={(e) => patch({ owner: e.target.value })}>
         {OWNERS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}{a.owner && !NAMES[a.owner] ? <option value={a.owner}>{a.owner}</option> : null}</select>
-      {a.due ? <small>{`voor ${shortDate(a.due)}`}</small> : null}
-      {a.task_id ? <small className="act-task">In Taken</small> : edit ? <button className="text-link" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); })}>Maak taak</button> : null}
+      {edit ? <input type="date" className={`due-input ${a.due ? '' : 'empty'}`} value={a.due || ''} aria-label="Deadline" title="Deadline" onChange={(e) => patch({ due: e.target.value })} />
+        : a.due ? <small>{`voor ${shortDate(a.due)}`}</small> : null}
+      {a.task_id ? <small className="act-task">In Taken</small> : edit ? <button className="text-link" onClick={() => run(async () => { const r = await api<{ for: string }>(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); return r; }, (r) => r?.for ? `Staat nu bij Taken van ${r.for}.` : 'Staat nu bij Taken (nog niemand toegewezen).')}>Maak taak</button> : null}
       {edit ? <button className="icon-btn ghost tiny" aria-label="Verwijderen" onClick={() => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'DELETE' }); onChange(); })}><Icon name="close" /></button> : null}
     </div>
   </li>;

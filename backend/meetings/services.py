@@ -151,6 +151,20 @@ def extract(m, actor='systeem'):
     return made, how
 
 
+def sync_task(a):
+    """Keep the task made from an action point in step: done, deadline and owner."""
+    t = Task.objects.filter(id=a.task_id).first()
+    if not t:
+        return
+    t.done = a.done
+    t.due = date.fromisoformat(a.due) if a.due else None
+    owner = User.objects.filter(username=a.owner, is_active=True).first()
+    t.assignee = owner
+    t.dirty = True
+    t.save()
+    t.assignees.set([owner] if owner else [])
+
+
 def make_task(a, actor):
     """Turn an action point into a real task (also synced to To Do)."""
     if a.task_id and Task.objects.filter(id=a.task_id).exists():
@@ -158,6 +172,8 @@ def make_task(a, actor):
     assignee = User.objects.filter(username=a.owner, is_active=True).first()
     t = Task.objects.create(title=a.text[:300], description=f'Uit de meeting van {a.meeting.date}', assignee=assignee,
                             due=date.fromisoformat(a.due) if a.due else None, dirty=True)
+    if assignee:
+        t.assignees.set([assignee])
     a.task_id = t.id
     a.save(update_fields=['task_id'])
     audit(actor, 'Taak aangemaakt', t.id, 'uit meeting')

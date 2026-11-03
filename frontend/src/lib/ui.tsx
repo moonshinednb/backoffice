@@ -102,10 +102,11 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 /** Run an async action and report failures as a toast. */
 export function useAction() {
   const toast = useToast();
-  return useCallback(async (fn: () => Promise<unknown>, success?: string) => {
+  return useCallback(async <T,>(fn: () => Promise<T>, success?: string | ((result: T) => string)) => {
     try {
-      await fn();
-      if (success) toast(success);
+      const result = await fn();
+      const msg = typeof success === 'function' ? success(result) : success;
+      if (msg) toast(msg);
       return true;
     } catch (error) {
       toast(error instanceof Error ? error.message : String(error), true);

@@ -8,7 +8,7 @@ import { dayNumber, eur, monthShort, ROLE, shortDate, stamp, today } from '../li
 import { Badge, ErrorBox, Icon, Loading, PageTitle, formValues, useToast } from '../lib/ui';
 import { FormDialog } from '../production/common';
 import { EventRow } from '../production/Events';
-import { Connection, Doc, DocumentBadge, Task, useDocuments, useTasks, useUpload, useUsers } from './shared';
+import { Connection, Doc, DocumentBadge, Task, useDocuments, useTasks, useUsers } from './shared';
 import { InvoiceDialog } from './Finance';
 import { WorkRow, useMyWork, type WorkItem } from './MyWork';
 
@@ -29,7 +29,6 @@ function days(n: number) { return n === 0 ? 'vandaag' : n === 1 ? 'morgen' : `ov
 export function DashboardPage() {
   const { user } = useAuth();
   const navigate = useNavigate();
-  const { upload } = useUpload();
   const work = useMyWork();
   const focus = work.data?.focus || [];
   const finance = can.finance(user) && (focus.includes('finance') || focus.includes('admin'));
@@ -48,9 +47,7 @@ export function DashboardPage() {
   const verified = d ? d.connections.filter((x) => x.status === 'verified').length : 0;
   const m = att.data?.meeting;
   return <>
-    <PageTitle title="Overzicht" sub={new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' })}
-      actions={<><button onClick={() => setTask(null)}><Icon name="plus" /> Taak</button>
-        {finance ? <button className="primary" onClick={() => upload()}><Icon name="invoice" /> Factuur</button> : null}</>} />
+    <PageTitle title="Overzicht" sub={new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' })} />
     <div className="kpis" role="list">
       <Link role="listitem" to="/tasks" className={`kpi ${c?.late ? 'is-late' : ''}`}><span>Te laat</span><strong>{c ? c.late : '–'}</strong><small>van jouw punten</small></Link>
       <Link role="listitem" to="/tasks" className="kpi"><span>Deze week</span><strong>{c ? c.week : '–'}</strong><small>{c ? `${c.all} open in totaal` : ''}</small></Link>

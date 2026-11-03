@@ -113,9 +113,8 @@ def update_action(request, ident: int):
     if 'due' in d:
         a.due = str(d['due'] or '')[:10]
     a.save()
-    if 'done' in d and a.task_id:
-        from core.models import Task
-        Task.objects.filter(id=a.task_id).update(done=a.done, dirty=True)
+    if a.task_id:
+        S.sync_task(a)
     return S.action_dict(a)
 
 
@@ -133,4 +132,4 @@ def to_task(request, ident: int):
     if not a:
         raise HttpError(404, 'Actiepunt niet gevonden.')
     t = S.make_task(a, actor(request))
-    return {'task_id': t.id, **S.action_dict(a)}
+    return {**S.action_dict(a), 'task_id': t.id, 'for': ', '.join(u.display_name for u in t.people()) or ''}

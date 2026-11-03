@@ -834,3 +834,24 @@ td { height: 50px; padding: 12px 18px; }
 .att-next li span { flex: 1; } .att-next li small { flex: none; }
 .att-event { min-width: 0; overflow: hidden; }
 @media (max-width: 1500px) { .att-next { padding-left: 0; } }
+
+/* Inline deadline picker on action points */
+input.due-input { min-height: 28px !important; width: 128px; padding: 0 6px !important; font-size: .78rem !important; background: transparent !important; border-color: transparent !important; color: var(--text-2); font-variant-numeric: tabular-nums; }
+input.due-input:hover, input.due-input:focus { border-color: var(--line-strong) !important; background: var(--sunken) !important; }
+input.due-input.empty { color: var(--text-3); } input.due-input.late { color: var(--bad); font-weight: 500; }
+input.due-input::-webkit-calendar-picker-indicator { filter: invert(.6); cursor: pointer; }
+[data-theme='light'] input.due-input::-webkit-calendar-picker-indicator { filter: none; }
+.mt-row { grid-template-columns: 15px minmax(0, 1fr) 128px auto; }
+/* Login: room for the icons inside the fields */
+.input-icon input:not([type=checkbox]) { padding-left: 40px !important; padding-right: 44px !important; }
+input.due-input.empty:not(:focus):not(:hover)::-webkit-datetime-edit { color: transparent; }
+
+/* Brand: logo at a readable size, a hairline, then a quiet product label */
+.brand { display: flex; align-items: center; gap: 12px; padding: 4px 10px 22px; text-decoration: none; }
+.brand img { width: auto; height: 34px; max-width: 96px; object-fit: contain; }
+.brand-sep { width: 1px; height: 20px; background: var(--line-strong); }
+.brand .brand-name { font-family: var(--font); font-size: .82rem; font-weight: 500; letter-spacing: .01em; color: var(--text-3); }
+.brand:hover .brand-name { color: var(--text-2); }
+.brand img { height: 50px; max-width: 120px; margin: -8px -6px -8px -8px; }
+.brand img { height: 76px; max-width: 120px; margin: -20px -12px -20px -14px; }
+.brand { padding-top: 10px; padding-bottom: 26px; }

@@ -51,7 +51,7 @@ export function Layout() {
   return (
     <div className="layout">
       <aside className={`sidebar ${menu ? 'open' : ''}`}>
-        <Link className="brand" to="/"><img src="/assets/moonshine-logo.svg" alt="Moonshine" /><div><div className="brand-name">Backoffice</div></div></Link>
+        <Link className="brand" to="/" aria-label="Moonshine Backoffice"><img src="/assets/moonshine-logo.svg" alt="Moonshine" /><span className="brand-sep" aria-hidden="true" /><span className="brand-name">Backoffice</span></Link>
         {nav.map(([section, items]) => (
           <div key={section}>
             <div className="nav-label">{section}</div>
