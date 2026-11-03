@@ -26,7 +26,7 @@ Een werktool voor zes mensen, vaak op de telefoon. Rustig, compact, taakgericht.
 ## Kleur
 - Alleen tokens uit `frontend/src/styles/system.css` (`var(--…)`). Geen hex-kleuren elders (alleen puur zwart voor schaduwen).
 - **Kleurbudget**: accent alleen voor de primaire actie en de actieve plek in de navigatie. Rood (`--bad`) alleen voor "te laat"/fout. Geen kleur per persoon, fase of soort.
-- Geen gradients, geen gloed-schaduwen, geen pastel-stickies.
+- Geen gradients, geen gloed-schaduwen, geen pastel-stickies. Enige uitzondering: een fade over een foto zodat tekst erop leesbaar is (markeer de regel met `/* cover-scrim */`).
 
 ## Typografie
 - IBM Plex Sans voor tekst, Plex Sans Condensed (`--font-display`) voor titels en sectiekoppen.

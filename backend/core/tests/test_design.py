@@ -33,7 +33,9 @@ def hits(pattern, paths, skip=lambda p, m: False):
 @unittest.skipUnless(SRC.is_dir(), 'frontend source not present')
 class DesignRulesTests(unittest.TestCase):
     def test_no_gradients(self):
-        self.assertEqual(hits(re.compile(r'gradient\('), files('.css', '.tsx', '.ts')), [], 'Geen gradients: vlakke kleuren uit system.css.')
+        found = [h for h in hits(re.compile(r'gradient\('), files('.css', '.tsx', '.ts'))]
+        scrims = {f'{p.relative_to(SRC)}:{n}' for p in files('.css') for n, line in enumerate(p.read_text(encoding='utf-8').splitlines(), 1) if 'cover-scrim' in line}
+        self.assertEqual([h for h in found if h.rsplit(':', 1)[0] not in scrims], [], 'Geen gradients, behalve een fade over een foto (markeer met /* cover-scrim */).')
 
     def test_no_decorative_tilt(self):
         tilted = hits(TILT, files('.css', '.tsx'), skip=lambda p, m: float(m.group(1)) % 90 == 0)

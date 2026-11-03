@@ -241,11 +241,14 @@ function NextEvent({ e, onChange }: { e: AttEvent; onChange: () => void }) {
   const pct = e.steps ? Math.round((e.done / e.steps) * 100) : 0;
   const tick = (id: string) => run(async () => { await api(`/event-steps/${id}`, { method: 'PATCH', body: { done: true } }); onChange(); for (const k of ['my-work', 'event-steps']) qc.invalidateQueries({ queryKey: [k] }); });
   return <article className="panel next-event">
-    <div className="ne-head"><h2>Volgend event</h2><span className="pill">{days(e.days)}</span></div>
-    {cover ? <Link to={`/events/${e.id}`} className="ne-cover"><img src={`/api/events/${e.id}/cover`} alt={`Poster ${e.name}`} onError={() => setCover(false)} /></Link> : null}
+    {cover ? <Link to={`/events/${e.id}`} className="ne-hero">
+      <img src={`/api/events/${e.id}/cover`} alt="" onError={() => setCover(false)} />
+      <span className="ne-hero-top"><h2>Volgend event</h2><span className="pill">{days(e.days)}</span></span>
+      <span className="ne-hero-text"><h3>{e.name}</h3><span className="ne-meta">{[fullDate(e.date), e.venue].filter(Boolean).join(' · ')}</span></span>
+    </Link> : <div className="ne-head"><h2>Volgend event</h2><span className="pill">{days(e.days)}</span></div>}
     <div className="ne-body">
-      <Link to={`/events/${e.id}`} className="ne-title"><h3>{e.name}</h3></Link>
-      <p className="ne-meta">{[fullDate(e.date), e.venue].filter(Boolean).join(' · ')}</p>
+      {cover ? null : <><Link to={`/events/${e.id}`} className="ne-title"><h3>{e.name}</h3></Link>
+        <p className="ne-meta">{[fullDate(e.date), e.venue].filter(Boolean).join(' · ')}</p></>}
       <div className="ne-progress"><span>{`${e.done} van ${e.steps} punten klaar`}</span>{e.late ? <span className="pill bad">{`${e.late} te laat`}</span> : null}</div>
       <div className="ne-bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
       {e.next.length ? <ul className="ne-steps">{e.next.map((n) => <li key={n.id}>
