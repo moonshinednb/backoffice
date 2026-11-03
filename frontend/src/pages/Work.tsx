@@ -4,8 +4,8 @@ import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../lib/api';
 import { can, useAuth } from '../lib/auth';
-import { dayNumber, eur, monthShort, ROLE, shortDate, stamp, today } from '../lib/format';
-import { Badge, ErrorBox, Icon, Loading, PageTitle, formValues, useToast } from '../lib/ui';
+import { dayNumber, eur, fullDate, monthShort, ROLE, shortDate, stamp, today } from '../lib/format';
+import { Badge, ErrorBox, Icon, Loading, PageTitle, formValues, useAction, useToast } from '../lib/ui';
 import { FormDialog } from '../production/common';
 import { EventRow } from '../production/Events';
 import { Connection, Doc, DocumentBadge, Task, useDocuments, useTasks, useUsers } from './shared';
@@ -20,8 +20,9 @@ type Dashboard = {
     audit: { id: number; created: number; actor: string; action: string }[]; failed_jobs: { id: string; kind: string; error: string; attempts: number }[] };
 };
 
-type Attention = { events: { id: string; name: string; date: string; venue: string; days: number; steps: number; done: number; late: number;
-  next: { label: string; owner: string; due: string; late: boolean }[] }[];
+type AttEvent = { id: string; name: string; date: string; venue: string; days: number; steps: number; done: number; late: number; status: string; cover: boolean;
+  next: { id: string; label: string; owner: string; due: string; late: boolean }[] };
+type Attention = { events: AttEvent[];
   meeting: { date: string; time: string; place: string; meeting_id: string | null; source: string } | null };
 
 function days(n: number) { return n === 0 ? 'vandaag' : n === 1 ? 'morgen' : `over ${n} dagen`; }
@@ -49,12 +50,11 @@ export function DashboardPage() {
   return <>
     <PageTitle title="Overzicht" sub={new Date().toLocaleDateString(locale(), { weekday: 'long', day: 'numeric', month: 'long' })} />
     <div className="kpis" role="list">
-      <Link role="listitem" to="/tasks" className={`kpi ${c?.late ? 'is-late' : ''}`}><span>Te laat</span><strong>{c ? c.late : '–'}</strong><small>van jouw punten</small></Link>
-      <Link role="listitem" to="/tasks" className="kpi"><span>Deze week</span><strong>{c ? c.week : '–'}</strong><small>{c ? `${c.all} open in totaal` : ''}</small></Link>
-      <Link role="listitem" to="/events" className="kpi"><span>Komende events</span><strong>{att.data ? att.data.events.length : '–'}</strong>
-        <small>{att.data?.events[0] ? `eerste ${days(att.data.events[0].days)}` : 'geen gepland'}</small></Link>
-      {finance ? <Link role="listitem" to="/invoices" className={`kpi ${review.length ? 'is-warn' : ''}`}><span>Facturen te controleren</span><strong>{docs.data ? review.length : '–'}</strong><small>{`${all.length} in totaal`}</small></Link>
-        : m ? <Link role="listitem" to={m.meeting_id ? `/meetings/${m.meeting_id}` : '/meetings'} className="kpi"><span>Volgende meeting</span><strong className="kpi-date">{shortDate(m.date)}</strong><small>{m.time || (m.source === 'expected' ? 'verwacht' : '')}</small></Link> : null}
+      <Link role="listitem" to="/tasks" className={`kpi ${c?.late ? 'is-late' : ''}`}><i className="kpi-icon"><Icon name="clock" /></i><span className="kpi-body"><strong>{c ? c.late : '–'}</strong><span>Te laat</span></span></Link>
+      <Link role="listitem" to="/tasks" className="kpi"><i className="kpi-icon"><Icon name="calendar" /></i><span className="kpi-body"><strong>{c ? c.week : '–'}</strong><span>Deze week</span></span></Link>
+      <Link role="listitem" to="/events" className="kpi"><i className="kpi-icon"><Icon name="check" /></i><span className="kpi-body"><strong>{att.data ? att.data.events.length : '–'}</strong><span>Komende events</span></span></Link>
+      {finance ? <Link role="listitem" to="/invoices" className={`kpi ${review.length ? 'is-warn' : ''}`}><i className="kpi-icon"><Icon name="invoice" /></i><span className="kpi-body"><strong>{docs.data ? review.length : '–'}</strong><span>Facturen te controleren</span></span></Link>
+        : <Link role="listitem" to="/tasks" className="kpi"><i className="kpi-icon"><Icon name="tasks" /></i><span className="kpi-body"><strong>{c ? c.all : '–'}</strong><span>Open in totaal</span></span></Link>}
     </div>
     <div className="dash">
       <section className="block dash-now">
@@ -65,15 +65,16 @@ export function DashboardPage() {
           : <p className="empty-line">{items.length ? 'Niets deze week. Kijk bij Taken voor later.' : 'Niets dat op jou wacht.'}</p>}</div>
       </section>
       <section className="block dash-events">
-        <div className="block-head"><h2>Events</h2><span className="act"><Link className="text-link" to="/events">Alle events</Link></span></div>
-        {att.data?.events.length ? <div className="attention-list">{att.data.events.map((e) => <Link key={e.id} to={`/events/${e.id}`} className="panel att-event">
-          <div className="att-top">
+        {att.isPending ? <Loading /> : att.data?.events.length ? <>
+          <NextEvent e={att.data.events[0]} onChange={() => att.refetch()} />
+          {att.data.events.length > 1 ? <div className="panel later-events"><ul className="rows">{att.data.events.slice(1).map((e) => <li key={e.id}><Link to={`/events/${e.id}`} className="ev-row">
             <span className="att-date"><strong>{dayNumber(e.date)}</strong><span>{monthShort(e.date)}</span></span>
             <span className="att-name"><strong>{e.name}</strong><small>{[days(e.days), e.venue].filter(Boolean).join(' · ')}</small></span>
-            <span className="att-progress"><b>{`${e.done}/${e.steps}`}</b>{e.late ? <em>{`${e.late} te laat`}</em> : <small>klaar</small>}</span>
-          </div>
-          {e.next.length ? <ul className="att-next">{e.next.map((n) => <li key={n.label}><span>{n.label}</span><small>{n.late ? <em>te laat</em> : null}{n.late ? ' · ' : ''}{n.owner}</small></li>)}</ul> : null}
-        </Link>)}</div> : <div className="panel"><p className="empty-line">{att.isPending ? 'Laden…' : 'Geen komende events.'} <button className="text-link" onClick={() => navigate('/events')}>Naar events</button></p></div>}
+            <span />
+            <span className="ev-progress"><span className="bar" aria-hidden="true"><i style={{ width: `${e.steps ? Math.round((e.done / e.steps) * 100) : 0}%` }} /></span>
+              <small className={e.late ? 'late' : ''}>{e.late ? `${e.late} te laat` : `${e.done}/${e.steps}`}</small></span>
+          </Link></li>)}</ul></div> : null}
+        </> : <div className="panel"><p className="empty-line">Geen komende events. <button className="text-link" onClick={() => navigate('/events')}>Naar events</button></p></div>}
       </section>
       {m ? <section className="block dash-meeting">
         <div className="block-head"><h2>Meeting</h2></div>
@@ -176,6 +177,7 @@ export function TasksPage() {
   const tasks = q.data.tasks;
   const done = tasks.filter((t) => t.done).slice(0, 100);
   const items = work.data?.items || [];
+  const c = work.data?.counts;
   const now = today();
   const week = new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10);
   const groups: [string, typeof items][] = [['Te laat', items.filter((i) => i.due && i.due < now)], ['Deze week', items.filter((i) => i.due && i.due >= now && i.due <= week)],
@@ -183,12 +185,20 @@ export function TasksPage() {
   const edit = (id: string) => setTask(tasks.find((t) => t.id === id) || undefined);
   return <>
     <PageTitle title="Taken" actions={<button className="primary" onClick={() => setTask(null)}><Icon name="plus" /> Nieuwe taak</button>} />
-    <div className="seg tasks-seg" role="tablist">{([['mine', 'Van mij', items.length], ['team', 'Team', null], ['done', 'Afgerond', null]] as const).map(([k, l, n]) =>
-      <button key={k} role="tab" aria-selected={view === k} className={view === k ? 'active' : ''} onClick={() => setView(k)}>{l}{n ? <span className="count">{n}</span> : null}</button>)}</div>
-    {view === 'mine' ? (items.length ? groups.filter(([, rows]) => rows.length).map(([name, rows]) => <section key={name} className="block">
-      <div className="block-head"><h2 className={name === 'Te laat' ? 'late-head' : ''}>{name}</h2><span className="n">{rows.length}</span></div>
-      <div className="panel"><ul className="rows">{rows.map((i) => <WorkRow key={i.kind + i.id} item={i} onTask={edit} />)}</ul></div>
-    </section>) : <div className="panel block"><p className="empty-line">{work.isPending ? 'Laden…' : 'Niets dat op jou wacht.'}</p></div>)
+    <div className="seg tasks-seg" role="tablist">{([['mine', 'Van mij', items.length, 'tasks'], ['team', 'Team', null, 'users'], ['done', 'Afgerond', null, 'ok']] as const).map(([k, l, n, ic]) =>
+      <button key={k} role="tab" aria-selected={view === k} className={view === k ? 'active' : ''} onClick={() => setView(k)}><Icon name={ic} />{l}{n ? <span className="count">{n}</span> : null}</button>)}</div>
+    {view === 'mine' ? <>
+      <div className="kpis task-kpis" role="list">
+        <div role="listitem" className="kpi"><i className="kpi-icon"><Icon name="tasks" /></i><span className="kpi-body"><strong>{c ? c.all : '–'}</strong><span>Mijn open punten</span></span></div>
+        <div role="listitem" className={`kpi ${c?.late ? 'is-late' : ''}`}><i className="kpi-icon"><Icon name="clock" /></i><span className="kpi-body"><strong>{c ? c.late : '–'}</strong><span>Te laat</span></span></div>
+        <div role="listitem" className="kpi"><i className="kpi-icon"><Icon name="calendar" /></i><span className="kpi-body"><strong>{c ? c.week : '–'}</strong><span>Deze week</span></span></div>
+        <div role="listitem" className="kpi"><i className="kpi-icon"><Icon name="ok" /></i><span className="kpi-body"><strong>{c?.done_month ?? '–'}</strong><span>Afgerond deze maand</span></span></div>
+      </div>
+      {items.length ? groups.filter(([, rows]) => rows.length).map(([name, rows]) => <section key={name} className="block">
+        <div className="block-head"><h2 className={name === 'Te laat' ? 'late-head' : ''}>{name}</h2><span className="count-chip">{rows.length}</span></div>
+        <div className="panel"><ul className="rows">{rows.map((i) => <WorkRow key={i.kind + i.id} item={i} onTask={edit} wide />)}</ul></div>
+      </section>) : <div className="panel block"><p className="empty-line">{work.isPending ? 'Laden…' : 'Niets dat op jou wacht.'}</p></div>}
+    </>
       : view === 'team' ? <TeamWork onTask={edit} />
       : <section className="block"><div className="panel"><ul className="rows">{done.map((t) => <TaskRow key={t.id} t={t} onEdit={setTask} />)}</ul>
         {!done.length ? <p className="empty-line">Nog niets afgerond.</p> : null}</div></section>}
@@ -217,8 +227,32 @@ function TeamWork({ onTask }: { onTask: (id: string) => void }) {
       const key = p.username || '_';
       const rows = all[key] || who ? p.items : p.items.slice(0, TEAM_SHOWN);
       return <div key={key} className="panel person-list"><h3>{p.name}<span>{p.late ? <em className="late-count">{`${p.late} te laat`}</em> : null}{` ${p.items.length}`}</span></h3>
-        <ul className="rows">{rows.map((i) => <WorkRow key={i.kind + i.id} item={i} onTask={onTask} />)}</ul>
+        <ul className="rows">{rows.map((i) => <WorkRow key={i.kind + i.id} item={i} onTask={onTask} wide />)}</ul>
         {!who && p.items.length > TEAM_SHOWN ? <button className="text-link person-more" onClick={() => setAll({ ...all, [key]: !all[key] })}>{all[key] ? 'Minder' : `+${p.items.length - TEAM_SHOWN} meer`}</button> : null}</div>;
     })}</div> : <div className="panel"><p className="empty-line">Niemand anders heeft iets open.</p></div>}
   </section>;
+}
+
+/** The next event, featured: its poster from OneDrive, progress of the team checklist and the next points to tick off. */
+function NextEvent({ e, onChange }: { e: AttEvent; onChange: () => void }) {
+  const run = useAction();
+  const qc = useQueryClient();
+  const [cover, setCover] = useState(e.cover);
+  const pct = e.steps ? Math.round((e.done / e.steps) * 100) : 0;
+  const tick = (id: string) => run(async () => { await api(`/event-steps/${id}`, { method: 'PATCH', body: { done: true } }); onChange(); for (const k of ['my-work', 'event-steps']) qc.invalidateQueries({ queryKey: [k] }); });
+  return <article className="panel next-event">
+    <div className="ne-head"><h2>Volgend event</h2><span className="pill">{days(e.days)}</span></div>
+    {cover ? <Link to={`/events/${e.id}`} className="ne-cover"><img src={`/api/events/${e.id}/cover`} alt={`Poster ${e.name}`} onError={() => setCover(false)} /></Link> : null}
+    <div className="ne-body">
+      <Link to={`/events/${e.id}`} className="ne-title"><h3>{e.name}</h3></Link>
+      <p className="ne-meta">{[fullDate(e.date), e.venue].filter(Boolean).join(' · ')}</p>
+      <div className="ne-progress"><span>{`${e.done} van ${e.steps} punten klaar`}</span>{e.late ? <span className="pill bad">{`${e.late} te laat`}</span> : null}</div>
+      <div className="ne-bar" aria-hidden="true"><i style={{ width: `${pct}%` }} /></div>
+      {e.next.length ? <ul className="ne-steps">{e.next.map((n) => <li key={n.id}>
+        <input type="checkbox" aria-label={`${n.label} afvinken`} onChange={() => tick(n.id)} />
+        <span className="ne-step"><span>{n.label}</span><small>{n.owner}</small></span>
+        <span className={n.late ? 'ne-due late' : 'ne-due'}>{n.late ? 'Te laat' : n.due ? shortDate(n.due) : ''}</span></li>)}</ul> : <p className="empty-line">Alles van de checklist is klaar.</p>}
+      <Link to={`/events/${e.id}`} className="ne-link">Eventdetails <Icon name="arrow" /></Link>
+    </div>
+  </article>;
 }

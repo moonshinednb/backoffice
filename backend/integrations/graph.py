@@ -301,3 +301,14 @@ def drive_upload(path, content, mime):
             raise RuntimeError('OneDrive gaf geen uploadadres.')
         item = _upload_chunks(session['uploadUrl'], content, DRIVE_CHUNK)
     return str(item.get('id', '')), str(item.get('webUrl', ''))
+
+
+def item_thumbnail(item_id, size='large'):
+    """Bytes of the thumbnail OneDrive renders for a file (images, PDFs), or None."""
+    data = http(_drive_base() + '/items/' + urllib.parse.quote(item_id, safe='') + '/thumbnails', None, _drive_token()).get('value', [])
+    url = ((data[0] if data else {}).get(size) or {}).get('url')
+    if not url:
+        return None
+    secure_url(url)
+    with urllib.request.urlopen(url, timeout=60) as response:
+        return response.read()

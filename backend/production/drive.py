@@ -233,6 +233,46 @@ def event_files(e, fresh=False):
     return result
 
 
+IMAGE = ('.jpg', '.jpeg', '.png', '.webp', '.gif')
+COVER_WORDS = ('poster', 'flyer', 'line-up', 'lineup', 'key visual', 'artwork', 'cover', 'banner')
+
+
+def event_cover(e):
+    """The event poster: an image from the artwork folder (names like 'poster' first),
+    as a OneDrive thumbnail. Kept on disk for six hours; None when there is none."""
+    import time
+    from core.services import DATA
+    from integrations.graph import item_children, item_thumbnail
+    if not e.drive_id or not enabled():
+        return None
+    folder = DATA / 'covers'
+    folder.mkdir(parents=True, exist_ok=True)
+    path, miss = folder / f'{e.id}.jpg', folder / f'{e.id}.none'
+    for f in (path, miss):
+        if f.exists() and time.time() - f.stat().st_mtime < 6 * 3600:
+            return path.read_bytes() if f is path else None
+    art = next((c for c in item_children(e.drive_id) if 'folder' in c and 'artwork' in c['name'].lower()), None)
+    images = []
+    if art:
+        for c in item_children(art['id']):
+            if 'folder' in c:
+                images += [(x, c['name']) for x in item_children(c['id']) if x['name'].lower().endswith(IMAGE)]
+            elif c['name'].lower().endswith(IMAGE):
+                images.append((c, ''))
+    def rank(pair):
+        x, sub = pair
+        name = (sub + ' ' + x['name']).lower()
+        return (not any(w in name for w in COVER_WORDS), x['name'].lower())
+    images.sort(key=rank)
+    data = item_thumbnail(images[0][0]['id']) if images else None
+    if data:
+        path.write_bytes(data)
+        miss.unlink(missing_ok=True)
+    else:
+        miss.touch()
+    return data
+
+
 UPLOAD_LIMIT = 100 * 1024 * 1024
 
 

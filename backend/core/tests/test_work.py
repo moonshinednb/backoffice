@@ -69,3 +69,25 @@ class AttentionTests(ApiTests):
         self.assertIn('peppy', [p['username'] for p in r['people']])
         self.assertTrue(all('items' in p and 'late' in p for p in r['people']))
         self.assertIsInstance(r['unassigned'], list)
+
+    def test_cover_without_onedrive_is_404(self):
+        c, _ = self.login('peppy', 'admin-pass-1')
+        e = self.send(c, 'post', '/api/events', {'name': 'Zonder map', 'date': '2030-01-01'}).json()
+        self.assertEqual(c.get(f"/api/events/{e['id']}/cover").status_code, 404)
+        ev = next(x for x in c.get('/api/attention').json()['events'] if x['id'] == e['id'])
+        self.assertTrue(all('id' in n for n in ev['next']))
+
+    def test_activity_and_done_summary(self):
+        from core.models import Notification
+        self.bram.must_change_password = False; self.bram.save()
+        p, _ = self.login('peppy', 'admin-pass-1')
+        t = self.send(p, 'post', '/api/tasks', {'title': 'Poster maken'}).json()
+        b, _ = self.login('bram', 'tijdelijk1')
+        self.send(b, 'patch', f"/api/tasks/{t['id']}", {'title': 'Poster maken v2'})
+        n = Notification.objects.get(user__username='peppy', kind='activity')
+        self.assertIn('Bram werkt ook aan', n.title)
+        self.send(b, 'patch', f"/api/tasks/{t['id']}", {'done': True})
+        d = Notification.objects.get(user__username='peppy', kind='done')
+        self.assertIn('wijzigingen', d.body)
+        items = p.get('/api/team-work').json()
+        self.assertTrue(all('people' in i for g in items['people'] for i in g['items']))

@@ -6,7 +6,7 @@ import { stamp } from '../lib/format';
 import { Icon } from '../lib/ui';
 
 type Note = { id: number; kind: string; title: string; body: string; link: string; created: number; read: boolean };
-const ICON: Record<string, string> = { done: 'check', assigned: 'tasks', deadline: 'clock' };
+const ICON: Record<string, string> = { done: 'check', assigned: 'tasks', deadline: 'clock', activity: 'users' };
 
 /** The bell: finished work you were part of, tasks for you, deadlines. */
 export function NotificationBell() {

@@ -24,6 +24,42 @@ def notify(users, kind, title, body='', link='', key=''):
         Notification.objects.create(user=u, kind=kind, title=title[:200], body=body[:500], link=link[:300], key=key[:120])
 
 
+def worked_by(entities):
+    """Per entity: who worked on it (audit log), most recent first."""
+    out = {}
+    rows = AuditLog.objects.filter(entity__in=[e for e in entities if e]).order_by('-created').values_list('entity', 'actor')
+    for entity, who in rows:
+        people = out.setdefault(entity, [])
+        if who not in people and who not in ('systeem', 'OneDrive', 'Advancingmail', ''):
+            people.append(who)
+    return out
+
+
+def summary(entity):
+    """'5 wijzigingen in 12 dagen door Bram, Shoroy' for the work on one thing."""
+    rows = list(AuditLog.objects.filter(entity=entity).order_by('created').values_list('actor', 'created'))
+    if len(rows) < 2:
+        return ''
+    names = {u.username: u.display_name for u in User.objects.all()}
+    people = list(dict.fromkeys(names.get(a, a) for a, _ in rows))
+    days = (timezone.now() - rows[0][1]).days
+    span = f'in {days} dagen' if days > 1 else 'vandaag' if days == 0 else 'in 2 dagen'
+    return f'{len(rows)} wijzigingen {span} door {", ".join(people)}.'
+
+
+def also(entity, actor, title, what='', link=''):
+    """Someone works on something another person worked on in the last two weeks:
+    tell those people, at most once a day per thing and person."""
+    since = timezone.now() - timedelta(days=14)
+    names = set(AuditLog.objects.filter(entity=entity, created__gte=since).exclude(actor=actor).values_list('actor', flat=True))
+    users = list(User.objects.filter(username__in=names, is_active=True))
+    if not users:
+        return
+    who = User.objects.filter(username=actor).first()
+    notify(users, 'activity', f'{who.display_name if who else actor} werkt ook aan: {title}'[:200], what, link,
+           key=f'also:{entity}:{actor}:{date.today().isoformat()}')
+
+
 def done(entities, actor, title, body='', link='', key=''):
     """Something is complete: tell everyone who worked on it, except the
     person who just finished it."""

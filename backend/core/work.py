@@ -42,7 +42,20 @@ def items_for(user):
         link = f'/events/{c.event_id}/content' if c.event_id else '/calendar'
         out.append({'kind': 'content', 'id': c.id, 'title': c.title, 'due': c.date, 'context': where, 'link': link, 'high': False, 'status': c.status})
     out.sort(key=lambda i: (i['due'] or '9999-99-99', not i['high'], i['title'].lower()))
-    return out
+    return with_people(out)
+
+
+def entity_of(item):
+    return f"ma:{item['id']}" if item['kind'] == 'action' else item['id']
+
+
+def with_people(items):
+    """Add who worked on each item (from the audit log), for the little avatars."""
+    from .notify import worked_by
+    seen = worked_by([entity_of(i) for i in items])
+    for i in items:
+        i['people'] = seen.get(entity_of(i), [])[:4]
+    return items
 
 
 @router.get('/my-work')
@@ -52,7 +65,15 @@ def my_work(request):
     week = (date.today() + timedelta(days=7)).isoformat()
     return {'items': items, 'focus': focus(request.auth),
             'counts': {'late': sum(1 for i in items if i['due'] and i['due'] < today),
-                       'week': sum(1 for i in items if i['due'] and today <= i['due'] <= week), 'all': len(items)}}
+                       'week': sum(1 for i in items if i['due'] and today <= i['due'] <= week), 'all': len(items),
+                       'done_month': done_this_month(request.auth.username)}}
+
+
+def done_this_month(username):
+    from .models import AuditLog
+    start = date.today().replace(day=1)
+    return AuditLog.objects.filter(actor=username, created__date__gte=start,
+                                   action__in=['Taak afgerond', 'Afgevinkt', 'Actiepunt afgevinkt']).values('entity').distinct().count()
 
 
 @router.get('/attention')
@@ -70,10 +91,10 @@ def attention(request):
         seed(e)
         steps = list(EventStep.objects.filter(event=e))
         open_steps = sorted((s for s in steps if not s.done), key=lambda s: due(s, e.date) or '9999')
-        top = [{'label': s.label, 'owner': names.get(s.owner, s.owner or 'Team'), 'due': due(s, e.date),
+        top = [{'id': s.id, 'label': s.label, 'owner': names.get(s.owner, s.owner or 'Team'), 'due': due(s, e.date),
                 'late': bool(due(s, e.date)) and due(s, e.date) < today.isoformat()} for s in open_steps[:3]]
         events.append({'id': e.id, 'name': e.name, 'date': e.date, 'venue': e.venue, 'days': (date.fromisoformat(e.date) - today).days,
-                       'steps': len(steps), 'done': sum(1 for s in steps if s.done),
+                       'steps': len(steps), 'done': sum(1 for s in steps if s.done), 'status': e.status, 'cover': bool(e.drive_id),
                        'late': sum(1 for s in open_steps if due(s, e.date) and due(s, e.date) < today.isoformat()), 'next': top})
     return {'events': events, 'meeting': next_meeting()}
 
@@ -92,4 +113,5 @@ def team_work(request):
                'link': '/tasks', 'high': t.priority == 'high'}
               for t in Task.objects.filter(done=False).prefetch_related('assignees') if not t.people()]
     nobody.sort(key=lambda i: i['due'] or '9999-99-99')
+    with_people(nobody)
     return {'people': people, 'unassigned': nobody}

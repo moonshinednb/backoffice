@@ -170,6 +170,13 @@ def step_update(ident, payload, actor):
             Task.objects.filter(id=s.task_id).update(done=s.done, dirty=True)
     s.save()
     audit(actor, 'Eventpunt bijgewerkt', s.event_id, s.label)
+    audit(actor, 'Afgevinkt' if payload.get('done') is True else 'Eventpunt bijgewerkt', s.id, s.event.name)
+    from core.notify import also, done, summary
+    link = f'/events/{s.event_id}'
+    if payload.get('done') is True:
+        done([s.id], str(actor), f'Afgerond: {s.label}', ' '.join(x for x in [s.event.name + '.', summary(s.id)] if x), link, key=f'stepdone:{s.id}')
+    else:
+        also(s.id, str(actor), f'{s.label} ({s.event.name})', '', link)
     return step_dict(s)
 
 

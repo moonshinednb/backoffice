@@ -115,6 +115,14 @@ def update_action(request, ident: int):
     a.save()
     if a.task_id:
         S.sync_task(a)
+    from core.notify import also, done, summary
+    from core.services import audit
+    who, entity = actor(request), f'ma:{a.id}'
+    audit(who, 'Actiepunt afgevinkt' if d.get('done') is True else 'Actiepunt gewijzigd', entity, a.text[:100])
+    if d.get('done') is True:
+        done([entity], who, f'Afgerond: {a.text[:150]}', summary(entity), f'/meetings/{a.meeting_id}', key=f'actiondone:{a.id}')
+    else:
+        also(entity, who, a.text[:150], '', f'/meetings/{a.meeting_id}')
     return S.action_dict(a)
 
 
@@ -132,4 +140,7 @@ def to_task(request, ident: int):
     if not a:
         raise HttpError(404, 'Actiepunt niet gevonden.')
     t = S.make_task(a, actor(request))
+    from core.services import audit
+    audit(actor(request), 'Taak gemaakt van actiepunt', f'ma:{a.id}', a.text[:100])
+    audit(actor(request), 'Taak gemaakt van actiepunt', t.id, a.text[:100])
     return {**S.action_dict(a), 'task_id': t.id, 'for': ', '.join(u.display_name for u in t.people()) or ''}

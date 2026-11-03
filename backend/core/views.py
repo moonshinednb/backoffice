@@ -240,8 +240,11 @@ def update_task(request, ident: str):
     added = [u for u in task.people() if u.id not in was_people]
     if added:
         assigned(task, who, added)
+    from .notify import also, summary
     if task.done and not was_done:
-        done([task.id], who, 'Taak afgerond', f'{task.title} (door {who})', '/taken', key=f'taskdone:{task.id}')
+        done([task.id], who, f'Afgerond: {task.title}', ' '.join(x for x in [f'Door {who}.', summary(task.id)] if x), '/tasks', key=f'taskdone:{task.id}')
+    elif 'title' in d and not task.done:
+        also(task.id, who, task.title, 'Taak gewijzigd (titel, deadline, wie of omschrijving).', '/tasks')
     return task_dict(task)
 
 

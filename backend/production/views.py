@@ -458,6 +458,24 @@ def event_file_upload(request, event_id: str, section: str = Form(...), file: Up
     return out
 
 
+@router.get('/events/{event_id}/cover')
+def event_cover(request, event_id: str):
+    """The event poster from the artwork folder on OneDrive (a thumbnail), for the overview."""
+    require(request, 'production')
+    from . import drive
+    from .models import Event
+    e = Event.objects.filter(id=event_id).first()
+    try:
+        data = drive.event_cover(e) if e else None
+    except Exception:  # OneDrive unreachable: the overview just shows no picture
+        data = None
+    if not data:
+        raise HttpError(404, 'Geen poster gevonden.')
+    response = HttpResponse(data, content_type='image/jpeg')
+    response['Cache-Control'] = 'private, max-age=3600'
+    return response
+
+
 @router.get('/events/{event_id}/files')
 def event_files(request, event_id: str, fresh: int = 0):
     """The event's OneDrive folder per section (finance, EPKs, riders, ...)."""
