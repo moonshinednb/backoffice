@@ -2,8 +2,9 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { api } from '../lib/api';
+import { can, useAuth } from '../lib/auth';
 import { fullDate, shortDate } from '../lib/format';
-import { Badge, Empty, ErrorBox, Icon, Loading, PageTitle, Tabs, formValues, useAction, useToast } from '../lib/ui';
+import { Badge, Empty, ErrorBox, Icon, Loading, Orb, PageTitle, Tabs, formValues, useAction, useToast } from '../lib/ui';
 import { DriveButton, FormDialog, useCanEdit } from './common';
 import { TaskDialog } from '../pages/Work';
 import { Task, useTasks, useUsers } from '../pages/shared';
@@ -141,8 +142,14 @@ function LabelArtists() {
 }
 
 function Statements({ rows }: { rows: Statement[] }) {
-  return <section className="card"><div className="card-head"><div><h2>LabelGrid-afrekeningen</h2><p>Alleen-lezen overzicht. Ophalen gaat via de LabelGrid-koppeling.</p></div></div>
+  const { user } = useAuth();
+  const qc = useQueryClient();
+  const run = useAction();
+  const [busy, setBusy] = useState(false);
+  const pull = () => { setBusy(true); run(async () => { await api('/label/pull', { method: 'POST' }); await qc.invalidateQueries({ queryKey: ['releases'] }); }, 'Afrekeningen opgehaald.').finally(() => setBusy(false)); };
+  return <section className="card"><div className="card-head"><div><h2>LabelGrid-afrekeningen</h2></div>
+    {can.admin(user) ? <button className="small" disabled={busy} onClick={pull}>{busy ? <Orb /> : <Icon name="refresh" />} Ophalen uit LabelGrid</button> : null}</div>
     {rows.length ? <div className="table-wrap"><table><thead><tr><th>Periode</th><th>Factuur</th><th>Status</th><th className="amount">Te ontvangen (USD)</th></tr></thead><tbody>
       {rows.map((s) => <tr key={s.id}><td>{s.period}</td><td>{s.invoice_number}</td><td>{s.status}</td><td className="amount">{Number(s.total_due_usd || 0).toFixed(2)}</td></tr>)}
-    </tbody></table></div> : <p className="helper card-pad-x">Nog geen afrekeningen opgehaald.</p>}</section>;
+    </tbody></table></div> : <p className="empty-line">{can.admin(user) ? 'Nog niets opgehaald. Stel de LabelGrid-koppeling in bij Admin en klik op Ophalen.' : 'Nog geen afrekeningen; een beheerder haalt ze op uit LabelGrid.'}</p>}</section>;
 }

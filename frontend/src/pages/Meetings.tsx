@@ -5,10 +5,10 @@ import { api } from '../lib/api';
 import { dayNumber, fullDate, monthShort, shortDate, today } from '../lib/format';
 import { BackLink, ErrorBox, Icon, Loading, Orb, PageTitle, formValues, useAction, useToast } from '../lib/ui';
 import { FormDialog, useCanEdit } from '../production/common';
+import { useTeam } from './shared';
 
 type Action = { id: number; meeting_id: string; meeting_date: string; owner: string; text: string; due: string; done: boolean; source: string; task_id: string };
 type Meeting = { id: string; date: string; title: string; drive_url: string; file_name: string; open: number; actions_count: number; read_at: number | null; extracted_at: number | null; text?: string; actions?: Action[] };
-const NAMES: Record<string, string> = { peppy: 'Pepijn', bram: 'Bram', shoroy: 'Shoroy' };
 
 function ActionRow({ a, onChange }: { a: Action; onChange: () => void }) {
   const run = useAction();
@@ -29,15 +29,17 @@ const SHOWN = 5;
 /** Open action points per person: one list per person, newest first. */
 export function ActionBoard() {
   const qc = useQueryClient();
+  const team = useTeam();
   const [all, setAll] = useState<Record<string, boolean>>({});
   const q = useQuery({ queryKey: ['meeting-board'], queryFn: () => api<{ actions: Action[] }>('/meetings/board') });
   const refresh = () => { for (const k of ['meeting-board', 'meeting', 'meetings', 'tasks', 'my-work']) qc.invalidateQueries({ queryKey: [k] }); };
   if (q.isPending) return <Loading />;
   const rows = q.data?.actions || [];
-  const cols: [string, string][] = [['peppy', 'Pepijn'], ['bram', 'Bram'], ['shoroy', 'Shoroy'], ['__other', 'Team']];
+  const known = new Set(team.map(([u]) => u));
+  const cols: [string, string][] = [...team.filter(([u]) => rows.some((a) => a.owner === u)), ['__other', 'Team']];
   return <section className="block"><div className="block-head"><h2>Open actiepunten</h2><span className="n">{rows.length || ''}</span></div>
     <div className="person-grid">{cols.map(([key, name]) => {
-      const mine = rows.filter((a) => key === '__other' ? !NAMES[a.owner] : a.owner === key);
+      const mine = rows.filter((a) => key === '__other' ? !known.has(a.owner) : a.owner === key);
       const shown = all[key] ? mine : mine.slice(0, SHOWN);
       return <div key={key} className="panel person-list"><h3>{name}<span>{mine.length}</span></h3>
         {mine.length ? <ul className="rows">{shown.map((a) => <ActionRow key={a.id} a={a} onChange={refresh} />)}</ul> : <p className="empty-line">Niets open.</p>}
@@ -45,10 +47,10 @@ export function ActionBoard() {
     })}</div></section>;
 }
 
-const OWNERS: [string, string][] = [['peppy', 'Pepijn'], ['bram', 'Bram'], ['shoroy', 'Shoroy'], ['', 'Team']];
 
 /** One action point of a single meeting: a small note in the side column. */
 function MiniAction({ a, onChange }: { a: Action; onChange: () => void }) {
+  const team = useTeam();
   const run = useAction();
   const edit = useCanEdit();
   const patch = (body: object) => run(async () => { await api(`/meeting-actions/${a.id}`, { method: 'PATCH', body }); onChange(); });
@@ -56,7 +58,7 @@ function MiniAction({ a, onChange }: { a: Action; onChange: () => void }) {
     <label><input type="checkbox" checked={a.done} disabled={!edit} onChange={(e) => patch({ done: e.target.checked })} /><span>{a.text}</span></label>
     <div className="mini-meta">
       <select value={a.owner} disabled={!edit} aria-label="Voor wie" onChange={(e) => patch({ owner: e.target.value })}>
-        {OWNERS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}{a.owner && !NAMES[a.owner] ? <option value={a.owner}>{a.owner}</option> : null}</select>
+        <option value="">Team</option>{team.map(([v, n]) => <option key={v} value={v}>{n}</option>)}{a.owner && !team.some(([v]) => v === a.owner) ? <option value={a.owner}>{a.owner}</option> : null}</select>
       {edit ? <input type="date" className={`due-input ${a.due ? '' : 'empty'}`} value={a.due || ''} aria-label="Deadline" title="Deadline" onChange={(e) => patch({ due: e.target.value })} />
         : a.due ? <small>{`voor ${shortDate(a.due)}`}</small> : null}
       {a.task_id ? <small className="act-task">In Taken</small> : edit ? <button className="text-link" onClick={() => run(async () => { const r = await api<{ for: string }>(`/meeting-actions/${a.id}/task`, { method: 'POST' }); onChange(); return r; }, (r) => r?.for ? `Staat nu bij Taken van ${r.for}.` : 'Staat nu bij Taken (nog niemand toegewezen).')}>Maak taak</button> : null}
@@ -134,6 +136,7 @@ export function MeetingsPage() {
 
 export function MeetingPage() {
   const { id = '' } = useParams();
+  const team = useTeam();
   const edit = useCanEdit();
   const qc = useQueryClient();
   const run = useAction();
@@ -165,7 +168,7 @@ export function MeetingPage() {
       <aside className="panel card-pad meeting-side"><div className="side-head"><h2>Actiepunten</h2>{actions.length ? <span>{`${m.open} open van ${actions.length}`}</span> : null}</div>
         {actions.length ? <ul className="mini-notes">{actions.map((a) => <MiniAction key={a.id} a={a} onChange={refresh} />)}</ul> : <p className="helper">Nog geen actiepunten. Klik op “Actiepunten eruit halen” of voeg er zelf een toe.</p>}
         {edit ? <form className="mini-add" onSubmit={(e) => { e.preventDefault(); const f = e.currentTarget; run(async () => { set(await api(`/meetings/${id}/actions`, { method: 'POST', body: formValues(f) })); f.reset(); }); }}>
-          <select name="owner" aria-label="Voor wie" defaultValue="peppy">{OWNERS.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select>
+          <select name="owner" aria-label="Voor wie" defaultValue=""><option value="">Team</option>{team.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select>
           <input name="text" required placeholder="Actiepunt" aria-label="Actiepunt" /><button className="primary small" type="submit" aria-label="Toevoegen"><Icon name="plus" /></button></form> : null}
       </aside>
     </div>

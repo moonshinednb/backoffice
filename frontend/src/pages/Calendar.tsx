@@ -6,6 +6,7 @@ import { api } from '../lib/api';
 import { locale } from '../lib/i18n';
 import { Icon, Loading, Modal, PageTitle, formValues, useAction, useToast } from '../lib/ui';
 import { FormDialog, useCanEdit } from '../production/common';
+import { useTeam } from './shared';
 
 type Item = { id: string; source: string; source_id: string; title: string; start: string; end: string; all_day: boolean; link: string; detail: string; location: string; editable?: boolean; kind?: string; categories?: string[] };
 export type Content = { id: string; event_id: string | null; event: string; release_id: string | null; release: string; title: string; kind: string; platforms: string[];
@@ -26,6 +27,7 @@ export function ContentDialog({ item, preset, open, onClose }: { item?: Content 
   const events = useQuery({ queryKey: ['events'], queryFn: () => api<{ events: { id: string; name: string; date: string }[] }>('/events'), enabled: open });
   const releases = useQuery({ queryKey: ['releases'], queryFn: () => api<{ releases: { id: string; title: string; catalog: string }[] }>('/releases'), enabled: open });
   const c = item || null;
+  const team = useTeam();
   return <FormDialog id="content-form" title={c ? 'Post bewerken' : 'Post plannen'} open={open} onClose={onClose} submit={async (form) => {
     const v = formValues(form);
     const platforms = PLATFORMS.filter((p) => (form.elements.namedItem('pf_' + p) as HTMLInputElement)?.checked);
@@ -41,7 +43,7 @@ export function ContentDialog({ item, preset, open, onClose }: { item?: Content 
       <div className="field"><label htmlFor="ct-time">Tijd</label><input id="ct-time" name="time" type="time" defaultValue={c?.time} /></div>
       <div className="field"><label htmlFor="ct-event">Event</label><select id="ct-event" name="event_id" defaultValue={c?.event_id || preset?.event_id || ''}><option value="">Geen</option>{(events.data?.events || []).map((e) => <option key={e.id} value={e.id}>{e.date} {e.name}</option>)}</select></div>
       <div className="field"><label htmlFor="ct-release">Release</label><select id="ct-release" name="release_id" defaultValue={c?.release_id || preset?.release_id || ''}><option value="">Geen</option>{(releases.data?.releases || []).map((r) => <option key={r.id} value={r.id}>{[r.catalog, r.title].filter(Boolean).join(' – ')}</option>)}</select></div>
-      <div className="field"><label htmlFor="ct-who">Wie maakt/post het</label><select id="ct-who" name="assignee" defaultValue={c?.assignee || ''}><option value="">Nog niemand</option><option value="peppy">Pepijn</option><option value="bram">Bram</option><option value="shoroy">Shoroy</option></select></div>
+      <div className="field"><label htmlFor="ct-who">Wie maakt/post het</label><select id="ct-who" name="assignee" defaultValue={c?.assignee || ''}><option value="">Nog niemand</option>{team.map(([v, n]) => <option key={v} value={v}>{n}</option>)}</select></div>
       <div className="field"><label htmlFor="ct-file">Bestand op OneDrive (link)</label><input id="ct-file" name="file_url" type="url" defaultValue={c?.file_url} placeholder="https://…sharepoint.com/…" /></div>
     </div>
     <fieldset className="check-group"><legend>Platforms</legend>{PLATFORMS.map((p) => <label key={p}><input type="checkbox" name={'pf_' + p} defaultChecked={c ? c.platforms.includes(p) : p === 'instagram'} /> {p}</label>)}</fieldset>
@@ -113,7 +115,7 @@ export function CalendarPage() {
     <p className="cal-foot">
       {q.data?.outlook_error ? <span className="cal-warn"><i aria-hidden="true" />Outlook niet bereikbaar</span> : q.data ? <span><i className="ok" aria-hidden="true" />{`Outlook: ${q.data.mailbox}`}</span> : null}
       {q.data && !q.data.sync ? <span>Synchronisatie naar Outlook staat uit</span> : null}
-      {q.data && (q.data.outlook_error || !q.data.sync) && can.admin(user) ? <Link className="text-link" to="/integrations">Koppelingen</Link> : null}
+      {q.data && (q.data.outlook_error || !q.data.sync) && can.admin(user) ? <Link className="text-link" to="/admin/integrations">Koppelingen</Link> : null}
       <span className="cal-tip">Dubbelklik op een dag om een post te plannen.</span>
     </p>
     <ContentDialog item={content || null} preset={{ date: presetDate }} open={content !== undefined} onClose={() => setContent(undefined)} />

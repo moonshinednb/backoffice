@@ -4,10 +4,10 @@ import { api } from '../lib/api';
 import { fullDate } from '../lib/format';
 import { Badge, Empty, Icon, Loading } from '../lib/ui';
 import { CONTENT_STATUS, Content, ContentDialog, KINDS } from '../pages/Calendar';
+import { useTeam } from '../pages/shared';
 import { useCanEdit } from './common';
 
 const STATUS_COLOR: Record<string, string> = { idea: '', making: 'blue', review: 'amber', ready: 'lime', posted: 'purple' };
-const NAMES: Record<string, string> = { peppy: 'Pepijn', bram: 'Bram', shoroy: 'Shoroy' };
 
 /** Promo planning for one event or release: what gets posted, when, by whom. */
 export function ContentPlan({ eventId, releaseId }: { eventId?: string; releaseId?: string }) {
@@ -15,6 +15,7 @@ export function ContentPlan({ eventId, releaseId }: { eventId?: string; releaseI
   const [item, setItem] = useState<Content | null | undefined>(undefined);
   const q = useQuery({ queryKey: ['content', eventId || releaseId], queryFn: () => api<{ content: Content[] }>(`/content?${eventId ? 'event_id=' + eventId : 'release_id=' + releaseId}`) });
   const kinds = Object.fromEntries(KINDS), statuses = Object.fromEntries(CONTENT_STATUS);
+  const NAMES = Object.fromEntries(useTeam());
   const button = edit ? <button className="small" onClick={() => setItem(null)}><Icon name="plus" /> Post plannen</button> : null;
   return <section className="card">
     <div className="card-head"><div><h2>Promo en content</h2><p>Reels, TikToks, announcements en posts. Staan ook in de agenda en in Outlook.</p></div>{button}</div>

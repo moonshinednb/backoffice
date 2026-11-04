@@ -72,3 +72,18 @@ class NextMeetingTests(ApiTests):
         Meeting.objects.create(id='m3', date=d(5), title='c')
         r = c.get('/api/meetings/next').json()['next']
         self.assertEqual((r['source'], r['meeting_id'], r['time']), ('planned', 'm3', '20:00'))
+
+
+class TeamTests(ApiTests):
+    def test_new_team_members_and_edits_survive(self):
+        from core.models import User
+        from meetings import services as S
+        User.objects.create(username='anne', first_name='Anne', role='staff')
+        self.assertEqual(S.owner_of('Anne'), 'anne')
+        self.assertEqual(S.owner_of('Pepijn'), 'peppy')
+        m = Meeting.objects.create(date='2030-01-06', text='x' * 300)
+        a = Action.objects.create(meeting=m, owner='', text='Flyers', source='ai')
+        c, _ = self.login('peppy', 'admin-pass-1')
+        self.send(c, 'patch', f'/api/meeting-actions/{a.id}', {'due': '2030-01-10'})
+        m.actions.filter(source='ai', done=False, task_id='').delete()
+        self.assertTrue(Action.objects.filter(id=a.id).exists())

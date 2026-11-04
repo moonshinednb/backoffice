@@ -13,6 +13,11 @@ export type Connection = { id: string; name: string; status: string; checked: nu
 export const useDocuments = (enabled = true) => useQuery({ queryKey: ['documents'], queryFn: () => api<{ documents: Doc[] }>('/documents?limit=2000'), enabled, refetchInterval: 20000 });
 export const useTasks = () => useQuery({ queryKey: ['tasks'], queryFn: () => api<{ tasks: Task[] }>('/tasks'), refetchInterval: 30000 });
 export const useUsers = () => useQuery({ queryKey: ['users'], queryFn: () => api<{ users: User[] }>('/users') });
+/** Everyone active in the team as [username, first name], for 'who' dropdowns and per-person lists. */
+export function useTeam(): [string, string][] {
+  const q = useUsers();
+  return (q.data?.users || []).filter((u) => u.active).map((u) => [u.username, u.name.split(' ')[0]] as [string, string]);
+}
 export const useConnections = () => useQuery({ queryKey: ['connections'], queryFn: () => api<{ connections: Connection[] }>('/connections') });
 
 const STATUS: Record<string, [string, string]> = { posted: ['Geboekt', 'lime'], review: ['Controle nodig', 'amber'], awaiting_ai: ['Wacht op AI', 'purple'], processing: ['Wordt verwerkt', 'blue'] };

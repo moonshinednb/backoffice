@@ -18,9 +18,27 @@ def template():
     return settings().get('meetings_template') or f'{root()}/Template vergaderingen Moonshine Label.docx'
 
 
+def team_names():
+    """Name (lowercase first name or username) -> username for everyone active, plus known nicknames."""
+    out = dict(NAMES)
+    for u in User.objects.filter(is_active=True):
+        out[u.username.lower()] = u.username
+        if u.first_name:
+            out[u.first_name.lower()] = u.username
+            out[u.first_name.split()[0].lower()] = u.username
+    return out
+
+
 def owner_of(name):
     n = (name or '').strip()
-    return NAMES.get(n.lower(), n if n.lower() not in ('', 'team', 'iedereen', 'allen', 'n/a') else '')
+    if n.lower() in ('', 'team', 'iedereen', 'allen', 'n/a'):
+        return ''
+    return team_names().get(n.lower(), n)
+
+
+def people_pattern():
+    names = sorted({k for k in team_names()} | {'iedereen', 'team', 'allen'}, key=len, reverse=True)
+    return '(' + '|'.join(re.escape(n) for n in names) + ')'
 
 
 def parse_date(text):
@@ -72,7 +90,7 @@ def read(m):
 PROMPT = '''Je krijgt de notulen van een teammeeting van Moonshine (een drum & bass label en eventorganisatie).
 Haal ALLE concrete actiepunten en taken eruit die na deze meeting gedaan moeten worden.
 Regels:
-- Wijs elk actiepunt toe aan één persoon als de tekst dat zegt of het duidelijk is (bijv. iemand bracht het punt in of neemt het op zich). Namen in het team: Pepijn, Bram, Shoroy, Wessel, Bert. Is het onduidelijk, gebruik "team".
+- Wijs elk actiepunt toe aan één persoon als de tekst dat zegt of het duidelijk is (bijv. iemand bracht het punt in of neemt het op zich). Namen in het team: {team}. Is het onduidelijk, gebruik "team".
 - Schrijf elke taak kort en concreet, als opdracht (max. 20 woorden), in het Nederlands.
 - Deadline alleen als die in de tekst staat (YYYY-MM-DD, de meeting was op {date}); anders null.
 - Verzin niets en neem geen agendapunten of mededelingen op die geen taak zijn.
@@ -82,11 +100,9 @@ NOTULEN:
 {text}'''
 
 
-PEOPLE = r'(Pepijn|Peppy|Bram|Shoroy|Shorrie|Wessel|Bert|Iedereen|Team|Allen)'
-
-
 def table_actions(lines):
     """A 'Wie / Actie / Deadline' table: Word cells arrive as separate lines."""
+    PEOPLE = people_pattern()
     out = []
     for i in range(len(lines) - 1):
         if lines[i].lower() == 'wie' and lines[i + 1].lower().startswith('actie'):
@@ -116,7 +132,7 @@ def heuristic(text):
         if m:
             out.append(('', m.group(1)))
             continue
-        m = re.match(r'(Pepijn|Bram|Shoroy|Wessel|Bert)\s*[:\-–]\s*(.+)', s, re.I)
+        m = re.match(people_pattern() + r'\s*[:\-–]\s*(.+)', s, re.I)
         if section and m:
             out.append((m.group(1), m.group(2)))
     return out
@@ -129,7 +145,8 @@ def extract(m, actor='systeem'):
         raise ValueError('Er staat nog te weinig in de notulen om actiepunten uit te halen.')
     try:
         from integrations.claude import complete_json
-        data = complete_json(PROMPT.format(date=m.date, text=body[:24000]))
+        team = ', '.join(sorted({(u.first_name or u.username).split()[0] for u in User.objects.filter(is_active=True)}))
+        data = complete_json(PROMPT.format(date=m.date, text=body[:24000], team=team))
         found = [(a.get('owner', ''), a.get('task', ''), a.get('due') or '') for a in data.get('actions', []) if isinstance(a, dict)]
         how = 'ai'
     except ValueError as e:

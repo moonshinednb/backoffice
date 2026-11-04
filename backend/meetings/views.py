@@ -112,6 +112,8 @@ def update_action(request, ident: int):
         a.text = str(d['text'] or '').strip()[:500] or a.text
     if 'due' in d:
         a.due = str(d['due'] or '')[:10]
+    if a.source == 'ai' and ({'owner', 'text', 'due'} & set(d)):
+        a.source = 'edited'  # a new extraction must not overwrite what someone changed by hand
     a.save()
     if a.task_id:
         S.sync_task(a)
